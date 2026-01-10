@@ -44,18 +44,17 @@ pub fn setup_term<'a>(
     let rst = Output::new(pins.rst_pin, Level::High, OutputConfig::default());
     let delay = Delay::new();
 
-    let spi_device = ExclusiveDevice::new(spi, cs, delay.clone()).unwrap();
-
+    let spi_device = ExclusiveDevice::new(spi, cs, delay).unwrap();
     let spi_interface = SPIInterface::new(spi_device, dc);
 
-    let mut driver = WeActStudio290BlackWhiteDriver::new(spi_interface, busy, rst, delay.clone());
+    let mut driver = WeActStudio290BlackWhiteDriver::new(spi_interface, busy, rst, delay);
     display.set_rotation(DisplayRotation::Rotate90);
     driver.init().unwrap();
 
     let config = EmbeddedBackendConfig {
         font_regular: fonts::MONO_10X20,
         flush_callback: Box::new(move |d| {
-            driver.fast_update(d).unwrap();
+            driver.full_update(d).unwrap();
         }),
         ..Default::default()
     };

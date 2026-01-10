@@ -1,9 +1,8 @@
 typ NAME="":
     typst watch {{ NAME }}
 
-esp:
-    cd ./memori-dev && cargo run --release
+dev LOG="debug":
+    cd ./memori-dev && ESP_LOG={{ LOG }} cargo run --release
 
 ios:
     cd ./memori-app && bun tauri ios dev "iPhone 17 Pro"
-
