@@ -1,6 +1,6 @@
 #![no_std]
-
 extern crate alloc;
+
 use alloc::boxed::Box;
 use display_interface_spi::SPIInterface;
 use embedded_hal_bus::spi::ExclusiveDevice;
@@ -12,20 +12,21 @@ use esp_hal::{
     spi::master::Spi,
 };
 use mousefood::{EmbeddedBackend, EmbeddedBackendConfig, fonts};
+use ratatui::Terminal;
 use weact_studio_epd::{
     WeActStudio290BlackWhiteDriver,
     graphics::{Display, DisplayRotation},
 };
 
-use ratatui::Terminal;
-/// Helper type for the display we are working with.
+/// Helper type for the WeActStudio display.
 pub type MemDisplay = Display<128, 296, 4736, weact_studio_epd::Color>;
 
-/// Helper type for the pseudo-terminal.
+/// Helper type for the Terminal.
 pub type MemTerm<'a> = Terminal<
     EmbeddedBackend<'a, Display<128, 296, 4736, weact_studio_epd::Color>, weact_studio_epd::Color>,
 >;
 
+/// Pins needed to initialize the terminal.
 pub struct MemTermInitPints {
     pub cs_pin: GPIO3<'static>,
     pub dc_pin: GPIO2<'static>,
@@ -33,6 +34,7 @@ pub struct MemTermInitPints {
     pub busy_pin: GPIO0<'static>,
 }
 
+/// Setup the terminal with the given SPI device and display.
 pub fn setup_term<'a>(
     spi: Spi<'static, Blocking>,
     display: &'a mut MemDisplay,
