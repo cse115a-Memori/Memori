@@ -1,4 +1,12 @@
 esp:
+typ NAME="":
+    typst watch {{ NAME }}
+
+esp:
+typ NAME="":
+    typst watch {{ NAME }}
+
+dev:
     cd ./memori-dev && cargo run --release
 
 ios:
