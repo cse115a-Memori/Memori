@@ -1,0 +1,9 @@
+pre-commit:
+  parallel: true
+  commands:
+    biome_fix:
+      glob: "**/*.{js,jsx,ts,tsx,json,css,scss,md,html}"
+      root: memori-app
+      exclude:
+      run: bunx just check
+      stage_fixed: true
