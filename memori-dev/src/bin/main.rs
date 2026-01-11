@@ -19,7 +19,7 @@ use esp_hal::timer::timg::TimerGroup;
 use esp_hal::{Blocking, clock::CpuClock};
 use esp_radio::ble::controller::BleConnector;
 use log::{debug, info, trace};
-use memori_dev::{MemTermInitPints, setup_term};
+use memori_dev::{MemTermInitPins, setup_term};
 use trouble_host::prelude::*;
 use weact_studio_epd::graphics::Display290BlackWhite;
 
@@ -85,7 +85,7 @@ async fn main(spawner: Spawner) -> () {
     .with_sck(sclk_pin)
     .with_mosi(mosi_pin);
 
-    let term_init_pins = MemTermInitPints {
+    let term_init_pins = MemTermInitPins {
         cs_pin: peripherals.GPIO3,
         dc_pin: peripherals.GPIO2,
         rst_pin: peripherals.GPIO1,
@@ -118,7 +118,7 @@ pub async fn hello_task() {
     reason = "The display needs a large frame buffer."
 )]
 /// The UI task for our application.
-pub async fn ui_task(spi: Spi<'static, Blocking>, term_init_pins: MemTermInitPints) {
+pub async fn ui_task(spi: Spi<'static, Blocking>, term_init_pins: MemTermInitPins) {
     info!("UI Task Begun!");
     let mut display = Display290BlackWhite::new();
     let mut term = setup_term(spi, &mut display, term_init_pins);

@@ -27,7 +27,7 @@ pub type MemTerm<'a> = Terminal<
 >;
 
 /// Pins needed to initialize the terminal.
-pub struct MemTermInitPints {
+pub struct MemTermInitPins {
     pub cs_pin: GPIO3<'static>,
     pub dc_pin: GPIO2<'static>,
     pub rst_pin: GPIO1<'static>,
@@ -38,7 +38,7 @@ pub struct MemTermInitPints {
 pub fn setup_term<'a>(
     spi: Spi<'static, Blocking>,
     display: &'a mut MemDisplay,
-    pins: MemTermInitPints,
+    pins: MemTermInitPins,
 ) -> MemTerm<'a> {
     let cs = Output::new(pins.cs_pin, Level::High, OutputConfig::default());
     let busy = Input::new(pins.busy_pin, InputConfig::default().with_pull(Pull::Up));
