@@ -1,0 +1,139 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.3.11/schema.json",
+  "root": true,
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on",
+        "useSortedKeys": "off", // JSON object keys
+        "useSortedProperties": "on" // CSS properties & nested rules
+      }
+    },
+    "enabled": true
+  },
+  "files": {
+    "includes": [
+      "**"
+      // "!.sst",
+    ]
+  },
+  "formatter": {
+    "attributePosition": "auto",
+    "enabled": true,
+    "formatWithErrors": false,
+    "bracketSameLine": false,
+    "lineEnding": "lf",
+    "lineWidth": 88
+  },
+  "css": {
+    "parser": {
+      "cssModules": true // parse CSS Modules syntax when present
+    },
+    "formatter": {
+      "enabled": true,
+      "indentStyle": "space",
+      "lineWidth": 88,
+      "quoteStyle": "single"
+    },
+    "linter": {
+      "enabled": true
+    },
+    "assist": {
+      "enabled": false
+    }
+  },
+  "html": {
+    "formatter": {
+      "enabled": true,
+      "bracketSameLine": false,
+      "selfCloseVoidElements": "always"
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "arrowParentheses": "asNeeded",
+      "bracketSameLine": false,
+      "quoteProperties": "asNeeded",
+      "quoteStyle": "single",
+      "jsxQuoteStyle": "double",
+      "semicolons": "asNeeded",
+      "trailingCommas": "es5"
+    }
+  },
+  "json": {
+    "formatter": {
+      "enabled": true,
+      "indentStyle": "space",
+      "indentWidth": 2, // only works with indentStyle = space
+      "trailingCommas": "none",
+      "expand": "always"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      // CSS-focused tuning (applies when linting .css)
+      "a11y": {
+        "useGenericFontNames": "error"
+      },
+      "correctness": {
+        "noUnknownProperty": "error",
+        "noUnknownUnit": "error",
+        "noMissingVarFunction": "error",
+        "noInvalidGridAreas": "error"
+      },
+      "suspicious": {
+        "noDuplicateProperties": "error",
+        "noUnknownAtRules": "warn",
+        "noEmptyBlock": "warn"
+      },
+      "style": {
+        "noDescendingSpecificity": "warn"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "**/*.svelte",
+        "**/*.astro"
+      ],
+      "formatter": {
+        "enabled": false
+      },
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedImports": "off",
+            "noUnusedVariables": "off"
+          },
+          "nursery": {
+            "useSortedClasses": "error"
+          },
+          "style": {
+            "useConst": "off",
+            "useImportType": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "**/*.css"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noUnknownAtRules": "off" // allows @custom-variant, @theme, @apply in these files
+          }
+        }
+      }
+    }
+  ],
+  "vcs": {
+    "clientKind": "git",
+    "enabled": true,
+    "useIgnoreFile": true
+  }
+}

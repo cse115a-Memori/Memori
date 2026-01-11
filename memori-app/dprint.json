@@ -1,0 +1,42 @@
+{
+  "typescript": {
+    "useTabs": false,
+    "semiColons": "asi",
+    "indentWidth": 2,
+    "quoteStyle": "preferSingle",
+    "objectExpression.preferSingleLine": false,
+    "trailingCommas": "never",
+    "module.sortImportDeclarations": "maintain",
+    "importDeclaration.forceSingleLine": true
+  },
+  "json": {
+    "indentWidth": 2,
+    "useTabs": true
+  },
+  "markdown": {},
+  "malva": {},
+  "markup": {
+    "useTabs": true,
+    "indentWidth": 4,
+    "quotes": "double",
+    "formatComments": true,
+    "preferAttrsSingleLine": false,
+    "component.selfClosing": true,
+    "svg.selfClosing": true,
+    "strictSvelteAttr": false,
+    "svelte.scriptIndent": true,
+    "svelte.styleIndent": true,
+    "svelteAttrShorthand": true,
+    "svelteDirectiveShorthand": true
+  },
+  "includes": [
+    "**/*.{svelte,astro}"
+  ],
+  "plugins": [
+    "https://plugins.dprint.dev/typescript-0.93.3.wasm",
+    "https://plugins.dprint.dev/json-0.19.4.wasm",
+    "https://plugins.dprint.dev/markdown-0.17.8.wasm",
+    "https://plugins.dprint.dev/g-plane/malva-v0.11.1.wasm",
+    "https://plugins.dprint.dev/g-plane/markup_fmt-v0.18.0.wasm"
+  ]
+}
