@@ -11,11 +11,17 @@ use bt_hci::controller::ExternalController;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
 use esp_backtrace as _;
-use esp_hal::clock::CpuClock;
+
+use esp_hal::spi;
+use esp_hal::spi::master::Spi;
+use esp_hal::time::Rate;
 use esp_hal::timer::timg::TimerGroup;
+use esp_hal::{Blocking, clock::CpuClock};
 use esp_radio::ble::controller::BleConnector;
-use log::info;
+use log::{debug, info, trace};
+use memori_dev::{MemTermInitPints, setup_term};
 use trouble_host::prelude::*;
+use weact_studio_epd::graphics::Display290BlackWhite;
 
 extern crate alloc;
 
@@ -31,7 +37,7 @@ esp_bootloader_esp_idf::esp_app_desc!();
     reason = "it's not unusual to allocate larger buffers etc. in main"
 )]
 #[esp_rtos::main]
-async fn main(spawner: Spawner) -> ! {
+async fn main(spawner: Spawner) -> () {
     // generator version: 1.1.0
 
     esp_println::logger::init_logger_from_env();
@@ -39,9 +45,14 @@ async fn main(spawner: Spawner) -> ! {
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
 
+    //NOTE: Need to check exactly how much memory we should use / if this
+    // will suffice
     esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 66320);
     // COEX needs more RAM - so we've added some more
-    esp_alloc::heap_allocator!(size: 64 * 1024);
+    // esp_alloc::heap_allocator!(size: 64 * 1024);
+    // shit ton of memory alloc
+    // esp_alloc::heap_allocator!(#[unsafe(link_section = ".dram2_uninit")] size: 66320);
+    esp_alloc::heap_allocator!(size: 170* 1024);
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     let sw_interrupt =
@@ -61,13 +72,65 @@ async fn main(spawner: Spawner) -> ! {
         HostResources::new();
     let _stack = trouble_host::new(ble_controller, &mut resources);
 
-    // TODO: Spawn some tasks
-    let _ = spawner;
+    let mosi_pin = peripherals.GPIO10;
+    let sclk_pin = peripherals.GPIO8;
 
-    loop {
-        info!("Hello world!");
-        Timer::after(Duration::from_secs(1)).await;
-    }
+    let spi_bus = Spi::new(
+        peripherals.SPI2,
+        spi::master::Config::default()
+            .with_frequency(Rate::from_khz(100))
+            .with_mode(spi::Mode::_0),
+    )
+    .expect("Failed to create SPI bus")
+    .with_sck(sclk_pin)
+    .with_mosi(mosi_pin);
+
+    let term_init_pins = MemTermInitPints {
+        cs_pin: peripherals.GPIO3,
+        dc_pin: peripherals.GPIO2,
+        rst_pin: peripherals.GPIO1,
+        busy_pin: peripherals.GPIO0,
+    };
+
+    spawner
+        .spawn(hello_task())
+        .expect("Failed to begin hello_task");
+
+    spawner
+        .spawn(ui_task(spi_bus, term_init_pins))
+        .expect("Failed to begin ui_task");
 
     // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/esp-hal-v~1.0/examples
+}
+
+// This is an example of how to create a task.
+#[embassy_executor::task]
+pub async fn hello_task() {
+    loop {
+        info!("Hello everyone!");
+        Timer::after(Duration::from_secs(1)).await;
+    }
+}
+
+#[embassy_executor::task]
+#[allow(
+    clippy::large_stack_frames,
+    reason = "The display needs a large frame buffer."
+)]
+/// The UI task for our application.
+pub async fn ui_task(spi: Spi<'static, Blocking>, term_init_pins: MemTermInitPints) {
+    info!("UI Task Begun!");
+    let mut display = Display290BlackWhite::new();
+    let mut term = setup_term(spi, &mut display, term_init_pins);
+    debug!("initialized terminal");
+
+    loop {
+        trace!("render frame");
+        term.draw(|f| {
+            f.render_widget("Hello world!", f.area());
+        })
+        .unwrap();
+        // how often the display updates
+        Timer::after_secs(1).await;
+    }
 }
