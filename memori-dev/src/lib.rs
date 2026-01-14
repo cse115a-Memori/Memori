@@ -56,7 +56,8 @@ pub fn setup_term<'a>(
     let config = EmbeddedBackendConfig {
         font_regular: fonts::MONO_10X20,
         flush_callback: Box::new(move |d| {
-            driver.full_update(d).unwrap();
+            // driver.full_update(d).unwrap();
+            driver.fast_update(d).unwrap();
         }),
         ..Default::default()
     };

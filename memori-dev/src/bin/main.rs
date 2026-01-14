@@ -7,6 +7,7 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
+use alloc::format;
 use bt_hci::controller::ExternalController;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
@@ -112,25 +113,28 @@ pub async fn hello_task() {
     }
 }
 
+/// The UI task for our application.
 #[embassy_executor::task]
 #[allow(
     clippy::large_stack_frames,
     reason = "The display needs a large frame buffer."
 )]
-/// The UI task for our application.
 pub async fn ui_task(spi: Spi<'static, Blocking>, term_init_pins: MemTermInitPins) {
     info!("UI Task Begun!");
     let mut display = Display290BlackWhite::new();
     let mut term = setup_term(spi, &mut display, term_init_pins);
     debug!("initialized terminal");
+    let mut i = 0;
 
     loop {
+        let string = format!("Hello world! {i}");
         trace!("render frame");
         term.draw(|f| {
-            f.render_widget("Hello world!", f.area());
+            f.render_widget(string, f.area());
         })
         .unwrap();
+        i += 1;
         // how often the display updates
-        Timer::after_secs(1).await;
+        // Timer::after_secs(1).await;
     }
 }
