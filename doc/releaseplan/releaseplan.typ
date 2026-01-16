@@ -11,13 +11,11 @@ Names: Surendra Jammishetti, Julian Montano, Preston Clayton, Kenric Tee, (Caina
 
 == 1. High-Level Goals
 
-Describe the top-level goals for this release. Each goal may map to one or more user stories.
-
+// Describe the top-level goals for this release. Each goal may map to one or more user stories.
 A bluetooth connected E-Ink device that can display user widjets.
 
 - *Goal 1:* \
-  A standalone embedded device that can connect to a user's phone using bluetooth, that drives an E-Ink display.
-
+ A standalone embedded device that can connect to a user's phone using bluetooth, that drives an E-Ink display.
 
 - *Goal 2:* \
   An application framework that can communicate with the embedded device, communicating with it to convey useful information.
@@ -33,45 +31,51 @@ Each user story must:
 - Follow the format: \
   _As a {user role}, I want {goal} [so that {reason}]._
 - Have a priority, assigned to sprint, include point estimate
+  - high, medium, low
+- Assign story points based on difficulty/complexity
 - Meet INVEST criteria (independent, negotiable,
 valuable, estimatable, sized appropriately, and testable)
 
+-- julian wrote things under this??
+
 Each user story should have a unique identifier (e.g., `US-01`, `AUTH-03`).
 
-fib: 1, 1, 2, 3, 5, 8, 13
+fib: 1, 1, 2, 3, 5, 8, 13, 21
 
 check soonest arriving bus and displays which bus (19, 11, 18, etc) and time until arrival in minutes.
 canvas integration
 ucsc dining
 ```
 
-=== Sprint 1
+=== Sprint 1, 42 pts
++ {High} User Story 1.1 [21]: As a application user, I want to be able to connect to my Memori device using bluetooth via simulator / desktop.
++ {High} User Story 1.2 [8]: As a user, I want a clear and intuitive interface to interact with the Memori device through my phone.
++ {Medium} User Story 1.3 [8]: As a device owner, I want to be able to display simple widgets, such as time or weather on my Memori device.
++ {Low} User Story 2.4 [5]: As a user, I want to have a dark mode for the display.
 
-Sprint 1
-- {priority} User story 1.1 [story points]: As a {user role}, I want {goal} [so that {reason}].
-- {priority} User story 1.2 [story points]
-...
-- {priority} Unser story 1.N1 [story points]
+=== Sprint 2, 34 pts
 
-=== Sprint 2
++ {High} User Story 2.1 [8]: As a application user, I want to be able to connect to my Memori device using bluetooth from a mobile device.
++ {High} User Story 2.2 [8]: As a developer, I would want to see my github statistics on the Memori device.
++ {Medium} User Story 2.2 [13]: As a student, I would want to see my canvas assignments on the Memori device.
++ {Medium} User Story 2.3 [5]: As an efficiency seeking user, I want to be able to display multiple widgets on my device at once.
 
-=== Sprint 3
+=== Sprint 3, 47 pts
++ {High} User Story 3.1 [34]: As an application user I want to be able to write custom widgets and fetch custom data to customize the functionality of my device.
++ {Medium} User Story 3.2 [8]: As a user, I would like sound notifications for when certain widget information changes.
++ {Medium} User Story 3.3 [5]: As a device owner, I want to be able to have a battery enabled device that I can charge with usb-c.
 
+=== Sprint 4, 42 pts
++ {High} User Story 4.2 [34]: As a user, I need the device to be compact enough to carry with me and has a protective case.
++ {Medium} User Story 4.3 [8]: As a user, I need the device to stay powered for at least a week.
 
 == 3. Sanity Check
-
-=== Team Capacity
-- *Number of team members:* 5
-- *Estimated velocity per sprint (story points):*
-- *Total sprint capacity:*
-
-=== Planned Work
-- *Total story points in release:*
-- *Story points per sprint:*
-  - Sprint 1:
-  - Sprint 2:
-  - Sprint 3:
-  - Sprint 4 (if applicable):
+--
+We believe that this release plan is reasonable and well within our team's capacity. We specifically chose to
+put the bulk of our work in sprints 1 and 2 so that we have plenty of time later in the development cycle to address any unforeseen issues or challenges.
+Sprint 2 will occur during many of our midterms, and the effort required reflects this added burden. The same goes for Sprint 4 for finals week. We would be
+able to divide the work evenly across the team for each user story.
+--
 
 === Considerations
 - Infrastructure/setup tasks included? [ ] Yes [ ] No
@@ -83,19 +87,8 @@ Sprint 1
 Is the plan realistic? Is the workload balanced across sprints?
 
 == 4. Product Backlog (Not in This Release)
-
-High-level goals and user stories discussed but not included in this release.
-
-| Priority | User Story ID | User Story / Goal | Notes |
-|----------|---------------|-------------------|-------|
-|          |               |                   |       |
-|          |               |                   |       |
-|          |               |                   |       |
-
-== 5. Notes & Revision History
-
-- Additional notes, assumptions, or changes after sprint reviews.
-
-=== Document History
-- *Created:*
-- *Last Modified:*
+- Usermade Widget Marketplace.
+- Internet Speed Test.
+- Phone Screen Time.
+- Tomogachi widget.
+- Widget showing amount of nearby devices.
