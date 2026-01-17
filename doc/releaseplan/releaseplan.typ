@@ -1,51 +1,29 @@
 = Release Plan
 
-Names: Surendra Jammishetti, Julian Montano, Preston Clayton, Kenric Tee, (Cainan)
-
-- *Product Name:* Memori
-- *Team Name:* (Undecided)
-- *Release Name:* 1.0 Doom
-- *Release Date:* TBA
-- *Revision Number:* TBA
-- *Revision Date:* TBA
+Names: Surendra Jammishetti, Julian Montano, Preston Clayton, Kenric Tee, Cainan Enneking
+- *Product Name:* MEM_XOR1
+- *Team Name:* Memori
+- *Release Name:* UNIT-00
+- *Release Date:* 3/20/2026
+- *Revision Number:* 1.0.0
+- *Revision Date:* 3/20/2026
 
 == 1. High-Level Goals
 
 // Describe the top-level goals for this release. Each goal may map to one or more user stories.
-A bluetooth connected E-Ink device that can display user widjets.
-
 - *Goal 1:* \
- A standalone embedded device that can connect to a user's phone using bluetooth, that drives an E-Ink display.
+ A standalone embedded device that can connect to a user's phone using bluetooth, and drives an E-Ink display.
 
 - *Goal 2:* \
   An application framework that can communicate with the embedded device, communicating with it to convey useful information.
 
 - *Goal 3:* \
-  An efficient and intuitive user interface that can be used configure the widgets displayed on the embedded device, as well as being highly customizable.
+  An efficient and intuitive user interface that can be used configure highly customizable widgets displayed on the embedded device.
 
+- *Goal 4:* \
+  The device should be in a portable form factor with a compact design and long lasting battery life.
 
 == 2. User Stories Defining the Scope of the Release
-
-```instructions
-Each user story must:
-- Follow the format: \
-  _As a {user role}, I want {goal} [so that {reason}]._
-- Have a priority, assigned to sprint, include point estimate
-  - high, medium, low
-- Assign story points based on difficulty/complexity
-- Meet INVEST criteria (independent, negotiable,
-valuable, estimatable, sized appropriately, and testable)
-
--- julian wrote things under this??
-
-Each user story should have a unique identifier (e.g., `US-01`, `AUTH-03`).
-
-fib: 1, 1, 2, 3, 5, 8, 13, 21
-
-check soonest arriving bus and displays which bus (19, 11, 18, etc) and time until arrival in minutes.
-canvas integration
-ucsc dining
-```
 
 === Sprint 1, 42 pts
 + {High} User Story 1.1 [21]: As a application user, I want to be able to connect to my Memori device using bluetooth via simulator / desktop.
@@ -66,25 +44,22 @@ ucsc dining
 + {Medium} User Story 3.3 [5]: As a device owner, I want to be able to have a battery enabled device that I can charge with usb-c.
 
 === Sprint 4, 42 pts
-+ {High} User Story 4.2 [34]: As a user, I need the device to be compact enough to carry with me and has a protective case.
-+ {Medium} User Story 4.3 [8]: As a user, I need the device to stay powered for at least a week.
++ {High} User Story 4.1 [34]: As a user, I need the device to be compact enough to carry with me and has a protective case.
++ {Medium} User Story 4.2 [8]: As a user, I need the device to stay powered for at least a week.
 
 == 3. Sanity Check
---
+
+=== Considerations
+- Infrastructure/setup tasks included? [x] Yes [ ] No
+- Technical spikes included? [x] Yes [ ] No
+- Holidays accounted for? [x] Yes [ ] No
+- Midterms/exams accounted for? [x] Yes [ ] No
+
 We believe that this release plan is reasonable and well within our team's capacity. We specifically chose to
 put the bulk of our work in sprints 1 and 2 so that we have plenty of time later in the development cycle to address any unforeseen issues or challenges.
 Sprint 2 will occur during many of our midterms, and the effort required reflects this added burden. The same goes for Sprint 4 for finals week. We would be
 able to divide the work evenly across the team for each user story.
---
 
-=== Considerations
-- Infrastructure/setup tasks included? [ ] Yes [ ] No
-- Technical spikes included? [ ] Yes [ ] No
-- Holidays accounted for? [ ] Yes [ ] No
-- Midterms/exams accounted for? [ ] Yes [ ] No
-
-*Assessment:* \
-Is the plan realistic? Is the workload balanced across sprints?
 
 == 4. Product Backlog (Not in This Release)
 - Usermade Widget Marketplace.
