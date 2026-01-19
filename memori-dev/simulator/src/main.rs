@@ -1,14 +1,8 @@
-use embedded_graphics::{
-    mono_font::{
-        MonoTextStyle,
-        ascii::{FONT_6X9, FONT_10X20},
-    },
-    pixelcolor::BinaryColor,
-    prelude::*,
-    text::Text,
-};
-use embedded_graphics_simulator::{OutputSettings, SimulatorDisplay, Window};
-use profont::{PROFONT_12_POINT, PROFONT_18_POINT};
+use embedded_graphics::{pixelcolor::BinaryColor, prelude::*};
+use embedded_graphics_simulator::{OutputSettings, SimulatorDisplay, SimulatorEvent, Window};
+use memori::{Memori, MemoriState};
+use mousefood::{EmbeddedBackend, EmbeddedBackendConfig};
+use ratatui::Terminal;
 
 fn main() -> Result<(), std::convert::Infallible> {
     let mut simulator_window = Window::new(
@@ -20,22 +14,41 @@ fn main() -> Result<(), std::convert::Infallible> {
     );
 
     let mut display = SimulatorDisplay::<BinaryColor>::new(Size::new(296, 128));
-    let text_style = MonoTextStyle::new(&PROFONT_18_POINT, BinaryColor::On);
-    let mut i = 0;
 
     simulator_window.set_max_fps(1);
 
-    loop {
-        display.clear(BinaryColor::Off)?;
-        Text::new(&format!("Hello World {i}"), Point::new(0, 18), text_style).draw(&mut display)?;
-        i += 1;
-
-        simulator_window.update(&display);
-
-        for event in simulator_window.events() {
-            if event == embedded_graphics_simulator::SimulatorEvent::Quit {
-                return Ok(());
+    let backend_config = EmbeddedBackendConfig {
+        font_regular: memori::FONT_REGULAR,
+        font_bold: memori::FONT_BOLD,
+        font_italic: memori::FONT_ITALIC,
+        // Define how to display newly rendered widgets to the simulator window
+        flush_callback: Box::new(move |display| {
+            simulator_window.update(display);
+            if simulator_window.events().any(|e| e == SimulatorEvent::Quit) {
+                panic!("simulator window closed");
             }
+        }),
+        ..Default::default()
+    };
+    let backend: EmbeddedBackend<SimulatorDisplay<_>, _> =
+        EmbeddedBackend::new(&mut display, backend_config);
+
+    // Start ratatui with our simulator backend
+    let term = Terminal::new(backend).expect("something went wrong");
+
+    let mut memori = Memori::new(term);
+    let mut mem_state = MemoriState::default();
+
+    loop {
+        memori
+            .update(&mem_state)
+            .expect("should have been successfull");
+
+        match mem_state {
+            MemoriState::Example(ref mut cont) => cont.i += 1,
         }
+
+        // thread sleep so it doesnt busy loop
+        std::thread::sleep(std::time::Duration::from_millis(30));
     }
 }

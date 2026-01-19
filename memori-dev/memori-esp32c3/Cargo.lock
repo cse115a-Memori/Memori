@@ -1376,6 +1376,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f52b00d39961fc5b2736ea853c9cc86238e165017a493d1d5c8eac6bdc4cc273"
 
 [[package]]
+name = "memori"
+version = "0.1.0"
+dependencies = [
+ "embedded-graphics",
+ "log",
+ "profont",
+ "ratatui",
+]
+
+[[package]]
 name = "memori-esp32c3"
 version = "0.1.0"
 dependencies = [
@@ -1396,7 +1406,9 @@ dependencies = [
  "esp-radio",
  "esp-rtos",
  "log",
+ "memori",
  "mousefood",
+ "profont",
  "ratatui",
  "smoltcp",
  "static_cell",
@@ -1556,6 +1568,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "535d180e0ecab6268a3e718bb9fd44db66bbbc256257165fc699dadf70d16fe7"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "profont"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "016681370a9dd6e7ddb4c1a959922fd59dc45e5ebaa5ff5b13090267898ced34"
+dependencies = [
+ "embedded-graphics",
 ]
 
 [[package]]

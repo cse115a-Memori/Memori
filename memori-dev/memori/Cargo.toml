@@ -4,4 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-ratatui={workspace = true}
+embedded-graphics = "0.8.1"
+log = "0.4.29"
+profont = "0.7.0"
+ratatui = { version = "0.30.0" ,default-features = false }

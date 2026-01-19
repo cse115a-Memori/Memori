@@ -7,10 +7,9 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
-use alloc::format;
 use bt_hci::controller::ExternalController;
 use embassy_executor::Spawner;
-use embassy_time::{Duration, Timer};
+use embassy_time::{Duration, Instant, Timer};
 use esp_backtrace as _;
 
 use esp_hal::spi;
@@ -19,7 +18,8 @@ use esp_hal::time::Rate;
 use esp_hal::timer::timg::TimerGroup;
 use esp_hal::{Blocking, clock::CpuClock};
 use esp_radio::ble::controller::BleConnector;
-use log::{debug, info, trace};
+use log::{info, trace};
+use memori::{Memori, MemoriState};
 use memori_esp32c3::{MemTermInitPins, setup_term};
 use trouble_host::prelude::*;
 use weact_studio_epd::graphics::Display290BlackWhite;
@@ -38,7 +38,7 @@ esp_bootloader_esp_idf::esp_app_desc!();
     reason = "it's not unusual to allocate larger buffers etc. in main"
 )]
 #[esp_rtos::main]
-async fn main(spawner: Spawner) -> ! {
+async fn main(spawner: Spawner) -> () {
     // generator version: 1.1.0
 
     esp_println::logger::init_logger_from_env();
@@ -98,11 +98,6 @@ async fn main(spawner: Spawner) -> ! {
         .spawn(ui_task(spi_bus, term_init_pins))
         .expect("Failed to begin ui_task");
 
-    loop {
-        info!("Hello world!");
-        Timer::after(Duration::from_secs(1)).await;
-    }
-
     // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/esp-hal-v~1.0/examples
 }
 
@@ -124,19 +119,22 @@ pub async fn hello_task() {
 pub async fn ui_task(spi: Spi<'static, Blocking>, term_init_pins: MemTermInitPins) {
     info!("UI Task Begun!");
     let mut display = Display290BlackWhite::new();
-    let mut term = setup_term(spi, &mut display, term_init_pins);
-    debug!("initialized terminal");
-    let mut i = 0;
+    let term = setup_term(spi, &mut display, term_init_pins);
+    let mut memori = Memori::new(term);
+    let mut mem_state = MemoriState::default();
 
     loop {
-        let string = format!("Hello world! {i}");
-        trace!("render frame");
-        term.draw(|f| {
-            f.render_widget(string, f.area());
-        })
-        .unwrap();
-        i += 1;
-        // how often the display updates
-        // Timer::after_secs(1).await;
+        let instant = Instant::now();
+        memori
+            .update(&mem_state)
+            .expect("should have been successfull");
+
+        let frame_time = instant.elapsed();
+
+        trace!("frame time: {:?}ms", frame_time.as_millis());
+
+        match mem_state {
+            MemoriState::Example(ref mut cont) => cont.i += 1,
+        }
     }
 }
