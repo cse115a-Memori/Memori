@@ -1,5 +1,6 @@
 <script lang="ts">
-	import './layout.css'
+	import '../app.css'
+  import Button from '$lib/components/ui/button/button.svelte'
 
   const { children } = $props()
 </script>
