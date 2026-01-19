@@ -36,6 +36,9 @@
                 SDL2
                 pkg-config
                 libiconv
+
+                esp-generate
+
               ]
               ++ (with typstPackages; [
                 # Typst packages

@@ -1,0 +1,9 @@
+[submodule "vendor/mousefood"]
+	path = vendor/mousefood
+	url = git@github.com:suri-codes/mousefood.git
+[submodule "vendor/ratatui"]
+	path = vendor/ratatui
+	url = git@github.com:suri-codes/ratatui.git
+[submodule "vendor/kasuari"]
+	path = vendor/kasuari
+	url = git@github.com:suri-codes/kasuari.git
