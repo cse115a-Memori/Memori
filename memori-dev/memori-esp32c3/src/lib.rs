@@ -11,7 +11,7 @@ use esp_hal::{
     peripherals::{GPIO0, GPIO1, GPIO2, GPIO3},
     spi::master::Spi,
 };
-use mousefood::{EmbeddedBackend, EmbeddedBackendConfig, fonts};
+use mousefood::{EmbeddedBackend, EmbeddedBackendConfig};
 use ratatui::Terminal;
 use weact_studio_epd::{
     WeActStudio290BlackWhiteDriver,
@@ -54,7 +54,9 @@ pub fn setup_term<'a>(
     driver.init().unwrap();
 
     let config = EmbeddedBackendConfig {
-        font_regular: fonts::MONO_10X20,
+        font_regular: memori::FONT_REGULAR,
+        font_bold: memori::FONT_BOLD,
+        font_italic: memori::FONT_ITALIC,
         flush_callback: Box::new(move |d| {
             // driver.full_update(d).unwrap();
             driver.fast_update(d).unwrap();

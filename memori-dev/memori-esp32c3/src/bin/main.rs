@@ -7,10 +7,9 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
-use alloc::format;
 use bt_hci::controller::ExternalController;
 use embassy_executor::Spawner;
-use embassy_time::{Duration, Timer};
+use embassy_time::{Duration, Instant, Timer};
 use esp_backtrace as _;
 
 use esp_hal::spi;
@@ -19,8 +18,9 @@ use esp_hal::time::Rate;
 use esp_hal::timer::timg::TimerGroup;
 use esp_hal::{Blocking, clock::CpuClock};
 use esp_radio::ble::controller::BleConnector;
-use log::{debug, info, trace};
-use memori_dev::{MemTermInitPins, setup_term};
+use log::{info, trace};
+use memori::{Memori, MemoriState};
+use memori_esp32c3::{MemTermInitPins, setup_term};
 use trouble_host::prelude::*;
 use weact_studio_epd::graphics::Display290BlackWhite;
 
@@ -46,14 +46,9 @@ async fn main(spawner: Spawner) -> () {
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
 
-    //NOTE: Need to check exactly how much memory we should use / if this
-    // will suffice
     esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 66320);
     // COEX needs more RAM - so we've added some more
-    // esp_alloc::heap_allocator!(size: 64 * 1024);
-    // shit ton of memory alloc
-    // esp_alloc::heap_allocator!(#[unsafe(link_section = ".dram2_uninit")] size: 66320);
-    esp_alloc::heap_allocator!(size: 170* 1024);
+    esp_alloc::heap_allocator!(size: 170 * 1024);
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     let sw_interrupt =
@@ -72,6 +67,8 @@ async fn main(spawner: Spawner) -> () {
     let mut resources: HostResources<DefaultPacketPool, CONNECTIONS_MAX, L2CAP_CHANNELS_MAX> =
         HostResources::new();
     let _stack = trouble_host::new(ble_controller, &mut resources);
+
+    // TODO: Spawn some tasks
 
     let mosi_pin = peripherals.GPIO10;
     let sclk_pin = peripherals.GPIO8;
@@ -122,19 +119,22 @@ pub async fn hello_task() {
 pub async fn ui_task(spi: Spi<'static, Blocking>, term_init_pins: MemTermInitPins) {
     info!("UI Task Begun!");
     let mut display = Display290BlackWhite::new();
-    let mut term = setup_term(spi, &mut display, term_init_pins);
-    debug!("initialized terminal");
-    let mut i = 0;
+    let term = setup_term(spi, &mut display, term_init_pins);
+    let mut memori = Memori::new(term);
+    let mut mem_state = MemoriState::default();
 
     loop {
-        let string = format!("Hello world! {i}");
-        trace!("render frame");
-        term.draw(|f| {
-            f.render_widget(string, f.area());
-        })
-        .unwrap();
-        i += 1;
-        // how often the display updates
-        // Timer::after_secs(1).await;
+        let instant = Instant::now();
+        memori
+            .update(&mem_state)
+            .expect("should have been successfull");
+
+        let frame_time = instant.elapsed();
+
+        trace!("frame time: {:?}ms", frame_time.as_millis());
+
+        match mem_state {
+            MemoriState::Example(ref mut cont) => cont.i += 1,
+        }
     }
 }

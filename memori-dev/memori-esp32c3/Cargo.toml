@@ -1,11 +1,11 @@
 [package]
 edition      = "2024"
-name         = "memori-dev"
+name         = "memori-esp32c3"
 rust-version = "1.88"
 version      = "0.1.0"
 
 [[bin]]
-name = "memori-dev"
+name = "memori-esp32c3"
 path = "./src/bin/main.rs"
 
 [dependencies]
@@ -71,27 +71,18 @@ critical-section = "1.2.0"
 static_cell      = "2.1.1"
 
 
-mousefood = { git = "https://github.com/suri-codes/mousefood.git", branch = "memori", features = ["epd-weact", "portable-atomic", "framebuffer"]}
-ratatui = { git = "https://github.com/suri-codes/ratatui.git", branch = "memori", default-features = false }
+ratatui = { version = "0.30.0" ,default-features = false, features=["portable-atomic"] }
+mousefood = { git="https://github.com/j-g00da/mousefood.git", rev="693d82ae9482c32be6363e72474faeb7d962cb1b", features = ["epd-weact","framebuffer"] }
 
-weact-studio-epd = { version = "0.1.2", features = ["blocking"] }
-embedded-hal-bus = "0.3.0"
+memori = {path="../memori"}
+
+# needed to drive the display
 display-interface-spi = "0.5.0"
+embedded-hal-bus = "0.3.0"
+weact-studio-epd = { version = "0.1.2", features = ["blocking"] }
+profont = "0.7.0"
 
-# needed to make mousefood and ratatui agree on the same ratatui-core
-[patch.crates-io]
-ratatui-core = { git = "https://github.com/suri-codes/ratatui.git", branch = "memori" }
 
-[profile.dev]
-# Rust debug is too slow.
-# For debug builds always builds with some optimization
-opt-level = "s"
 
-[profile.release]
-codegen-units    = 1     # LLVM can perform better optimizations using a single thread
-debug            = 2
-debug-assertions = false
-incremental      = false
-lto              = 'fat'
-opt-level        = 's'
-overflow-checks  = false
+
+
