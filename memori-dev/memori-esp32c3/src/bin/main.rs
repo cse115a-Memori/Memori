@@ -7,15 +7,22 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
+use alloc::format;
 use bt_hci::controller::ExternalController;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
 use esp_backtrace as _;
-use esp_hal::clock::CpuClock;
+
+use esp_hal::spi;
+use esp_hal::spi::master::Spi;
+use esp_hal::time::Rate;
 use esp_hal::timer::timg::TimerGroup;
+use esp_hal::{Blocking, clock::CpuClock};
 use esp_radio::ble::controller::BleConnector;
-use log::info;
+use log::{debug, info, trace};
+use memori_esp32c3::{MemTermInitPins, setup_term};
 use trouble_host::prelude::*;
+use weact_studio_epd::graphics::Display290BlackWhite;
 
 extern crate alloc;
 
@@ -41,7 +48,7 @@ async fn main(spawner: Spawner) -> ! {
 
     esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 66320);
     // COEX needs more RAM - so we've added some more
-    esp_alloc::heap_allocator!(size: 64 * 1024);
+    esp_alloc::heap_allocator!(size: 170 * 1024);
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     let sw_interrupt =
@@ -62,7 +69,34 @@ async fn main(spawner: Spawner) -> ! {
     let _stack = trouble_host::new(ble_controller, &mut resources);
 
     // TODO: Spawn some tasks
-    let _ = spawner;
+
+    let mosi_pin = peripherals.GPIO10;
+    let sclk_pin = peripherals.GPIO8;
+
+    let spi_bus = Spi::new(
+        peripherals.SPI2,
+        spi::master::Config::default()
+            .with_frequency(Rate::from_khz(100))
+            .with_mode(spi::Mode::_0),
+    )
+    .expect("Failed to create SPI bus")
+    .with_sck(sclk_pin)
+    .with_mosi(mosi_pin);
+
+    let term_init_pins = MemTermInitPins {
+        cs_pin: peripherals.GPIO3,
+        dc_pin: peripherals.GPIO2,
+        rst_pin: peripherals.GPIO1,
+        busy_pin: peripherals.GPIO0,
+    };
+
+    spawner
+        .spawn(hello_task())
+        .expect("Failed to begin hello_task");
+
+    spawner
+        .spawn(ui_task(spi_bus, term_init_pins))
+        .expect("Failed to begin ui_task");
 
     loop {
         info!("Hello world!");
@@ -70,4 +104,39 @@ async fn main(spawner: Spawner) -> ! {
     }
 
     // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/esp-hal-v~1.0/examples
+}
+
+// This is an example of how to create a task.
+#[embassy_executor::task]
+pub async fn hello_task() {
+    loop {
+        info!("Hello everyone!");
+        Timer::after(Duration::from_secs(1)).await;
+    }
+}
+
+/// The UI task for our application.
+#[embassy_executor::task]
+#[allow(
+    clippy::large_stack_frames,
+    reason = "The display needs a large frame buffer."
+)]
+pub async fn ui_task(spi: Spi<'static, Blocking>, term_init_pins: MemTermInitPins) {
+    info!("UI Task Begun!");
+    let mut display = Display290BlackWhite::new();
+    let mut term = setup_term(spi, &mut display, term_init_pins);
+    debug!("initialized terminal");
+    let mut i = 0;
+
+    loop {
+        let string = format!("Hello world! {i}");
+        trace!("render frame");
+        term.draw(|f| {
+            f.render_widget(string, f.area());
+        })
+        .unwrap();
+        i += 1;
+        // how often the display updates
+        // Timer::after_secs(1).await;
+    }
 }
