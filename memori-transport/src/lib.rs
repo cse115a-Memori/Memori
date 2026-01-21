@@ -1,3 +1,18 @@
+// if we dont have the feature "std", we are going to compile without the std libary
+#[cfg_attr(not(feature = "std"), no_std)]
+#[cfg(feature = "std")]
+extern crate std;
+
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+
+// uncomment out later
+// #[cfg(feature = "websocket")]
+pub mod websocket;
+
+#[cfg(feature = "ble")]
+pub mod ble;
+
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -6,77 +21,43 @@ pub type ByteArray = heapless::Vec<u8, 1024>;
 #[derive(Serialize, Deserialize)]
 pub struct WidgetId(u32);
 
-
 #[derive(Serialize, Deserialize)]
-enum MemError {
+pub enum TransError {
     NoAck,
     WidgetNotFound,
 }
 
-type MemResult<T> = Result<T, MemError>
-
-
-
-#[derive(Serialize, Deserialize)]
-enum Javelin {
-    // inital setup
-    SetWidgets(Widget),
-
-    // get currently flashed widgets
-    GetWidget(WidgetId),
-
-    // respond to prods with updated data
-    Data((WidgetId, ByteArray)),
-
-    // Battery Level
-    GetBatteryLevel,
-
-    /// Set device configuration
-    SetConfig(DeviceConfig),
-}
+/// Result type for transport errors
+pub type TransResult<T> = Result<T, TransError>;
 
 #[derive(Serialize, Deserialize)]
-enum Needle {
-    SendWidget(Widget),
-    Prod(WidgetId),
-
-}
-
-
-// ble {Javelin::SetWidget} -> BLE -> Device -> BLE (ack) -> btleplug -> Ok(())
-#[derive(Serialize, Deserialize)]
-struct Widget {
+// #[derive(Serialize, Deserialize)]
+/// The general information held by a widget
+pub struct Widget {
     id: u8,
     data: ByteArray,
 }
 
 #[derive(Serialize, Deserialize)]
-struct DeviceConfig {
+/// Device configuration options
+pub struct DeviceConfig {
     dark_mode: bool,
 }
-// trait MemTransport {
-//     pub fn send_javelin(javelin: Javelin) -> MemResult<Option<Needle>> ;
-//     pub fn send_needle(needle: Needle) -> MemResult<Option<Javelin>> ;
-// }
 
-// struct MemBLEtransport {
+pub trait HostTransport {
+    fn set_widgets(&mut self, widget: Widget) -> TransResult<()>;
 
-// }
+    fn get_widget(&mut self, id: WidgetId) -> TransResult<Widget>;
 
-// impl MemTransport for MemBLEtransport {
+    // fn send_widget_data(&mut self, id: WidgetId, data: impl AsRef<[u8]>);
 
-//     pub fn send_javelin(javelin: Javelin) -> MemResult<Option<Needle>> {
-//         todo!()
-//     }
+    fn get_battery_level(&mut self) -> TransResult<u8>;
 
-//     pub fn send_needle(needle: Needle) -> MemResult<Option<Javelin>> {
-//         todo!()
-//     }
+    fn set_device_config(&mut self, config: DeviceConfig) -> TransResult<()>;
+}
 
-// }
+pub trait DeviceTransport {
+    fn refresh_data(&mut self, widget_id: WidgetId) -> TransResult<ByteArray>;
 
-
-
-// struct MemoriTransport<T: MemTransport> {
-//     transport: T,
-// }
+    fn ping(&mut self) -> TransResult<()>;
+}
