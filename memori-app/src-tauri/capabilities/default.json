@@ -7,6 +7,14 @@
   ],
   "permissions": [
     "core:default",
-    "opener:default"
+    "opener:default",
+    "core:path:default",
+    "core:event:default",
+    "core:window:default",
+    "core:app:default",
+    "core:image:default",
+    "core:resources:default",
+    "core:menu:default",
+    "core:tray:default"
   ]
 }
