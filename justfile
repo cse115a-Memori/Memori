@@ -13,9 +13,16 @@ sim LOG="debug":
 typ FILE="":
     typst watch {{ FILE }}
 
+doc PATH:
+    cargo doc --open {{ PATH }}
+
 [working-directory('memori-app')]
 dev:
-    bun run dev --open
+    bunx tauri dev
+
+[working-directory('memori-app')]
+app:
+    bunx tauri ios dev --host
 
 [working-directory('memori-app')]
 check:

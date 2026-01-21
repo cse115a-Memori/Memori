@@ -38,6 +38,8 @@
                 libiconv
 
                 esp-generate
+                espflash
+                espup
 
               ]
               ++ (with typstPackages; [
