@@ -37,23 +37,23 @@ pub struct DeviceConfig {
 
 pub trait HostTransport {
     /// Set the widgets that are going to be displayed on the device.
-    fn set_widgets(&mut self, widget: Widget) -> TransResult<()>;
+    async fn set_widgets(&mut self, widget: Widget) -> TransResult<()>;
 
     /// Get the data for a widget, given a device id.
-    fn get_widget(&mut self, id: WidgetId) -> TransResult<Widget>;
+    async fn get_widget(&mut self, id: WidgetId) -> TransResult<Widget>;
 
     /// Get the battery level of the device.
     /// NOTE: using this on a simulator will always return 100
-    fn get_battery_level(&mut self) -> TransResult<u8>;
+    async fn get_battery_level(&mut self) -> TransResult<u8>;
 
     /// Set the configuration settings of the device.
-    fn set_device_config(&mut self, config: DeviceConfig) -> TransResult<()>;
+    async fn set_device_config(&mut self, config: DeviceConfig) -> TransResult<()>;
 }
 
 pub trait DeviceTransport {
     /// Ask the host for a refresh of widget data.
-    fn refresh_data(&mut self, widget_id: WidgetId) -> TransResult<ByteArray>;
+    async fn refresh_data(&mut self, widget_id: WidgetId) -> TransResult<ByteArray>;
 
     /// Ping the host to ensure they are still connected.
-    fn ping(&mut self) -> TransResult<()>;
+    async fn ping(&mut self) -> TransResult<()>;
 }
