@@ -1,10 +1,12 @@
-use crate::{ByteArray, DeviceTransport, HostTransport};
+use transport::{
+    ByteArray, DeviceConfig, DeviceTransport, HostTransport, TransResult, Widget, WidgetId,
+};
 
 // Marker types for type-state pattern
 struct Host;
 struct Device;
 
-const SERVER: &str = "ws://127.0.0.1:3000/ws";
+const HOST_ADDR: &str = "ws://127.0.0.1:3000/ws";
 
 struct WebsocketTransport<Kind> {
     _kind: std::marker::PhantomData<Kind>,
@@ -13,29 +15,29 @@ struct WebsocketTransport<Kind> {
 }
 
 impl HostTransport for WebsocketTransport<Host> {
-    fn set_widgets(&mut self, widget: crate::Widget) -> crate::TransResult<()> {
+    fn set_widgets(&mut self, widget: Widget) -> TransResult<()> {
         todo!()
     }
 
-    fn get_widget(&mut self, id: crate::WidgetId) -> crate::TransResult<crate::Widget> {
+    fn get_widget(&mut self, id: WidgetId) -> TransResult<Widget> {
         todo!()
     }
 
-    fn get_battery_level(&mut self) -> crate::TransResult<u8> {
+    fn get_battery_level(&mut self) -> TransResult<u8> {
         todo!()
     }
 
-    fn set_device_config(&mut self, config: crate::DeviceConfig) -> crate::TransResult<()> {
+    fn set_device_config(&mut self, config: DeviceConfig) -> TransResult<()> {
         todo!()
     }
 }
 
 impl DeviceTransport for WebsocketTransport<Device> {
-    fn ping(&mut self) -> crate::TransResult<()> {
+    fn ping(&mut self) -> TransResult<()> {
         todo!()
     }
 
-    fn refresh_data(&mut self, widget_id: crate::WidgetId) -> crate::TransResult<ByteArray> {
+    fn refresh_data(&mut self, widget_id: WidgetId) -> TransResult<ByteArray> {
         todo!()
     }
 }
@@ -57,10 +59,4 @@ impl WebsocketTransport<Device> {
             _kind: std::marker::PhantomData,
         }
     }
-}
-
-pub fn lol() {
-    let mut host_transport = WebsocketTransport::<Host>::new_host();
-
-    let device_transport = WebsocketTransport::<Device>::new_device();
 }
