@@ -14,7 +14,7 @@ pub type ByteArray = heapless::Vec<u8, 1024>;
 pub struct WidgetId(u32);
 
 /// Any errors risen during transport.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum TransError {
     NoAck,
     WidgetNotFound,
