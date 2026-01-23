@@ -11,7 +11,7 @@ pub type ByteArray = heapless::Vec<u8, 1024>;
 
 /// New type struct for a widget identifier.
 #[derive(Serialize, Deserialize)]
-pub struct WidgetId(u32);
+pub struct WidgetId(pub u32);
 
 /// Any errors risen during transport.
 #[derive(Serialize, Deserialize)]

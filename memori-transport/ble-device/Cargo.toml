@@ -4,3 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+embassy-sync = "0.7.2"
+log = "0.4.29"
+static_cell = "2.1.1"
+transport = {path="../transport"}
+trouble-host = "0.5.1"
