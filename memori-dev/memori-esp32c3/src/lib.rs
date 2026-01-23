@@ -8,7 +8,7 @@ use esp_hal::{
     Blocking,
     delay::Delay,
     gpio::{Input, InputConfig, Level, Output, OutputConfig, Pull},
-    peripherals::{GPIO0, GPIO1, GPIO2, GPIO3},
+    peripherals::{GPIO2, GPIO3, GPIO4, GPIO5},
     spi::master::Spi,
 };
 use mousefood::{EmbeddedBackend, EmbeddedBackendConfig};
@@ -30,8 +30,8 @@ pub type MemTerm<'a> = Terminal<
 pub struct MemTermInitPins {
     pub cs_pin: GPIO3<'static>,
     pub dc_pin: GPIO2<'static>,
-    pub rst_pin: GPIO1<'static>,
-    pub busy_pin: GPIO0<'static>,
+    pub rst_pin: GPIO4<'static>,
+    pub busy_pin: GPIO5<'static>,
 }
 
 /// Setup the terminal with the given SPI device and display.

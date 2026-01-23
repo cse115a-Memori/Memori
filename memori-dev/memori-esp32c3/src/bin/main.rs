@@ -86,8 +86,8 @@ async fn main(spawner: Spawner) -> () {
     let term_init_pins = MemTermInitPins {
         cs_pin: peripherals.GPIO3,
         dc_pin: peripherals.GPIO2,
-        rst_pin: peripherals.GPIO1,
-        busy_pin: peripherals.GPIO0,
+        rst_pin: peripherals.GPIO4,
+        busy_pin: peripherals.GPIO5,
     };
 
     spawner
