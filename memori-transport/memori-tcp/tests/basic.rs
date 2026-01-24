@@ -1,16 +1,26 @@
-use memori_tcp::{TcpRequest, TcpResponse, TcpTransport};
+use memori_tcp::DeviceRequest;
+use memori_tcp::DeviceResponse;
+use memori_tcp::DeviceTcpTransport;
+use memori_tcp::HostRequest;
+use memori_tcp::HostResponse;
+use memori_tcp::HostTcpTransport;
 use std::time::Duration;
 use tokio::time::sleep;
-use transport::DeviceTransport;
 use transport::HostTransport;
 
 #[test]
 pub fn test() {
+    let _ = tracing_subscriber::fmt()
+        .with_test_writer()
+        .with_max_level(tracing::Level::DEBUG)
+        .try_init();
+
     // Spawn device on its own thread with its own runtime
     let device_thread = std::thread::spawn(|| {
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
-            let device = TcpTransport::new_device(Box::new(device_handler)).await;
+            let _device = DeviceTcpTransport::new(device_handler).await.unwrap();
+
             sleep(Duration::from_secs(5)).await;
         });
     });
@@ -19,8 +29,10 @@ pub fn test() {
     let host_thread = std::thread::spawn(|| {
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
-            let mut host = TcpTransport::new_host(Box::new(host_handler)).await;
-            host.get_battery_level().await.unwrap()
+            let mut host = HostTcpTransport::new(host_handler).await.unwrap();
+            host.get_battery_level()
+                .await
+                .expect("should not have transport error")
         })
     });
 
@@ -30,17 +42,15 @@ pub fn test() {
     device_thread.join().expect("device thread should finish");
 }
 
-pub fn host_handler(req: TcpRequest) -> TcpResponse {
-    match req {
-        TcpRequest::GetBatteryLevel => {
-            unimplemented!()
-        }
-    }
+pub async fn host_handler(_req: DeviceRequest) -> HostResponse {
+    todo!()
 }
 
-pub fn device_handler(req: TcpRequest) -> TcpResponse {
-    println!("device got request for battery!");
+pub async fn device_handler(req: HostRequest) -> DeviceResponse {
     match req {
-        TcpRequest::GetBatteryLevel => TcpResponse::RespondBatteryLevel(10),
+        HostRequest::GetBatteryLevel => DeviceResponse::BatteryLevel(10),
+        _ => {
+            todo!()
+        }
     }
 }

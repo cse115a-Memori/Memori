@@ -10,11 +10,11 @@ use core::future::Future;
 pub type ByteArray = heapless::Vec<u8, 256>;
 
 /// New type struct for a widget identifier.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct WidgetId(u32);
 
 /// Any errors risen during transport.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum TransError {
     NoAck,
     WidgetNotFound,
@@ -24,14 +24,14 @@ pub enum TransError {
 pub type TransResult<T> = Result<T, TransError>;
 
 /// The general information held by a widget.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Widget {
     id: WidgetId,
     data: ByteArray,
 }
 
 /// Device configuration options
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct DeviceConfig {
     dark_mode: bool,
 }

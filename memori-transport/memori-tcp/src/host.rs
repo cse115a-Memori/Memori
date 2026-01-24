@@ -1,134 +1,200 @@
-use std::{
-    collections::HashMap,
-    io::{Read, Write},
-};
+use std::pin::Pin;
+use tracing::{debug, error};
 
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
-    net::{TcpListener, TcpStream},
+    net::TcpStream,
     sync::mpsc,
 };
 
-use postcard::{from_bytes, to_vec};
-use transport::{DeviceConfig, HostTransport, TransResult, Widget, WidgetId};
+use postcard::{from_bytes, to_allocvec};
+use transport::HostTransport;
 
 use crate::{
-    Host, TCP_ADDR, TCP_PACKET_LEN, TcpMessage, TcpMessageKind, TcpRequest, TcpResponse,
-    TcpTransport,
+    DeviceRequest, DeviceResponse, HostResponse, HostTcpTransport, Message, TCP_ADDR,
+    TcpTransportError, TcpTransportResult,
 };
 
-impl TcpTransport<Host> {
-    pub async fn new_host(
-        mut request_handler: Box<dyn FnMut(TcpRequest) -> TcpResponse + Send>,
-    ) -> Self {
+pub type HostRequestHandler =
+    Box<dyn FnMut(DeviceRequest) -> Pin<Box<dyn Future<Output = HostResponse> + Send>> + Send>;
+
+impl HostTcpTransport {
+    /// `request_handler` is just an async function that takes in a `DeviceRequst` and returns a `HostResponse`
+    pub async fn new<F, Fut>(mut request_handler: F) -> TcpTransportResult<Self>
+    where
+        F: FnMut(DeviceRequest) -> Fut + Send + 'static,
+        Fut: Future<Output = HostResponse> + Send + 'static,
+    {
         let stream = TcpStream::connect(TCP_ADDR)
             .await
-            .expect("Device is not running! not able to connect!");
-        let (response_tx, response_rx) = mpsc::unbounded_channel::<TcpResponse>();
+            .map_err(|e| TcpTransportError::ConnectionError(e.to_string()))?;
 
-        let (read, write) = stream.into_split();
+        let (stream_rx, stream_tx) = stream.into_split();
 
-        // Channel to send responses back to the writer
-        let (tx, mut rx) = mpsc::unbounded_channel::<Vec<u8>>();
+        let (write_tx, mut write_rx) = mpsc::unbounded_channel::<Message>();
 
-        let tx_clone = tx.clone();
-        // Spawn reader task
-        tokio::spawn(async move {
-            let mut read = read;
-            let tx = tx_clone;
+        // to send responses out of the reader task
+        let (response_tx, response_rx) = mpsc::unbounded_channel::<DeviceResponse>();
+
+        let write_tx_clone = write_tx.clone();
+        let recv_task = tokio::spawn(async move {
+            let mut stream_rx = stream_rx;
+            let write_tx = write_tx_clone;
             loop {
-                let mut message = [0; TCP_PACKET_LEN];
-                if read.read_exact(&mut message).await.is_err() {
-                    break; // Connection closed
+                let mut msg_len_buf = [0; size_of::<u32>()];
+                if stream_rx
+                    .read_exact(&mut msg_len_buf)
+                    .await
+                    .inspect_err(|e| error!("{e:#?}"))
+                    .is_err()
+                {
+                    error!("connection closed");
+
+                    // signifies that connection closed
+                    break;
+                }
+                debug!("received header bytes: {msg_len_buf:?}");
+                let msg_len = u32::from_be_bytes(msg_len_buf) as usize;
+                let mut buf = vec![0u8; msg_len];
+                if stream_rx.read_exact(&mut buf).await.is_err() {
+                    // connection closed
+                    break;
                 }
 
-                println!("captured message{message:?}");
+                // now we try to deserialize this message
+                debug!("received message_bytes: {buf:#?}");
 
-                let len = message[0] as usize;
+                // this should only ever receive a device tcp request
+                // actually it could be a device_tcp_request or a host tcp response
+                let message: Message = from_bytes(&buf).expect("Must deserialize properly");
 
-                let real_message = &message[1..len + 1];
+                debug!("received message: {message:#?}");
 
-                println!("Trying to deserialize: {:?}", real_message);
-
-                // Parse and handle message
-                let tcp_msg: TcpMessage =
-                    from_bytes(&message[1..len + 1]).expect("should have deserialized properly");
-
-                match tcp_msg.kind {
-                    crate::TcpMessageKind::Request(req) => {
-                        let resp = request_handler(req);
-                        let tcp_message = TcpMessage::new(TcpMessageKind::Response(resp));
-                        let bytes =
-                            postcard::to_allocvec(&tcp_message).expect("should be serializable");
-                        tx.send(bytes).expect("should not be full")
+                let message: Message = from_bytes(&buf)
+                    .inspect_err(|e| error!("Failed to deserialize message: {e:?}"))
+                    .expect("Must deserialize properly");
+                match message {
+                    Message::DeviceRequest(req) => {
+                        let resp = request_handler(req).await;
+                        write_tx
+                            .send(Message::HostResponse(resp))
+                            .inspect_err(|e| error!("write_tx channel closed: {e:?}"))
+                            .unwrap();
                     }
-
-                    TcpMessageKind::Response(resp) => {
-                        response_tx.send(resp);
-                        // we need to be like hey! we have a response!
-                        // so if any function is waiting it can be like :0 time to check it out
+                    Message::DeviceResponse(resp) => {
+                        response_tx
+                            .send(*resp)
+                            .inspect_err(|e| error!("response_tx channel closed: {e:?}"))
+                            .unwrap();
+                    }
+                    _ => {
+                        error!("Received invalid message type");
+                        panic!("should never be possible");
                     }
                 }
             }
         });
 
-        // Spawn writer task
-        tokio::spawn(async move {
-            let mut write = write;
-            while let Some(msg) = rx.recv().await {
-                let mut slice = [0; TCP_PACKET_LEN];
+        let send_task = tokio::spawn(async move {
+            let mut stream_tx = stream_tx;
 
-                slice[1..msg.len() + 1].copy_from_slice(&msg);
+            while let Some(msg) = write_rx.recv().await {
+                let msg_bytes = to_allocvec(&msg).expect("must be serialized properly");
 
-                slice[0] = msg.len() as u8;
+                let len = msg_bytes.len() as u32;
+                let header_bytes = len.to_be_bytes();
 
-                println!("sending bytes: {:#?}", slice);
-                let _ = write.write_all(&slice).await;
+                let message_bytes = &[&header_bytes[..], &msg_bytes].concat();
+
+                debug!("sending message bytes: {message_bytes:?}");
+
+                stream_tx
+                    .write_all(message_bytes)
+                    .await
+                    .expect("Failed to write properly!");
             }
         });
 
-        Self {
-            writer: tx,
+        Ok(Self {
+            msg_sender: write_tx,
             responses: response_rx,
-            // request_map: HashMap::new(),
-            _kind: std::marker::PhantomData,
-        }
-    }
-
-    fn send_message(&mut self, msg: TcpMessage) {
-        let bytes = postcard::to_allocvec(&msg).expect("should be serializable");
-        self.writer.send(bytes).expect("should not be full")
+            send_task,
+            recv_task,
+        })
     }
 }
 
-impl HostTransport for TcpTransport<Host> {
-    async fn set_widgets(&mut self, widget: Widget) -> TransResult<()> {
-        todo!()
-    }
+impl HostTransport for HostTcpTransport {
+    async fn set_widgets(&mut self, widget: transport::Widget) -> transport::TransResult<()> {
+        self.msg_sender
+            .send(Message::HostRequest(crate::HostRequest::SetWidgets(
+                Box::new(widget),
+            )))
+            .expect("please fix this error handling");
 
-    async fn get_widget(&mut self, id: WidgetId) -> TransResult<Widget> {
-        todo!()
-    }
-
-    async fn get_battery_level(&mut self) -> TransResult<u8> {
-        let message = TcpMessage::new(TcpMessageKind::Request(TcpRequest::GetBatteryLevel));
-
-        println!("sending a message!");
-
-        // let bytes = to_vec::<TcpMessage, 512>(&message).expect("should be serialized properly");
-
-        self.send_message(message);
-
-        if let Some(response) = self.responses.recv().await
-            && let TcpResponse::RespondBatteryLevel(batt_level) = response
+        if let Some(resp) = self.responses.recv().await
+            && let DeviceResponse::Success = resp
         {
-            return Ok(batt_level);
+            Ok(())
         } else {
-            panic!("unable to receive from device!!")
-        };
+            panic!("Fix this error handling")
+        }
     }
 
-    async fn set_device_config(&mut self, config: DeviceConfig) -> TransResult<()> {
-        todo!()
+    async fn get_widget(
+        &mut self,
+        id: transport::WidgetId,
+    ) -> transport::TransResult<transport::Widget> {
+        self.msg_sender
+            .send(Message::HostRequest(crate::HostRequest::GetWidget(id)))
+            .expect("please fix this error handling");
+
+        if let Some(resp) = self.responses.recv().await
+            && let DeviceResponse::Widget(widget) = resp
+        {
+            Ok(*widget)
+        } else {
+            panic!("Fix this error handling")
+        }
+    }
+
+    async fn get_battery_level(&mut self) -> transport::TransResult<u8> {
+        self.msg_sender
+            .send(Message::HostRequest(crate::HostRequest::GetBatteryLevel))
+            .expect("please fix this error handling");
+
+        if let Some(resp) = self.responses.recv().await
+            && let DeviceResponse::BatteryLevel(level) = resp
+        {
+            Ok(level)
+        } else {
+            panic!("Fix this error handling")
+        }
+    }
+
+    async fn set_device_config(
+        &mut self,
+        config: transport::DeviceConfig,
+    ) -> transport::TransResult<()> {
+        self.msg_sender
+            .send(Message::HostRequest(crate::HostRequest::SetDeviceConfig(
+                config,
+            )))
+            .expect("please fix this error handling");
+
+        if let Some(resp) = self.responses.recv().await
+            && let DeviceResponse::Success = resp
+        {
+            Ok(())
+        } else {
+            panic!("Fix this error handling")
+        }
+    }
+}
+
+impl Drop for HostTcpTransport {
+    fn drop(&mut self) {
+        self.send_task.abort();
+        self.recv_task.abort();
     }
 }
