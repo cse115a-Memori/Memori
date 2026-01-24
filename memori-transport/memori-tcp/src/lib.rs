@@ -15,6 +15,7 @@ pub struct Host;
 pub struct Device;
 
 const TCP_ADDR: &str = "127.0.0.1:6942";
+const TCP_PACKET_LEN: usize = 32;
 
 pub mod device;
 
@@ -55,7 +56,8 @@ impl TcpMessage {
 
 pub struct TcpTransport<Kind> {
     _kind: std::marker::PhantomData<Kind>,
+
     writer: UnboundedSender<Vec<u8>>,
     responses: UnboundedReceiver<TcpResponse>,
-    request_map: HashMap<u32, TcpRequest>,
+    // request_map: HashMap<u32, TcpRequest>,
 }

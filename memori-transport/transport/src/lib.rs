@@ -7,7 +7,7 @@ use serde::Serialize;
 
 use core::future::Future;
 /// Helper type to define a byte array.
-pub type ByteArray = heapless::Vec<u8, 1024>;
+pub type ByteArray = heapless::Vec<u8, 256>;
 
 /// New type struct for a widget identifier.
 #[derive(Serialize, Deserialize)]

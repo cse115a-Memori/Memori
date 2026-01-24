@@ -12,7 +12,10 @@ use tokio::{
 use postcard::{from_bytes, to_vec};
 use transport::{DeviceConfig, HostTransport, TransResult, Widget, WidgetId};
 
-use crate::{Host, TCP_ADDR, TcpMessage, TcpMessageKind, TcpRequest, TcpResponse, TcpTransport};
+use crate::{
+    Host, TCP_ADDR, TCP_PACKET_LEN, TcpMessage, TcpMessageKind, TcpRequest, TcpResponse,
+    TcpTransport,
+};
 
 impl TcpTransport<Host> {
     pub async fn new_host(
@@ -34,19 +37,29 @@ impl TcpTransport<Host> {
             let mut read = read;
             let tx = tx_clone;
             loop {
-                let mut message = [0; 512];
+                let mut message = [0; TCP_PACKET_LEN];
                 if read.read_exact(&mut message).await.is_err() {
                     break; // Connection closed
                 }
 
+                println!("captured message{message:?}");
+
+                let len = message[0] as usize;
+
+                let real_message = &message[1..len + 1];
+
+                println!("Trying to deserialize: {:?}", real_message);
+
                 // Parse and handle message
                 let tcp_msg: TcpMessage =
-                    from_bytes(&message).expect("should have deserialized properly");
+                    from_bytes(&message[1..len + 1]).expect("should have deserialized properly");
 
                 match tcp_msg.kind {
                     crate::TcpMessageKind::Request(req) => {
                         let resp = request_handler(req);
-                        let bytes = postcard::to_allocvec(&resp).expect("should be serializable");
+                        let tcp_message = TcpMessage::new(TcpMessageKind::Response(resp));
+                        let bytes =
+                            postcard::to_allocvec(&tcp_message).expect("should be serializable");
                         tx.send(bytes).expect("should not be full")
                     }
 
@@ -63,9 +76,11 @@ impl TcpTransport<Host> {
         tokio::spawn(async move {
             let mut write = write;
             while let Some(msg) = rx.recv().await {
-                let mut slice = [0; 512];
+                let mut slice = [0; TCP_PACKET_LEN];
 
-                slice[0..msg.len()].copy_from_slice(&msg);
+                slice[1..msg.len() + 1].copy_from_slice(&msg);
+
+                slice[0] = msg.len() as u8;
 
                 println!("sending bytes: {:#?}", slice);
                 let _ = write.write_all(&slice).await;
@@ -75,7 +90,7 @@ impl TcpTransport<Host> {
         Self {
             writer: tx,
             responses: response_rx,
-            request_map: HashMap::new(),
+            // request_map: HashMap::new(),
             _kind: std::marker::PhantomData,
         }
     }

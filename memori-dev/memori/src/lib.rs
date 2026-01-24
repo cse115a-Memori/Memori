@@ -14,6 +14,7 @@ pub const FONT_BOLD: Option<MonoFont<'static>> = None;
 /// Italic font.
 pub const FONT_ITALIC: Option<MonoFont<'static>> = None;
 
+
 pub enum MemoriState {
     Example(Counter),
 }
