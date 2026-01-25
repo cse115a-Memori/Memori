@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::{sync::Arc, time::Duration};
 
 use color_eyre::eyre::Result;
 use embedded_graphics::{pixelcolor::BinaryColor, prelude::*};
@@ -6,6 +6,7 @@ use embedded_graphics_simulator::{OutputSettings, SimulatorDisplay, SimulatorEve
 use memori::{Memori, MemoriState};
 use memori_tcp::{DeviceResponse, DeviceTcpTransport, HostRequest};
 use mousefood::{EmbeddedBackend, EmbeddedBackendConfig};
+use tokio::{sync::Mutex, time::sleep};
 use transport::DeviceTransport;
 
 use ratatui::Terminal;
@@ -61,7 +62,7 @@ async fn main() -> Result<()> {
 
     loop {
         memori
-            .update(&mem_state.lock().unwrap())
+            .update(&*mem_state.lock().await)
             .expect("should have been successfull");
 
         // thread sleep so it doesnt busy loop
@@ -73,15 +74,17 @@ async fn state_handler(state: Arc<Mutex<MemoriState>>) -> Result<()> {
     let transport = DeviceTcpTransport::new(request_handler);
     let mut transport = transport.connect().await?;
 
-    transport.ping().await?;
-    info!("Connected!");
+    loop {
+        transport.ping().await?;
+        info!("Connected!");
 
-    let state = &mut *state.lock().unwrap();
-    match state {
-        MemoriState::Example(counter) => counter.i += 1,
+        let state = &mut *state.lock().await;
+        match state {
+            MemoriState::Example(counter) => counter.i += 1,
+        }
+
+        sleep(Duration::from_secs(1)).await;
     }
-
-    Ok(())
 }
 
 async fn request_handler(req: HostRequest) -> DeviceResponse {

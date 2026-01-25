@@ -1,29 +1,42 @@
 <script lang="ts">
-  import { Button } from '$lib/components/ui/button/index.js'
-  import * as Field from '$lib/components/ui/field/index.js'
-  import { Input } from '$lib/components/ui/input/index.js'
-  import type { UnlistenFn } from '@tauri-apps/api/event'
-  import { onDestroy, onMount } from 'svelte'
-  import { createTauRPCProxy, type InferCommandOutput, type Router } from '$lib/ipc'
+	import { Button } from "$lib/components/ui/button/index.js";
+	import * as Field from "$lib/components/ui/field/index.js";
+	import { Input } from "$lib/components/ui/input/index.js";
+	import type { UnlistenFn } from "@tauri-apps/api/event";
+	import { onDestroy, onMount } from "svelte";
+	import {
+		createTauRPCProxy,
+		type InferCommandOutput,
+		type Router,
+	} from "$lib/ipc";
 
-  let name = $state('')
-  let res = $state('')
-  let unlisten: UnlistenFn[] = $state([])
-  let taurpc: ReturnType<typeof createTauRPCProxy>
+	let name = $state("");
+	let res = $state("");
+	let unlisten: UnlistenFn[] = $state([]);
+	let taurpc: ReturnType<typeof createTauRPCProxy>;
 
-  onMount(async () => {
-    taurpc = createTauRPCProxy()
-  })
+	onMount(async () => {
+		taurpc = createTauRPCProxy();
+	});
 
-  const call_backend = async (e: Event) => {
-  	e.preventDefault()
-    try {
-      res = await taurpc.hello(name)
-      console.log(res)
-    } catch (error) {
-      console.error(error)
-    }
-  }
+	const call_backend = async (e: Event) => {
+		e.preventDefault();
+		try {
+			res = await taurpc.hello(name);
+			console.log(res);
+		} catch (error) {
+			console.error(error);
+		}
+	};
+	const ping_device = async (e: Event) => {
+		e.preventDefault();
+		try {
+			res = await taurpc.ping();
+			console.log(res);
+		} catch (error) {
+			console.error(error);
+		}
+	};
 </script>
 
 <main>
@@ -34,17 +47,16 @@
 		>
 			<Field.Label for="greet-input" class="sr-only">Name</Field.Label>
 
-			<Input
-				id="greet-input"
-				placeholder="Enter a name..."
-				bind:value={name}
-			/>
+			<Input id="greet-input" placeholder="Enter a name..." bind:value={name} />
 
-			<Button type="submit" variant="outline" >
-				Greet
-			</Button>
+			<Button type="submit" variant="outline">Greet</Button>
 		</Field.Field>
 	</form>
 
+	<form class="mt-4" onsubmit={ping_device}>
+		<Field.Field>
+			<Button type="submit" variant="outline">Ping Device</Button>
+		</Field.Field>
+	</form>
 	{res}
 </main>
