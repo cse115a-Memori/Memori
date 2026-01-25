@@ -16,16 +16,16 @@ pub fn test() {
         .try_init();
 
     // Spawn device on its own thread with its own runtime
-    // let device_thread = std::thread::spawn(|| {
-    //     let rt = tokio::runtime::Runtime::new().unwrap();
-    //     rt.block_on(async {
-    //         let device = DeviceTcpTransport::new(device_handler);
+    let device_thread = std::thread::spawn(|| {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let device = DeviceTcpTransport::new(device_handler);
 
-    //         device.connect().await.unwrap();
+            device.connect().await.unwrap();
 
-    //         sleep(Duration::from_secs(5)).await;
-    //     });
-    // });
+            sleep(Duration::from_secs(5)).await;
+        });
+    });
 
     // Spawn host on its own thread with its own runtime
     let host_thread = std::thread::spawn(|| {
@@ -42,7 +42,7 @@ pub fn test() {
     let batt = host_thread.join().expect("should join fine");
     assert_eq!(batt, 10);
 
-    // device_thread.join().expect("device thread should finish");
+    device_thread.join().expect("device thread should finish");
 }
 
 pub async fn host_handler(req: DeviceRequest) -> HostResponse {

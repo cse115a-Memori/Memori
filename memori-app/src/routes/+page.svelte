@@ -28,10 +28,19 @@
 			console.error(error);
 		}
 	};
-	const ping_device = async (e: Event) => {
+	const get_battery = async (e: Event) => {
 		e.preventDefault();
 		try {
-			res = await taurpc.ping();
+			res = await taurpc.get_battery();
+			console.log(res);
+		} catch (error) {
+			console.error(error);
+		}
+	};
+	const connect = async (e: Event) => {
+		e.preventDefault();
+		try {
+			res = await taurpc.connect();
 			console.log(res);
 		} catch (error) {
 			console.error(error);
@@ -53,9 +62,14 @@
 		</Field.Field>
 	</form>
 
-	<form class="mt-4" onsubmit={ping_device}>
+	<form class="mt-4" onsubmit={get_battery}>
 		<Field.Field>
-			<Button type="submit" variant="outline">Ping Device</Button>
+			<Button type="submit" variant="outline">Device Battery</Button>
+		</Field.Field>
+	</form>
+	<form class="mt-4" onsubmit={connect}>
+		<Field.Field>
+			<Button type="submit" variant="outline">Connect to device</Button>
 		</Field.Field>
 	</form>
 	{res}

@@ -1,10 +1,13 @@
-use std::pin::Pin;
+use std::{pin::Pin, sync::Arc};
 use tracing::{debug, error};
 
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpStream,
-    sync::mpsc::{self, UnboundedReceiver, UnboundedSender},
+    sync::{
+        Mutex,
+        mpsc::{self, UnboundedReceiver, UnboundedSender},
+    },
     task::JoinHandle,
 };
 
@@ -16,8 +19,11 @@ use crate::{
     TcpTransportResult,
 };
 
-pub type HostRequestHandler =
-    Box<dyn FnMut(DeviceRequest) -> Pin<Box<dyn Future<Output = HostResponse> + Send>> + Send>;
+pub type HostRequestHandler = Arc<
+    dyn Fn(DeviceRequest) -> Pin<Box<dyn Future<Output = HostResponse> + Send + Sync>>
+        + Send
+        + Sync,
+>;
 
 pub struct DeviceDisconnected {
     pub request_handler: HostRequestHandler,
@@ -31,22 +37,22 @@ pub struct DeviceConnected {
 }
 
 impl HostTcpTransport<DeviceDisconnected> {
-    pub fn new<F, Fut>(mut request_handler: F) -> Self
+    pub fn new<F, Fut>(request_handler: F) -> Self
     where
-        F: FnMut(DeviceRequest) -> Fut + Send + 'static,
-        Fut: Future<Output = HostResponse> + Send + 'static,
+        F: Fn(DeviceRequest) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = HostResponse> + Send + Sync + 'static,
     {
         Self {
             state: DeviceDisconnected {
-                request_handler: Box::new(move |req| Box::pin(request_handler(req))),
+                request_handler: Arc::new(move |req| Box::pin(request_handler(req))),
             },
         }
     }
 
-    pub async fn connect(self) -> TcpTransportResult<HostTcpTransport<DeviceConnected>> {
+    pub async fn connect(&self) -> TcpTransportResult<HostTcpTransport<DeviceConnected>> {
         let stream = TcpStream::connect(TCP_ADDR).await?;
 
-        let mut request_handler = self.state.request_handler;
+        let request_handler = self.state.request_handler.clone();
 
         let (stream_rx, stream_tx) = stream.into_split();
 
