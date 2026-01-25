@@ -5,7 +5,8 @@ pub mod ble_types;
 use serde::Deserialize;
 use serde::Serialize;
 
-use core::future::Future;
+use core::error::Error;
+use core::fmt::Display;
 /// Helper type to define a byte array.
 pub type ByteArray = heapless::Vec<u8, 256>;
 
@@ -18,6 +19,21 @@ pub enum TransError {
     NoAck,
     WidgetNotFound,
 }
+
+impl Display for TransError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            TransError::InternalError => write!(f, "Internal Error!"),
+            TransError::NoAck => write!(
+                f,
+                "No Ack, also know we might send these errors for no reason"
+            ),
+            TransError::WidgetNotFound => write!(f, "Widget not found! possible invalid WidgetID!"),
+        }
+    }
+}
+
+impl Error for TransError {}
 
 /// Result type for transport errors.
 pub type TransResult<T> = Result<T, TransError>;

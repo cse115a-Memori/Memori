@@ -1,14 +1,27 @@
+use std::sync::{Arc, Mutex};
+
 use color_eyre::eyre::Result;
 use embedded_graphics::{pixelcolor::BinaryColor, prelude::*};
 use embedded_graphics_simulator::{OutputSettings, SimulatorDisplay, SimulatorEvent, Window};
 use memori::{Memori, MemoriState};
 use memori_tcp::{DeviceResponse, DeviceTcpTransport, HostRequest};
 use mousefood::{EmbeddedBackend, EmbeddedBackendConfig};
+use transport::DeviceTransport;
+
 use ratatui::Terminal;
+use tracing::{Level, info};
 
 #[tokio::main]
 async fn main() -> Result<()> {
     color_eyre::install().unwrap();
+
+    // install global subscriber configured based on RUST_LOG envvar.
+
+    tracing_subscriber::fmt()
+        // filter spans/events with level TRACE or higher.
+        .with_max_level(Level::DEBUG)
+        // build but do not install the subscriber.
+        .init();
 
     let mut simulator_window = Window::new(
         "mousefood simulator",
@@ -17,8 +30,6 @@ async fn main() -> Result<()> {
             ..Default::default()
         },
     );
-
-    let transport = DeviceTcpTransport::new(request_handler).await?;
 
     let mut display = SimulatorDisplay::<BinaryColor>::new(Size::new(296, 128));
 
@@ -44,25 +55,38 @@ async fn main() -> Result<()> {
     let term = Terminal::new(backend).expect("something went wrong");
 
     let mut memori = Memori::new(term);
-    let mut mem_state = MemoriState::default();
+    let mem_state = Arc::new(Mutex::new(MemoriState::default()));
+
+    tokio::spawn(state_handler(mem_state.clone()));
 
     loop {
         memori
-            .update(&mem_state)
+            .update(&mem_state.lock().unwrap())
             .expect("should have been successfull");
-
-        match mem_state {
-            MemoriState::Example(ref mut cont) => cont.i += 1,
-        }
 
         // thread sleep so it doesnt busy loop
         std::thread::sleep(std::time::Duration::from_millis(30));
     }
 }
 
+async fn state_handler(state: Arc<Mutex<MemoriState>>) -> Result<()> {
+    let transport = DeviceTcpTransport::new(request_handler);
+    let mut transport = transport.connect().await?;
+
+    transport.ping().await?;
+    info!("Connected!");
+
+    let state = &mut *state.lock().unwrap();
+    match state {
+        MemoriState::Example(counter) => counter.i += 1,
+    }
+
+    Ok(())
+}
+
 async fn request_handler(req: HostRequest) -> DeviceResponse {
     match req {
-        HostRequest::GetBatteryLevel => todo!(),
+        HostRequest::GetBatteryLevel => DeviceResponse::BatteryLevel(10),
         HostRequest::Ping => todo!(),
         HostRequest::SetDeviceConfig(device_config) => todo!(),
         HostRequest::SetWidgets(widget) => todo!(),

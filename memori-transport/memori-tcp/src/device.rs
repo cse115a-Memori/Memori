@@ -8,7 +8,9 @@ use tokio::{
     task::JoinHandle,
 };
 use tracing::{debug, error};
-use transport::{DeviceTransport, TransError};
+use transport::TransError;
+
+pub use transport::DeviceTransport;
 
 use crate::{
     DeviceRequest, DeviceResponse, DeviceTcpTransport, HostRequest, HostResponse, Message,
@@ -18,31 +20,31 @@ use crate::{
 pub type DeviceRequestHandler =
     Box<dyn FnMut(HostRequest) -> Pin<Box<dyn Future<Output = DeviceResponse> + Send>> + Send>;
 
-pub struct Connected {
+pub struct HostConnected {
     msg_sender: UnboundedSender<Message>,
     responses: UnboundedReceiver<HostResponse>,
     send_task: JoinHandle<()>,
     recv_task: JoinHandle<()>,
 }
 
-pub struct Disconnected {
+pub struct HostDisconnected {
     request_handler: DeviceRequestHandler,
 }
 
-impl DeviceTcpTransport<Disconnected> {
-    pub fn new<F, Fut>(mut request_handler: F) -> TcpTransportResult<Self>
+impl DeviceTcpTransport<HostDisconnected> {
+    pub fn new<F, Fut>(mut request_handler: F) -> Self
     where
         F: FnMut(HostRequest) -> Fut + Send + 'static,
         Fut: Future<Output = DeviceResponse> + Send + 'static,
     {
-        Ok(Self {
-            state: Disconnected {
+        Self {
+            state: HostDisconnected {
                 request_handler: Box::new(move |req| Box::pin(request_handler(req))),
             },
-        })
+        }
     }
 
-    pub async fn connect(self) -> TcpTransportResult<DeviceTcpTransport<Connected>> {
+    pub async fn connect(self) -> TcpTransportResult<DeviceTcpTransport<HostConnected>> {
         let listener = TcpListener::bind(TCP_ADDR)
             .await
             .inspect_err(|e| error!("{:#?}", e))?;
@@ -142,8 +144,8 @@ impl DeviceTcpTransport<Disconnected> {
             }
         });
 
-        Ok(DeviceTcpTransport::<Connected> {
-            state: Connected {
+        Ok(DeviceTcpTransport::<HostConnected> {
+            state: HostConnected {
                 msg_sender: write_tx,
                 responses: response_rx,
                 send_task,
@@ -153,7 +155,7 @@ impl DeviceTcpTransport<Disconnected> {
     }
 }
 
-impl DeviceTransport for DeviceTcpTransport<Connected> {
+impl DeviceTransport for DeviceTcpTransport<HostConnected> {
     async fn refresh_data(
         &mut self,
         widget_id: transport::WidgetId,
@@ -197,7 +199,7 @@ impl DeviceTransport for DeviceTcpTransport<Connected> {
         }
     }
 }
-impl DeviceTcpTransport<Connected> {
+impl DeviceTcpTransport<HostConnected> {
     pub fn disconnect(self) {
         // aborting the tasks so they dont run in the backgrund when transport is dropped
         self.state.send_task.abort();

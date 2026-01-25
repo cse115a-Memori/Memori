@@ -19,31 +19,31 @@ use crate::{
 pub type HostRequestHandler =
     Box<dyn FnMut(DeviceRequest) -> Pin<Box<dyn Future<Output = HostResponse> + Send>> + Send>;
 
-pub struct Disconnected {
+pub struct DeviceDisconnected {
     pub request_handler: HostRequestHandler,
 }
 
-pub struct Connected {
+pub struct DeviceConnected {
     msg_sender: UnboundedSender<Message>,
     responses: UnboundedReceiver<DeviceResponse>,
     send_task: JoinHandle<()>,
     recv_task: JoinHandle<()>,
 }
 
-impl HostTcpTransport<Disconnected> {
-    pub fn new<F, Fut>(mut request_handler: F) -> TcpTransportResult<Self>
+impl HostTcpTransport<DeviceDisconnected> {
+    pub fn new<F, Fut>(mut request_handler: F) -> Self
     where
         F: FnMut(DeviceRequest) -> Fut + Send + 'static,
         Fut: Future<Output = HostResponse> + Send + 'static,
     {
-        Ok(Self {
-            state: Disconnected {
+        Self {
+            state: DeviceDisconnected {
                 request_handler: Box::new(move |req| Box::pin(request_handler(req))),
             },
-        })
+        }
     }
 
-    pub async fn connect(self) -> TcpTransportResult<HostTcpTransport<Connected>> {
+    pub async fn connect(self) -> TcpTransportResult<HostTcpTransport<DeviceConnected>> {
         let stream = TcpStream::connect(TCP_ADDR).await?;
 
         let mut request_handler = self.state.request_handler;
@@ -140,7 +140,7 @@ impl HostTcpTransport<Disconnected> {
         });
 
         Ok(HostTcpTransport {
-            state: Connected {
+            state: DeviceConnected {
                 msg_sender: write_tx,
                 responses: response_rx,
                 send_task,
@@ -259,7 +259,7 @@ impl HostTcpTransport<Disconnected> {
 //     }
 // }
 
-impl HostTransport for HostTcpTransport<Connected> {
+impl HostTransport for HostTcpTransport<DeviceConnected> {
     async fn set_widgets(&mut self, widget: transport::Widget) -> transport::TransResult<()> {
         self.state
             .msg_sender
@@ -347,7 +347,7 @@ impl HostTransport for HostTcpTransport<Connected> {
     }
 }
 
-impl HostTcpTransport<Connected> {
+impl HostTcpTransport<DeviceConnected> {
     pub fn disconnect(self) {
         // aborting the tasks so they dont run in the backgrund when transport is dropped
         self.state.send_task.abort();

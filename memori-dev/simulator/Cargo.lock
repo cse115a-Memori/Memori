@@ -900,6 +900,7 @@ name = "memori-tcp"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "futures-core",
  "futures-util",
  "postcard",
  "serde",
@@ -1485,6 +1486,8 @@ dependencies = [
  "profont",
  "ratatui",
  "tokio",
+ "tracing",
+ "tracing-subscriber",
  "transport",
 ]
 
