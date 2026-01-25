@@ -19,7 +19,9 @@ pub fn test() {
     let device_thread = std::thread::spawn(|| {
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
-            let _device = DeviceTcpTransport::new(device_handler).await.unwrap();
+            let device = DeviceTcpTransport::new(device_handler).unwrap();
+
+            device.connect().await.unwrap();
 
             sleep(Duration::from_secs(5)).await;
         });
@@ -29,7 +31,8 @@ pub fn test() {
     let host_thread = std::thread::spawn(|| {
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
-            let mut host = HostTcpTransport::new(host_handler).await.unwrap();
+            let host = HostTcpTransport::new(host_handler).unwrap();
+            let mut host = host.connect().await.unwrap();
             host.get_battery_level()
                 .await
                 .expect("should not have transport error")

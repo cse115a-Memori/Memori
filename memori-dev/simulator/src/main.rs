@@ -1,10 +1,15 @@
+use color_eyre::eyre::Result;
 use embedded_graphics::{pixelcolor::BinaryColor, prelude::*};
 use embedded_graphics_simulator::{OutputSettings, SimulatorDisplay, SimulatorEvent, Window};
 use memori::{Memori, MemoriState};
+use memori_tcp::{DeviceResponse, DeviceTcpTransport, HostRequest};
 use mousefood::{EmbeddedBackend, EmbeddedBackendConfig};
 use ratatui::Terminal;
 
-fn main() -> Result<(), std::convert::Infallible> {
+#[tokio::main]
+async fn main() -> Result<()> {
+    color_eyre::install().unwrap();
+
     let mut simulator_window = Window::new(
         "mousefood simulator",
         &OutputSettings {
@@ -12,6 +17,8 @@ fn main() -> Result<(), std::convert::Infallible> {
             ..Default::default()
         },
     );
+
+    let transport = DeviceTcpTransport::new(request_handler).await?;
 
     let mut display = SimulatorDisplay::<BinaryColor>::new(Size::new(296, 128));
 
@@ -50,5 +57,15 @@ fn main() -> Result<(), std::convert::Infallible> {
 
         // thread sleep so it doesnt busy loop
         std::thread::sleep(std::time::Duration::from_millis(30));
+    }
+}
+
+async fn request_handler(req: HostRequest) -> DeviceResponse {
+    match req {
+        HostRequest::GetBatteryLevel => todo!(),
+        HostRequest::Ping => todo!(),
+        HostRequest::SetDeviceConfig(device_config) => todo!(),
+        HostRequest::SetWidgets(widget) => todo!(),
+        HostRequest::GetWidget(widget_id) => todo!(),
     }
 }

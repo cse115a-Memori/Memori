@@ -4,7 +4,8 @@ use postcard::{from_bytes, to_allocvec};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpListener,
-    sync::mpsc,
+    sync::mpsc::{self, UnboundedReceiver, UnboundedSender},
+    task::JoinHandle,
 };
 use tracing::{debug, error};
 use transport::{DeviceTransport, TransError};
@@ -17,13 +18,31 @@ use crate::{
 pub type DeviceRequestHandler =
     Box<dyn FnMut(HostRequest) -> Pin<Box<dyn Future<Output = DeviceResponse> + Send>> + Send>;
 
-impl DeviceTcpTransport {
-    /// `request_handler` is just an async function that takes in a `DeviceRequst` and returns a `HostResponse`
-    pub async fn new<F, Fut>(mut request_handler: F) -> TcpTransportResult<Self>
+pub struct Connected {
+    msg_sender: UnboundedSender<Message>,
+    responses: UnboundedReceiver<HostResponse>,
+    send_task: JoinHandle<()>,
+    recv_task: JoinHandle<()>,
+}
+
+pub struct Disconnected {
+    request_handler: DeviceRequestHandler,
+}
+
+impl DeviceTcpTransport<Disconnected> {
+    pub fn new<F, Fut>(mut request_handler: F) -> TcpTransportResult<Self>
     where
         F: FnMut(HostRequest) -> Fut + Send + 'static,
         Fut: Future<Output = DeviceResponse> + Send + 'static,
     {
+        Ok(Self {
+            state: Disconnected {
+                request_handler: Box::new(move |req| Box::pin(request_handler(req))),
+            },
+        })
+    }
+
+    pub async fn connect(self) -> TcpTransportResult<DeviceTcpTransport<Connected>> {
         let listener = TcpListener::bind(TCP_ADDR)
             .await
             .inspect_err(|e| error!("{:#?}", e))?;
@@ -32,6 +51,7 @@ impl DeviceTcpTransport {
             .await
             .inspect_err(|e| error!("{:#?}", e))?;
 
+        let mut request_handler = self.state.request_handler;
         let (stream_rx, stream_tx) = stream.into_split();
 
         let (write_tx, mut write_rx) = mpsc::unbounded_channel::<Message>();
@@ -122,21 +142,24 @@ impl DeviceTcpTransport {
             }
         });
 
-        Ok(Self {
-            msg_sender: write_tx,
-            responses: response_rx,
-            send_task,
-            recv_task,
+        Ok(DeviceTcpTransport::<Connected> {
+            state: Connected {
+                msg_sender: write_tx,
+                responses: response_rx,
+                send_task,
+                recv_task,
+            },
         })
     }
 }
 
-impl DeviceTransport for DeviceTcpTransport {
+impl DeviceTransport for DeviceTcpTransport<Connected> {
     async fn refresh_data(
         &mut self,
         widget_id: transport::WidgetId,
     ) -> transport::TransResult<transport::ByteArray> {
-        self.msg_sender
+        self.state
+            .msg_sender
             .send(Message::DeviceRequest(DeviceRequest::RefreshData(
                 widget_id,
             )))
@@ -145,7 +168,7 @@ impl DeviceTransport for DeviceTcpTransport {
                 TransError::InternalError
             })?;
 
-        if let Some(resp) = self.responses.recv().await
+        if let Some(resp) = self.state.responses.recv().await
             && let HostResponse::UpdatedWidget(data) = resp
         {
             Ok(*data)
@@ -156,14 +179,15 @@ impl DeviceTransport for DeviceTcpTransport {
     }
 
     async fn ping(&mut self) -> transport::TransResult<()> {
-        self.msg_sender
+        self.state
+            .msg_sender
             .send(Message::DeviceRequest(DeviceRequest::Ping))
             .map_err(|e| {
                 error!("Failed to send into message sender! {e:#?}");
                 TransError::InternalError
             })?;
 
-        if let Some(resp) = self.responses.recv().await
+        if let Some(resp) = self.state.responses.recv().await
             && let HostResponse::Pong = resp
         {
             Ok(())
@@ -173,9 +197,10 @@ impl DeviceTransport for DeviceTcpTransport {
         }
     }
 }
-impl Drop for DeviceTcpTransport {
-    fn drop(&mut self) {
-        self.send_task.abort();
-        self.recv_task.abort();
+impl DeviceTcpTransport<Connected> {
+    pub fn disconnect(self) {
+        // aborting the tasks so they dont run in the backgrund when transport is dropped
+        self.state.send_task.abort();
+        self.state.recv_task.abort();
     }
 }
