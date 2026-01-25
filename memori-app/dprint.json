@@ -32,6 +32,9 @@
   "includes": [
     "**/*.{svelte,astro}"
   ],
+  "excludes": [
+    "**/src/lib/components/ui/**"
+  ],
   "plugins": [
     "https://plugins.dprint.dev/typescript-0.93.3.wasm",
     "https://plugins.dprint.dev/json-0.19.4.wasm",

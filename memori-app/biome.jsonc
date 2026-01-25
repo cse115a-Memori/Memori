@@ -13,7 +13,9 @@
   },
   "files": {
     "includes": [
-      "**"
+      "**",
+      "!**/src/lib/components/ui",
+      "!**/src/lib/utils.ts"
       // "!.sst",
     ]
   },
@@ -27,6 +29,7 @@
   },
   "css": {
     "parser": {
+      "tailwindDirectives": true,
       "cssModules": true // parse CSS Modules syntax when present
     },
     "formatter": {
