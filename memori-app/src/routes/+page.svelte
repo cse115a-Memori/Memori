@@ -15,7 +15,8 @@
     taurpc = createTauRPCProxy()
   })
 
-  const call_backend = async () => {
+  const call_backend = async (e: Event) => {
+  	e.preventDefault()
     try {
       res = await taurpc.hello(name)
       console.log(res)

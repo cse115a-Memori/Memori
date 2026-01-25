@@ -8,11 +8,11 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte'
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
 	preprocess: vitePreprocess(),
-	experimental: {
-		remoteFunctions: true,
-	},
 	compilerOptions: { runes: true, experimental: { async: true } },
 	kit: {
+		experimental: {
+			remoteFunctions: true,
+		},
 		adapter: adapter({
 			fallback: 'index.html',
 		}),
