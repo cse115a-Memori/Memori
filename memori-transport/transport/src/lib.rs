@@ -5,6 +5,7 @@ pub mod ble_types;
 use serde::Deserialize;
 use serde::Serialize;
 
+use core::future::Future;
 /// Helper type to define a byte array.
 pub type ByteArray = heapless::Vec<u8, 1024>;
 
@@ -25,7 +26,7 @@ pub type TransResult<T> = Result<T, TransError>;
 /// The general information held by a widget.
 #[derive(Serialize, Deserialize)]
 pub struct Widget {
-    id: u8,
+    id: WidgetId,
     data: ByteArray,
 }
 
@@ -37,23 +38,27 @@ pub struct DeviceConfig {
 
 pub trait HostTransport {
     /// Set the widgets that are going to be displayed on the device.
-    async fn set_widgets(&mut self, widget: Widget) -> TransResult<()>;
+    fn set_widgets(&mut self, widget: Widget) -> impl Future<Output = TransResult<()>> + Send;
 
     /// Get the data for a widget, given a device id.
-    async fn get_widget(&mut self, id: WidgetId) -> TransResult<Widget>;
+    fn get_widget(&mut self, id: WidgetId) -> impl Future<Output = TransResult<Widget>> + Send;
 
     /// Get the battery level of the device.
     /// NOTE: using this on a simulator will always return 100
-    async fn get_battery_level(&mut self) -> TransResult<u8>;
+    fn get_battery_level(&mut self) -> impl Future<Output = TransResult<u8>> + Send;
 
     /// Set the configuration settings of the device.
-    async fn set_device_config(&mut self, config: DeviceConfig) -> TransResult<()>;
+    fn set_device_config(
+        &mut self,
+        config: DeviceConfig,
+    ) -> impl Future<Output = TransResult<()>> + Send;
 }
 
 pub trait DeviceTransport {
     /// Ask the host for a refresh of widget data.
-    async fn refresh_data(&mut self, widget_id: WidgetId) -> TransResult<ByteArray>;
+    fn refresh_data(&mut self, widget_id: WidgetId)
+    -> impl Future<Output = TransResult<ByteArray>>;
 
     /// Ping the host to ensure they are still connected.
-    async fn ping(&mut self) -> TransResult<()>;
+    fn ping(&mut self) -> impl Future<Output = TransResult<()>>;
 }
