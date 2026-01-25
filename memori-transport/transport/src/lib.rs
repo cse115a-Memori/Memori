@@ -10,12 +10,11 @@ use core::future::Future;
 pub type ByteArray = heapless::Vec<u8, 256>;
 
 /// New type struct for a widget identifier.
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
-pub struct WidgetId(u32);
 
 /// Any errors risen during transport.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum TransError {
+    InternalError,
     NoAck,
     WidgetNotFound,
 }

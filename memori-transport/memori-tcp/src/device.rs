@@ -7,7 +7,7 @@ use tokio::{
     sync::mpsc,
 };
 use tracing::{debug, error};
-use transport::DeviceTransport;
+use transport::{DeviceTransport, TransError};
 
 use crate::{
     DeviceRequest, DeviceResponse, DeviceTcpTransport, HostRequest, HostResponse, Message,
@@ -24,8 +24,13 @@ impl DeviceTcpTransport {
         F: FnMut(HostRequest) -> Fut + Send + 'static,
         Fut: Future<Output = DeviceResponse> + Send + 'static,
     {
-        let listener = TcpListener::bind(TCP_ADDR).await.expect("bind failed");
-        let (stream, _) = listener.accept().await.expect("accept failed");
+        let listener = TcpListener::bind(TCP_ADDR)
+            .await
+            .inspect_err(|e| error!("{:#?}", e))?;
+        let (stream, _) = listener
+            .accept()
+            .await
+            .inspect_err(|e| error!("{:#?}", e))?;
 
         let (stream_rx, stream_tx) = stream.into_split();
 
@@ -49,8 +54,6 @@ impl DeviceTcpTransport {
                     .is_err()
                 {
                     error!("connection closed");
-
-                    // signifies that connection closed
                     break;
                 }
                 debug!("received header bytes: {msg_len_buf:?}");
@@ -58,6 +61,7 @@ impl DeviceTcpTransport {
                 let mut buf = vec![0u8; msg_len];
                 if stream_rx.read_exact(&mut buf).await.is_err() {
                     // connection closed
+                    error!("connection closed");
                     break;
                 }
 
@@ -66,7 +70,9 @@ impl DeviceTcpTransport {
 
                 // this should only ever receive a device tcp request
                 // actually it could be a device_tcp_request or a host tcp response
-                let message: Message = from_bytes(&buf).expect("Must deserialize properly");
+                let message: Message = from_bytes(&buf)
+                    .inspect_err(|e| error!("Failed to deserialize bytes {e:#?}"))
+                    .unwrap();
 
                 debug!("received message: {message:#?}");
 
@@ -76,15 +82,18 @@ impl DeviceTcpTransport {
 
                         write_tx
                             .send(Message::DeviceResponse(Box::new(resp)))
-                            .expect("should not be closed");
+                            .inspect_err(|e| error!("write_tx channel closed: {e:?}"))
+                            .unwrap();
                     }
 
-                    Message::HostResponse(resp) => {
-                        response_tx.send(resp).expect("should not be closed")
-                    }
+                    Message::HostResponse(resp) => response_tx
+                        .send(resp)
+                        .inspect_err(|e| error!("response_tx channel closed: {e:?}"))
+                        .unwrap(),
 
                     _ => {
-                        panic!("should never be possible")
+                        error!("Received invalid message type");
+                        panic!("Received invalid message type");
                     }
                 }
             }
@@ -94,7 +103,9 @@ impl DeviceTcpTransport {
             let mut stream_tx = stream_tx;
 
             while let Some(msg) = write_rx.recv().await {
-                let msg_bytes = to_allocvec(&msg).expect("must be serialized properly");
+                let msg_bytes = to_allocvec(&msg)
+                    .inspect_err(|e| error!("Failed to deserialize: {e:#?}"))
+                    .unwrap();
 
                 let len = msg_bytes.len() as u32;
                 let header_bytes = len.to_be_bytes();
@@ -106,7 +117,8 @@ impl DeviceTcpTransport {
                 stream_tx
                     .write_all(&[&header_bytes[..], &msg_bytes].concat())
                     .await
-                    .expect("Failed to write properly!");
+                    .inspect_err(|e| error!("{e:#?}"))
+                    .unwrap()
             }
         });
 
@@ -128,28 +140,36 @@ impl DeviceTransport for DeviceTcpTransport {
             .send(Message::DeviceRequest(DeviceRequest::RefreshData(
                 widget_id,
             )))
-            .expect("please fix this error handling");
+            .map_err(|e| {
+                error!("Failed to send into message sender! {e:#?}");
+                TransError::InternalError
+            })?;
 
         if let Some(resp) = self.responses.recv().await
             && let HostResponse::UpdatedWidget(data) = resp
         {
             Ok(*data)
         } else {
-            panic!("fix this error handling dawg");
+            error!("Failed to receive the expected response");
+            Err(TransError::NoAck)
         }
     }
 
     async fn ping(&mut self) -> transport::TransResult<()> {
         self.msg_sender
             .send(Message::DeviceRequest(DeviceRequest::Ping))
-            .expect("please fix this error handling");
+            .map_err(|e| {
+                error!("Failed to send into message sender! {e:#?}");
+                TransError::InternalError
+            })?;
 
         if let Some(resp) = self.responses.recv().await
             && let HostResponse::Pong = resp
         {
             Ok(())
         } else {
-            panic!("fix this error handling dawg");
+            error!("Failed to receive the expected response");
+            Err(TransError::NoAck)
         }
     }
 }

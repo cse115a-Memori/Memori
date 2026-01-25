@@ -1,3 +1,5 @@
+use std::io;
+
 use serde::{Deserialize, Serialize};
 use tokio::{
     sync::mpsc::{UnboundedReceiver, UnboundedSender},
@@ -5,14 +7,17 @@ use tokio::{
 };
 use transport::{ByteArray, DeviceConfig, Widget, WidgetId};
 
+use thiserror::Error;
+
 pub mod device;
 pub mod host;
 
 const TCP_ADDR: &str = "127.0.0.1:6942";
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum TcpTransportError {
-    ConnectionError(String),
+    #[error("IO Error!")]
+    IOError(#[from] io::Error),
 }
 
 pub type TcpTransportResult<T> = Result<T, TcpTransportError>;
@@ -59,6 +64,7 @@ pub enum DeviceResponse {
     Success,
 }
 
+#[derive(Debug)]
 pub struct HostTcpTransport {
     msg_sender: UnboundedSender<Message>,
     responses: UnboundedReceiver<DeviceResponse>,
@@ -66,11 +72,10 @@ pub struct HostTcpTransport {
     recv_task: JoinHandle<()>,
 }
 
+#[derive(Debug)]
 pub struct DeviceTcpTransport {
     msg_sender: UnboundedSender<Message>,
     responses: UnboundedReceiver<HostResponse>,
     send_task: JoinHandle<()>,
     recv_task: JoinHandle<()>,
 }
-
-

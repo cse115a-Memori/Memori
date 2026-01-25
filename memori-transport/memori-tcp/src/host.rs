@@ -8,11 +8,11 @@ use tokio::{
 };
 
 use postcard::{from_bytes, to_allocvec};
-use transport::HostTransport;
+use transport::{HostTransport, TransError};
 
 use crate::{
     DeviceRequest, DeviceResponse, HostResponse, HostTcpTransport, Message, TCP_ADDR,
-    TcpTransportError, TcpTransportResult,
+    TcpTransportResult,
 };
 
 pub type HostRequestHandler =
@@ -25,9 +25,7 @@ impl HostTcpTransport {
         F: FnMut(DeviceRequest) -> Fut + Send + 'static,
         Fut: Future<Output = HostResponse> + Send + 'static,
     {
-        let stream = TcpStream::connect(TCP_ADDR)
-            .await
-            .map_err(|e| TcpTransportError::ConnectionError(e.to_string()))?;
+        let stream = TcpStream::connect(TCP_ADDR).await?;
 
         let (stream_rx, stream_tx) = stream.into_split();
 
@@ -49,8 +47,6 @@ impl HostTcpTransport {
                     .is_err()
                 {
                     error!("connection closed");
-
-                    // signifies that connection closed
                     break;
                 }
                 debug!("received header bytes: {msg_len_buf:?}");
@@ -58,6 +54,7 @@ impl HostTcpTransport {
                 let mut buf = vec![0u8; msg_len];
                 if stream_rx.read_exact(&mut buf).await.is_err() {
                     // connection closed
+                    error!("connection closed");
                     break;
                 }
 
@@ -66,13 +63,16 @@ impl HostTcpTransport {
 
                 // this should only ever receive a device tcp request
                 // actually it could be a device_tcp_request or a host tcp response
-                let message: Message = from_bytes(&buf).expect("Must deserialize properly");
+                let message: Message = from_bytes(&buf)
+                    .inspect_err(|e| error!("Failed to deserialize bytes {e:#?}"))
+                    .unwrap();
 
                 debug!("received message: {message:#?}");
 
                 let message: Message = from_bytes(&buf)
                     .inspect_err(|e| error!("Failed to deserialize message: {e:?}"))
                     .expect("Must deserialize properly");
+
                 match message {
                     Message::DeviceRequest(req) => {
                         let resp = request_handler(req).await;
@@ -89,7 +89,7 @@ impl HostTcpTransport {
                     }
                     _ => {
                         error!("Received invalid message type");
-                        panic!("should never be possible");
+                        panic!("Received invalid message type");
                     }
                 }
             }
@@ -99,7 +99,9 @@ impl HostTcpTransport {
             let mut stream_tx = stream_tx;
 
             while let Some(msg) = write_rx.recv().await {
-                let msg_bytes = to_allocvec(&msg).expect("must be serialized properly");
+                let msg_bytes = to_allocvec(&msg)
+                    .inspect_err(|e| error!("Failed to deserialize: {e:#?}"))
+                    .unwrap();
 
                 let len = msg_bytes.len() as u32;
                 let header_bytes = len.to_be_bytes();
@@ -109,9 +111,10 @@ impl HostTcpTransport {
                 debug!("sending message bytes: {message_bytes:?}");
 
                 stream_tx
-                    .write_all(message_bytes)
+                    .write_all(&[&header_bytes[..], &msg_bytes].concat())
                     .await
-                    .expect("Failed to write properly!");
+                    .inspect_err(|e| error!("{e:#?}"))
+                    .unwrap()
             }
         });
 
@@ -130,14 +133,18 @@ impl HostTransport for HostTcpTransport {
             .send(Message::HostRequest(crate::HostRequest::SetWidgets(
                 Box::new(widget),
             )))
-            .expect("please fix this error handling");
+            .map_err(|e| {
+                error!("Failed to send into message sender! {e:#?}");
+                TransError::InternalError
+            })?;
 
         if let Some(resp) = self.responses.recv().await
             && let DeviceResponse::Success = resp
         {
             Ok(())
         } else {
-            panic!("Fix this error handling")
+            error!("Failed to receive the expected response");
+            Err(TransError::NoAck)
         }
     }
 
@@ -147,28 +154,36 @@ impl HostTransport for HostTcpTransport {
     ) -> transport::TransResult<transport::Widget> {
         self.msg_sender
             .send(Message::HostRequest(crate::HostRequest::GetWidget(id)))
-            .expect("please fix this error handling");
+            .map_err(|e| {
+                error!("Failed to send into message sender! {e:#?}");
+                TransError::InternalError
+            })?;
 
         if let Some(resp) = self.responses.recv().await
             && let DeviceResponse::Widget(widget) = resp
         {
             Ok(*widget)
         } else {
-            panic!("Fix this error handling")
+            error!("Failed to receive the expected response");
+            Err(TransError::NoAck)
         }
     }
 
     async fn get_battery_level(&mut self) -> transport::TransResult<u8> {
         self.msg_sender
             .send(Message::HostRequest(crate::HostRequest::GetBatteryLevel))
-            .expect("please fix this error handling");
+            .map_err(|e| {
+                error!("Failed to send into message sender! {e:#?}");
+                TransError::InternalError
+            })?;
 
         if let Some(resp) = self.responses.recv().await
             && let DeviceResponse::BatteryLevel(level) = resp
         {
             Ok(level)
         } else {
-            panic!("Fix this error handling")
+            error!("Failed to receive the expected response");
+            Err(TransError::NoAck)
         }
     }
 
@@ -180,14 +195,18 @@ impl HostTransport for HostTcpTransport {
             .send(Message::HostRequest(crate::HostRequest::SetDeviceConfig(
                 config,
             )))
-            .expect("please fix this error handling");
+            .map_err(|e| {
+                error!("Failed to send into message sender! {e:#?}");
+                TransError::InternalError
+            })?;
 
         if let Some(resp) = self.responses.recv().await
             && let DeviceResponse::Success = resp
         {
             Ok(())
         } else {
-            panic!("Fix this error handling")
+            error!("Failed to receive the expected response");
+            Err(TransError::NoAck)
         }
     }
 }
