@@ -60,28 +60,12 @@ pub enum DeviceResponse {
     Success,
 }
 
-// #[derive(Debug)]
+#[derive(Debug)]
 pub struct HostTcpTransport<State> {
     state: State,
 }
-// pub struct HostTcpTransport<State> {
-//     _connection_status: PhantomData<ConnStatus>,
-//     request_handler: HostRequestHandler,
-//     msg_sender: Option<UnboundedSender<Message>>,
-//     responses: Option<UnboundedReceiver<DeviceResponse>>,
-//     send_task: Option<JoinHandle<()>>,
-//     recv_task: Option<JoinHandle<()>>,
-// }
 
 #[derive(Debug)]
 pub struct DeviceTcpTransport<State> {
     state: State,
 }
-// #[derive(Debug)]
-// pub struct DeviceTcpTransport<State> {
-//     _connection_status: PhantomData<ConnStatus>,
-//     msg_sender: UnboundedSender<Message>,
-//     responses: UnboundedReceiver<HostResponse>,
-//     send_task: JoinHandle<()>,
-//     recv_task: JoinHandle<()>,
-// }

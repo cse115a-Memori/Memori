@@ -80,6 +80,12 @@ impl DeviceTcpTransport<HostDisconnected> {
                 }
                 debug!("received header bytes: {msg_len_buf:?}");
                 let msg_len = u32::from_be_bytes(msg_len_buf) as usize;
+
+                if msg_len > 2048 {
+                    error!("received message that's longer than 2048 bytes, aborting message");
+                    continue;
+                }
+
                 let mut buf = vec![0u8; msg_len];
                 if stream_rx.read_exact(&mut buf).await.is_err() {
                     // connection closed
@@ -92,9 +98,11 @@ impl DeviceTcpTransport<HostDisconnected> {
 
                 // this should only ever receive a device tcp request
                 // actually it could be a device_tcp_request or a host tcp response
-                let message: Message = from_bytes(&buf)
-                    .inspect_err(|e| error!("Failed to deserialize bytes {e:#?}"))
-                    .unwrap();
+                let Ok(message) =
+                    from_bytes(&buf).inspect_err(|e| error!("Failed to deserialize bytes {e:#?}"))
+                else {
+                    continue;
+                };
 
                 debug!("received message: {message:#?}");
 
