@@ -11,6 +11,7 @@
 	} from "$lib/ipc";
 
 	let name = $state("");
+	let string = $state("");
 	let res = $state("");
 	let unlisten: UnlistenFn[] = $state([]);
 	let taurpc: ReturnType<typeof createTauRPCProxy>;
@@ -46,6 +47,15 @@
 			console.error(error);
 		}
 	};
+	const send_string = async (e: Event) => {
+		e.preventDefault();
+		try {
+			res = await taurpc.send_string(string);
+			console.log(res);
+		} catch (error) {
+			console.error(error);
+		}
+	};
 </script>
 
 <main>
@@ -59,6 +69,25 @@
 			<Input id="greet-input" placeholder="Enter a name..." bind:value={name} />
 
 			<Button type="submit" variant="outline">Greet</Button>
+		</Field.Field>
+	</form>
+
+	<form class="mt-4" onsubmit={send_string}>
+		<Field.Field
+			orientation="horizontal"
+			class="justify-center mx-auto max-w-xs"
+		>
+			<Field.Label for="greet-input" class="sr-only"
+				>show on display</Field.Label
+			>
+
+			<Input
+				id="greet-input"
+				placeholder="Enter a string!"
+				bind:value={string}
+			/>
+
+			<Button type="submit" variant="outline">display!</Button>
 		</Field.Field>
 	</form>
 

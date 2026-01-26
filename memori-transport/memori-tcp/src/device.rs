@@ -1,5 +1,3 @@
-use std::pin::Pin;
-
 use postcard::{from_bytes, to_allocvec};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -17,9 +15,6 @@ use crate::{
     TCP_ADDR, TcpTransportResult,
 };
 
-pub type DeviceRequestHandler =
-    Box<dyn FnMut(HostRequest) -> Pin<Box<dyn Future<Output = DeviceResponse> + Send>> + Send>;
-
 pub struct HostConnected {
     msg_sender: UnboundedSender<Message>,
     responses: UnboundedReceiver<HostResponse>,
@@ -28,23 +23,27 @@ pub struct HostConnected {
 }
 
 pub struct HostDisconnected {
-    request_handler: DeviceRequestHandler,
+    // request_handler: DeviceRequestHandler,
+}
+
+impl Default for DeviceTcpTransport<HostDisconnected> {
+    fn default() -> Self {
+        DeviceTcpTransport::<HostDisconnected> {
+            state: HostDisconnected {},
+        }
+    }
 }
 
 impl DeviceTcpTransport<HostDisconnected> {
-    pub fn new<F, Fut>(mut request_handler: F) -> Self
-    where
-        F: FnMut(HostRequest) -> Fut + Send + 'static,
-        Fut: Future<Output = DeviceResponse> + Send + 'static,
-    {
-        Self {
-            state: HostDisconnected {
-                request_handler: Box::new(move |req| Box::pin(request_handler(req))),
-            },
-        }
-    }
-
-    pub async fn connect(self) -> TcpTransportResult<DeviceTcpTransport<HostConnected>> {
+    pub async fn connect(
+        self,
+    ) -> TcpTransportResult<(
+        DeviceTcpTransport<HostConnected>,
+        (
+            UnboundedReceiver<HostRequest>,
+            UnboundedSender<DeviceResponse>,
+        ),
+    )> {
         let listener = TcpListener::bind(TCP_ADDR)
             .await
             .inspect_err(|e| error!("{:#?}", e))?;
@@ -53,8 +52,11 @@ impl DeviceTcpTransport<HostDisconnected> {
             .await
             .inspect_err(|e| error!("{:#?}", e))?;
 
-        let mut request_handler = self.state.request_handler;
         let (stream_rx, stream_tx) = stream.into_split();
+
+        let (host_request_tx, host_request_rx) = mpsc::unbounded_channel::<HostRequest>();
+        let (device_response_tx, mut device_response_rx) =
+            mpsc::unbounded_channel::<DeviceResponse>();
 
         let (write_tx, mut write_rx) = mpsc::unbounded_channel::<Message>();
 
@@ -63,10 +65,18 @@ impl DeviceTcpTransport<HostDisconnected> {
 
         let write_tx_clone = write_tx.clone();
 
+        let device_response_task = tokio::spawn(async move {
+            let write_tx = write_tx_clone;
+            if let Some(resp) = device_response_rx.recv().await {
+                let message = Message::DeviceResponse(Box::new(resp));
+                write_tx
+                    .send(message)
+                    .expect("write channel should not be closed")
+            }
+        });
+
         let recv_task = tokio::spawn(async move {
             let mut stream_rx = stream_rx;
-            let write_tx = write_tx_clone;
-
             loop {
                 let mut msg_len_buf = [0; size_of::<u32>()];
                 if stream_rx
@@ -108,12 +118,8 @@ impl DeviceTcpTransport<HostDisconnected> {
 
                 match message {
                     Message::HostRequest(req) => {
-                        let resp = request_handler(req).await;
-
-                        write_tx
-                            .send(Message::DeviceResponse(Box::new(resp)))
-                            .inspect_err(|e| error!("write_tx channel closed: {e:?}"))
-                            .unwrap();
+                        // we send the host request, if it fails, its because it closed, we cant really do anything about that.
+                        let _ = host_request_tx.send(req);
                     }
 
                     Message::HostResponse(resp) => response_tx
@@ -142,7 +148,7 @@ impl DeviceTcpTransport<HostDisconnected> {
 
                 let message_bytes = &[&header_bytes[..], &msg_bytes].concat();
 
-                debug!("sending message bytes: {message_bytes:?}");
+                debug!("sending message: {msg:#?}, bytes: {message_bytes:?}");
 
                 stream_tx
                     .write_all(&[&header_bytes[..], &msg_bytes].concat())
@@ -152,14 +158,17 @@ impl DeviceTcpTransport<HostDisconnected> {
             }
         });
 
-        Ok(DeviceTcpTransport::<HostConnected> {
-            state: HostConnected {
-                msg_sender: write_tx,
-                responses: response_rx,
-                send_task,
-                recv_task,
+        Ok((
+            DeviceTcpTransport::<HostConnected> {
+                state: HostConnected {
+                    msg_sender: write_tx,
+                    responses: response_rx,
+                    send_task,
+                    recv_task,
+                },
             },
-        })
+            (host_request_rx, device_response_tx),
+        ))
     }
 }
 

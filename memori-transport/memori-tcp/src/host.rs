@@ -1,5 +1,4 @@
-use std::{pin::Pin, sync::Arc};
-use tracing::{debug, error};
+use tracing::{debug, error, info};
 
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -16,42 +15,40 @@ use crate::{
     TcpTransportResult,
 };
 
-pub type HostRequestHandler = Arc<
-    dyn Fn(DeviceRequest) -> Pin<Box<dyn Future<Output = HostResponse> + Send + Sync>>
-        + Send
-        + Sync,
->;
-
-pub struct DeviceDisconnected {
-    pub request_handler: HostRequestHandler,
-}
+pub struct DeviceDisconnected {}
 
 pub struct DeviceConnected {
     msg_sender: UnboundedSender<Message>,
     responses: UnboundedReceiver<DeviceResponse>,
     send_task: JoinHandle<()>,
     recv_task: JoinHandle<()>,
+    host_response_task: JoinHandle<()>,
+}
+
+impl Default for HostTcpTransport<DeviceDisconnected> {
+    fn default() -> Self {
+        HostTcpTransport::<DeviceDisconnected> {
+            state: DeviceDisconnected {},
+        }
+    }
 }
 
 impl HostTcpTransport<DeviceDisconnected> {
-    pub fn new<F, Fut>(request_handler: F) -> Self
-    where
-        F: Fn(DeviceRequest) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = HostResponse> + Send + Sync + 'static,
-    {
-        Self {
-            state: DeviceDisconnected {
-                request_handler: Arc::new(move |req| Box::pin(request_handler(req))),
-            },
-        }
-    }
-
-    pub async fn connect(&self) -> TcpTransportResult<HostTcpTransport<DeviceConnected>> {
+    pub async fn connect(
+        &self,
+    ) -> TcpTransportResult<(
+        HostTcpTransport<DeviceConnected>,
+        (
+            UnboundedReceiver<DeviceRequest>,
+            UnboundedSender<HostResponse>,
+        ),
+    )> {
         let stream = TcpStream::connect(TCP_ADDR).await?;
 
-        let request_handler = self.state.request_handler.clone();
-
         let (stream_rx, stream_tx) = stream.into_split();
+
+        let (device_request_tx, device_request_rx) = mpsc::unbounded_channel::<DeviceRequest>();
+        let (host_response_tx, mut host_response_rx) = mpsc::unbounded_channel::<HostResponse>();
 
         let (write_tx, mut write_rx) = mpsc::unbounded_channel::<Message>();
 
@@ -59,9 +56,19 @@ impl HostTcpTransport<DeviceDisconnected> {
         let (response_tx, response_rx) = mpsc::unbounded_channel::<DeviceResponse>();
 
         let write_tx_clone = write_tx.clone();
+
+        let host_response_task = tokio::spawn(async move {
+            let write_tx = write_tx_clone;
+            while let Some(resp) = host_response_rx.recv().await {
+                let message = Message::HostResponse(resp);
+                write_tx
+                    .send(message)
+                    .expect("write channel should not be closed")
+            }
+        });
+
         let recv_task = tokio::spawn(async move {
             let mut stream_rx = stream_rx;
-            let write_tx = write_tx_clone;
             loop {
                 let mut msg_len_buf = [0; size_of::<u32>()];
                 if stream_rx
@@ -107,16 +114,16 @@ impl HostTcpTransport<DeviceDisconnected> {
 
                 match message {
                     Message::DeviceRequest(req) => {
-                        let resp = request_handler(req).await;
-                        write_tx
-                            .send(Message::HostResponse(resp))
-                            .inspect_err(|e| error!("write_tx channel closed: {e:?}"))
-                            .unwrap();
+                        info!("received request: {req:?}");
+                        // we send the device request, if it fails, its because it closed, we cant really do anything about that.
+                        let _ = device_request_tx.send(req).inspect_err(|e| {
+                            error!("Error sending into device_req_tx channel! {e}",)
+                        });
                     }
                     Message::DeviceResponse(resp) => {
                         response_tx
                             .send(*resp)
-                            .inspect_err(|e| error!("response_tx channel closed: {e:?}"))
+                            .inspect_err(|e| error!("response_tx channel closed: {e:#?}"))
                             .unwrap();
                     }
                     _ => {
@@ -140,7 +147,7 @@ impl HostTcpTransport<DeviceDisconnected> {
 
                 let message_bytes = &[&header_bytes[..], &msg_bytes].concat();
 
-                debug!("sending message bytes: {message_bytes:?}");
+                debug!("sending message: {msg:#?}, bytes: {message_bytes:?}");
 
                 stream_tx
                     .write_all(&[&header_bytes[..], &msg_bytes].concat())
@@ -150,14 +157,18 @@ impl HostTcpTransport<DeviceDisconnected> {
             }
         });
 
-        Ok(HostTcpTransport {
-            state: DeviceConnected {
-                msg_sender: write_tx,
-                responses: response_rx,
-                send_task,
-                recv_task,
+        Ok((
+            HostTcpTransport {
+                state: DeviceConnected {
+                    msg_sender: write_tx,
+                    responses: response_rx,
+                    send_task,
+                    recv_task,
+                    host_response_task,
+                },
             },
-        })
+            (device_request_rx, host_response_tx),
+        ))
     }
 }
 
@@ -254,5 +265,6 @@ impl HostTcpTransport<DeviceConnected> {
         // aborting the tasks so they dont run in the backgrund when transport is dropped
         self.state.send_task.abort();
         self.state.recv_task.abort();
+        self.state.host_response_task.abort();
     }
 }

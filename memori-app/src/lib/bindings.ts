@@ -4,10 +4,11 @@ import { createTauRPCProxy as createProxy, type InferCommandOutput } from 'taurp
 type TAURI_CHANNEL<T> = (response: T) => void
 
 
-const ARGS_MAP = { '':'{"connect":[],"get_battery":[],"hello":["name"]}' }
+const ARGS_MAP = { '':'{"connect":[],"get_battery":[],"hello":["name"],"send_string":["string"]}' }
 export type Router = { "": {connect: () => Promise<null>, 
 get_battery: () => Promise<number>, 
-hello: (name: string) => Promise<string>} };
+hello: (name: string) => Promise<string>, 
+send_string: (string: string) => Promise<null>} };
 
 
 export const createTauRPCProxy = () => createProxy<Router>(ARGS_MAP)

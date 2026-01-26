@@ -4,6 +4,7 @@ pub mod ble_types;
 
 use serde::Deserialize;
 use serde::Serialize;
+use tracing::error;
 
 use core::error::Error;
 use core::fmt::Display;
@@ -12,7 +13,7 @@ pub type ByteArray = heapless::Vec<u8, 256>;
 
 /// New type struct for a widget identifier.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
-pub struct WidgetId(u32);
+pub struct WidgetId(pub u32);
 
 /// Any errors risen during transport.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -20,6 +21,7 @@ pub enum TransError {
     InternalError,
     NoAck,
     WidgetNotFound,
+    SerializationFailure,
 }
 
 impl Display for TransError {
@@ -31,6 +33,9 @@ impl Display for TransError {
                 "No Ack, also know we might send these errors for no reason"
             ),
             TransError::WidgetNotFound => write!(f, "Widget not found! possible invalid WidgetID!"),
+            TransError::SerializationFailure => {
+                write!(f, "Failed to draw widget")
+            }
         }
     }
 }
@@ -44,7 +49,21 @@ pub type TransResult<T> = Result<T, TransError>;
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Widget {
     id: WidgetId,
-    data: ByteArray,
+    // data: ByteArray,
+    data: heapless::Vec<u8, 256>,
+}
+
+impl Widget {
+    pub fn new(id: WidgetId, data: impl Serialize) -> TransResult<Self> {
+        let mut buf = [0u8; 256];
+        let used = postcard::to_slice(&data, &mut buf)
+            .inspect_err(|e| error!("{e:#?}"))
+            .map_err(|_| TransError::SerializationFailure)?;
+
+        let data = heapless::Vec::from_slice(used).map_err(|_| TransError::SerializationFailure)?;
+
+        Ok(Widget { id, data })
+    }
 }
 
 /// Device configuration options

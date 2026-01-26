@@ -31,5 +31,6 @@ transport = {path="../../memori-transport/transport"}
 
 
 memori-tcp= {path="../../memori-transport/memori-tcp"}
+tauri-plugin-tracing = "0.3.2"
 
 

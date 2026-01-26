@@ -4,8 +4,12 @@ use memori_tcp::{
     host::{DeviceConnected, DeviceDisconnected},
     DeviceRequest, HostResponse, HostTcpTransport,
 };
-use tokio::sync::Mutex;
-use transport::HostTransport as _;
+use tauri_plugin_tracing::{tracing::error, Builder, LevelFilter};
+use tokio::sync::{
+    mpsc::{UnboundedReceiver, UnboundedSender},
+    Mutex,
+};
+use transport::{HostTransport as _, Widget, WidgetId};
 
 #[taurpc::procedures(event_trigger = ApiEventTrigger, export_to = "../src/lib/bindings.ts")]
 trait Api {
@@ -13,6 +17,7 @@ trait Api {
     async fn hello(name: String) -> Result<String, String>;
     async fn get_battery() -> Result<u8, String>;
     async fn connect() -> Result<(), String>;
+    async fn send_string(string: String) -> Result<(), String>;
 }
 
 #[derive(Clone)]
@@ -41,9 +46,12 @@ impl Api for ApiImpl {
         let mut state_guard = self.state.lock().await;
 
         if let Connection::Disconnected(ref transport) = state_guard.conn {
-            let connected_transport = transport.connect().await.map_err(|e| e.to_string())?;
+            let (conn, (dev_req_rx, host_resp_tx)) =
+                transport.connect().await.map_err(|e| e.to_string())?;
 
-            state_guard.conn = Connection::Connected(connected_transport);
+            state_guard.conn = Connection::Connected(conn);
+
+            tokio::spawn(async { request_handler(dev_req_rx, host_resp_tx).await });
 
             return Ok(());
         }
@@ -63,21 +71,36 @@ impl Api for ApiImpl {
 
         Err("Device is not connected".to_string())
     }
+
+    async fn send_string(self, string: String) -> Result<(), String> {
+        let mut state_guard = self.state.lock().await;
+
+        let widget = Widget::new(WidgetId(0), string).unwrap();
+
+        if let Connection::Connected(ref mut conn) = state_guard.conn {
+            return conn
+                .set_widgets(widget)
+                .await
+                .map_err(|e| format!("Failed to get battery: {e}"));
+        }
+
+        Err("Device is not connected".to_string())
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 #[tokio::main]
 pub async fn run() {
-    let conn = Connection::Disconnected(HostTcpTransport::new(async |req| match req {
-        DeviceRequest::Ping => HostResponse::Pong,
-
-        DeviceRequest::RefreshData(_id) => {
-            todo!()
-        }
-    }));
+    let conn = Connection::Disconnected(HostTcpTransport::default());
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(
+            Builder::new()
+                .with_max_level(LevelFilter::DEBUG)
+                .with_default_subscriber()
+                .build(),
+        )
         .invoke_handler(taurpc::create_ipc_handler(
             ApiImpl {
                 state: Arc::new(Mutex::new(State { conn })),
@@ -86,4 +109,27 @@ pub async fn run() {
         ))
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+// tokio::spawn(async { request_handler(dev_req_rx, host_resp_tx) });
+pub async fn request_handler(
+    mut dev_req_rx: UnboundedReceiver<DeviceRequest>,
+    host_resp_tx: UnboundedSender<HostResponse>,
+) {
+    while let Some(req) = dev_req_rx.recv().await {
+        println!("received request from device! {req:#?}");
+        let resp = match req {
+            DeviceRequest::RefreshData(id) => {
+                todo!()
+            }
+
+            DeviceRequest::Ping => HostResponse::Pong,
+        };
+
+        println!("responding with :{resp:?}");
+        host_resp_tx
+            .send(resp)
+            .inspect_err(|e| error!("expected to send response successfully: {e}"))
+            .unwrap()
+    }
 }

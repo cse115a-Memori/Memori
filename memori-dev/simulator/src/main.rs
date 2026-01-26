@@ -71,28 +71,38 @@ async fn main() -> Result<()> {
 }
 
 async fn state_handler(state: Arc<Mutex<MemoriState>>) -> Result<()> {
-    let transport = DeviceTcpTransport::new(request_handler);
-    let mut transport = transport.connect().await?;
+    let transport = DeviceTcpTransport::default();
 
+    let (mut conn, (mut host_req_rx, dev_resp_tx)) = transport.connect().await?;
     loop {
-        transport.ping().await?;
+        conn.ping().await?;
         info!("Connected!");
+
+        if let Ok(req) = host_req_rx.try_recv() {
+            info!("received device request! {req:?}");
+            let resp = match req {
+                HostRequest::Ping => DeviceResponse::Pong,
+                HostRequest::GetBatteryLevel => DeviceResponse::BatteryLevel(69),
+                HostRequest::SetDeviceConfig(config) => {
+                    todo!()
+                }
+                HostRequest::SetWidgets(wid) => {
+                    todo!()
+                }
+                HostRequest::GetWidget(id) => todo!(),
+            };
+
+            info!("sending response: {resp:#?}");
+            dev_resp_tx.send(resp).unwrap();
+        }
 
         let state = &mut *state.lock().await;
         match state {
             MemoriState::Example(counter) => counter.i += 1,
         }
 
-        sleep(Duration::from_secs(1)).await;
-    }
-}
+        info!("incr num");
 
-async fn request_handler(req: HostRequest) -> DeviceResponse {
-    match req {
-        HostRequest::GetBatteryLevel => DeviceResponse::BatteryLevel(10),
-        HostRequest::Ping => todo!(),
-        HostRequest::SetDeviceConfig(device_config) => todo!(),
-        HostRequest::SetWidgets(widget) => todo!(),
-        HostRequest::GetWidget(widget_id) => todo!(),
+        sleep(Duration::from_secs(1)).await;
     }
 }
