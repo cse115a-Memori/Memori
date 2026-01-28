@@ -16,6 +16,7 @@ pub const FONT_ITALIC: Option<MonoFont<'static>> = None;
 
 pub enum MemoriState {
     Example(Counter),
+    Time(Clock)
 }
 
 impl Default for MemoriState {
@@ -26,6 +27,12 @@ impl Default for MemoriState {
 
 pub struct Counter {
     pub i: u32,
+}
+
+pub struct Clock {
+    pub seconds: u32,
+    pub minutes: u32,
+    pub hours: u32
 }
 
 pub struct Memori<B: Backend> {
@@ -44,7 +51,7 @@ where
         use MemoriState::*;
         let widget = match state {
             Example(state) => {
-                let string = format!("Hello Suri! {}", state.i);
+                let string = format!("Hello Cainan! {}", state.i);
                 Text::from(string)
             }
         };

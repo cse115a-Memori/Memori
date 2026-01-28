@@ -8,6 +8,7 @@
 #![deny(clippy::large_stack_frames)]
 
 use bt_hci::controller::ExternalController;
+use bt_hci::uuid::service::ELAPSED_TIME;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Instant, Timer};
 use esp_backtrace as _;
@@ -123,6 +124,8 @@ pub async fn ui_task(spi: Spi<'static, Blocking>, term_init_pins: MemTermInitPin
     let mut memori = Memori::new(term);
     let mut mem_state = MemoriState::default();
 
+    let mut last_tick = Instant::now();
+
     loop {
         let instant = Instant::now();
         memori
@@ -132,9 +135,32 @@ pub async fn ui_task(spi: Spi<'static, Blocking>, term_init_pins: MemTermInitPin
         let frame_time = instant.elapsed();
 
         trace!("frame time: {:?}ms", frame_time.as_millis());
+        
+        let elapsed = instant.duration_since(last_tick);
 
         match mem_state {
             MemoriState::Example(ref mut cont) => cont.i += 1,
+            MemoriState::Time(ref mut clock) => {
+                if elapsed >= Duration::from_secs(1) {
+                    clock.seconds += 1;
+                    
+                    if clock.seconds >= 60 {
+                        clock.seconds = 0;
+                        clock.minutes += 1;
+                    }
+                    
+                    if clock.minutes >= 60 {
+                        clock.minutes = 0;
+                        clock.hours += 1;
+                    }
+                    
+                    if clock.hours >= 24 {
+                        clock.hours = 0;
+                    }
+                    
+                    last_tick = instant;
+                }
+            }
         }
     }
 }
