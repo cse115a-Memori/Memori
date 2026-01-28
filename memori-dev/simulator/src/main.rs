@@ -3,6 +3,8 @@ use embedded_graphics_simulator::{OutputSettings, SimulatorDisplay, SimulatorEve
 use memori::{Memori, MemoriState};
 use mousefood::{EmbeddedBackend, EmbeddedBackendConfig};
 use ratatui::Terminal;
+use std::time::Instant;
+use std::time::Duration;
 
 fn main() -> Result<(), std::convert::Infallible> {
     let mut simulator_window = Window::new(
@@ -39,13 +41,42 @@ fn main() -> Result<(), std::convert::Infallible> {
     let mut memori = Memori::new(term);
     let mut mem_state = MemoriState::default();
 
+    let mut last_tick = Instant::now();
+
     loop {
+
+        let instant = Instant::now();
+        let elapsed = instant - last_tick;
+
         memori
             .update(&mem_state)
             .expect("should have been successfull");
 
         match mem_state {
             MemoriState::Example(ref mut cont) => cont.i += 1,
+
+            //We will sync actual time later.
+            MemoriState::Time(ref mut clock) => {
+                if elapsed >= Duration::from_secs(1) {
+                    clock.seconds += 1;
+
+                    if clock.seconds >= 60 {
+                        clock.seconds = 0;
+                        clock.minutes += 1;
+                    }
+
+                    if clock.minutes >= 60 {
+                        clock.minutes = 0;
+                        clock.hours += 1;
+                    }
+
+                    if clock.hours >= 12 {
+                        clock.hours = 1;
+                    }
+
+                    last_tick = instant;
+                }
+            }
         }
 
         // thread sleep so it doesnt busy loop

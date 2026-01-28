@@ -135,29 +135,31 @@ pub async fn ui_task(spi: Spi<'static, Blocking>, term_init_pins: MemTermInitPin
         let frame_time = instant.elapsed();
 
         trace!("frame time: {:?}ms", frame_time.as_millis());
-        
+
         let elapsed = instant.duration_since(last_tick);
 
         match mem_state {
             MemoriState::Example(ref mut cont) => cont.i += 1,
+
+            //We will sync actual time later.
             MemoriState::Time(ref mut clock) => {
                 if elapsed >= Duration::from_secs(1) {
                     clock.seconds += 1;
-                    
+
                     if clock.seconds >= 60 {
                         clock.seconds = 0;
                         clock.minutes += 1;
                     }
-                    
+
                     if clock.minutes >= 60 {
                         clock.minutes = 0;
                         clock.hours += 1;
                     }
-                    
-                    if clock.hours >= 24 {
-                        clock.hours = 0;
+
+                    if clock.hours >= 12 {
+                        clock.hours = 1;
                     }
-                    
+
                     last_tick = instant;
                 }
             }

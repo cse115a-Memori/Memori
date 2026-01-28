@@ -54,6 +54,16 @@ where
                 let string = format!("Hello Cainan! {}", state.i);
                 Text::from(string)
             }
+
+            Time(state) => {
+                if state.hours < 10 || state.minutes < 10 || state.seconds < 10 {
+                    let string = format!("0{}:0{}:0{}", state.hours, state.minutes, state.seconds);
+                    Text::from(string)
+                } else {
+                    let string = format!("{}:{}:{}", state.hours, state.minutes, state.seconds);
+                    Text::from(string)
+                }
+            }
         };
 
         self.term
