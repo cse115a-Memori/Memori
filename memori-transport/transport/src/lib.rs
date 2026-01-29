@@ -7,31 +7,40 @@ use serde::Serialize;
 
 use core::future::Future;
 /// Helper type to define a byte array.
-pub type ByteArray = heapless::Vec<u8, 1024>;
+pub type ByteArray = heapless::Vec<u8, 64>;
 
 /// New type struct for a widget identifier.
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct WidgetId(pub u32);
 
 /// Any errors risen during transport.
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum TransError {
-    NoAck,
+    Timeout,
     WidgetNotFound,
+    NotConnected,
+    InvalidMessage,
+    ProtocolIssue
 }
 
 /// Result type for transport errors.
 pub type TransResult<T> = Result<T, TransError>;
 
 /// The general information held by a widget.
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Widget {
     id: WidgetId,
     data: ByteArray,
 }
 
+impl Widget {
+    pub fn new(id: WidgetId, data: ByteArray) -> Self {
+        Self { id, data }
+    }
+}
+
 /// Device configuration options
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct DeviceConfig {
     dark_mode: bool,
 }

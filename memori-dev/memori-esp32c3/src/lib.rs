@@ -1,6 +1,8 @@
 #![no_std]
 extern crate alloc;
 
+pub mod ble;
+
 use alloc::boxed::Box;
 use display_interface_spi::SPIInterface;
 use embedded_hal_bus::spi::ExclusiveDevice;

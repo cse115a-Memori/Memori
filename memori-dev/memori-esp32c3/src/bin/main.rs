@@ -12,6 +12,7 @@ use embassy_executor::Spawner;
 use embassy_time::{Duration, Instant, Timer};
 use esp_backtrace as _;
 
+use ble_device::DeviceBLETransport;
 use esp_hal::spi;
 use esp_hal::spi::master::Spi;
 use esp_hal::time::Rate;
@@ -20,14 +21,15 @@ use esp_hal::{Blocking, clock::CpuClock};
 use esp_radio::ble::controller::BleConnector;
 use log::{info, trace};
 use memori::{Memori, MemoriState};
+use memori_esp32c3::ble::ble_task;
 use memori_esp32c3::{MemTermInitPins, setup_term};
-use trouble_host::prelude::*;
+use static_cell::StaticCell;
+use transport::{DeviceTransport, WidgetId};
 use weact_studio_epd::graphics::Display290BlackWhite;
 
 extern crate alloc;
 
-const CONNECTIONS_MAX: usize = 1;
-const L2CAP_CHANNELS_MAX: usize = 1;
+static RADIO: StaticCell<esp_radio::Controller<'static>> = StaticCell::new();
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
@@ -57,18 +59,10 @@ async fn main(spawner: Spawner) -> () {
 
     info!("Embassy initialized!");
 
-    let radio_init = esp_radio::init().expect("Failed to initialize Wi-Fi/BLE controller");
-    let (mut _wifi_controller, _interfaces) =
-        esp_radio::wifi::new(&radio_init, peripherals.WIFI, Default::default())
-            .expect("Failed to initialize Wi-Fi controller");
-    // find more examples https://github.com/embassy-rs/trouble/tree/main/examples/esp32
-    let transport = BleConnector::new(&radio_init, peripherals.BT, Default::default()).unwrap();
-    let ble_controller = ExternalController::<_, 1>::new(transport);
-    let mut resources: HostResources<DefaultPacketPool, CONNECTIONS_MAX, L2CAP_CHANNELS_MAX> =
-        HostResources::new();
-    let _stack = trouble_host::new(ble_controller, &mut resources);
+    let radio_init: esp_radio::Controller<'_> =
+        esp_radio::init().expect("Failed to initialize Wi-Fi/BLE controller");
 
-    // TODO: Spawn some tasks
+    let radio = RADIO.init(radio_init);
 
     let mosi_pin = peripherals.GPIO10;
     let sclk_pin = peripherals.GPIO8;
@@ -90,14 +84,21 @@ async fn main(spawner: Spawner) -> () {
         busy_pin: peripherals.GPIO5,
     };
 
-    spawner
-        .spawn(hello_task())
-        .expect("Failed to begin hello_task");
+    // spawner
+    //     .spawn(hello_task())
+    //     .expect("Failed to begin hello_task");
+
+    // spawner
+    //     .spawn(ui_task(spi_bus, term_init_pins))
+    //     .expect("Failed to begin ui_task");
 
     spawner
-        .spawn(ui_task(spi_bus, term_init_pins))
-        .expect("Failed to begin ui_task");
+        .spawn(ble_task(radio, peripherals.BT))
+        .expect("failed to begin ble task");
 
+    // spawner
+    //     .spawn(logic_task())
+    //     .expect("failed to begin logic task");
     // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/esp-hal-v~1.0/examples
 }
 
@@ -135,6 +136,30 @@ pub async fn ui_task(spi: Spi<'static, Blocking>, term_init_pins: MemTermInitPin
 
         match mem_state {
             MemoriState::Example(ref mut cont) => cont.i += 1,
+        }
+    }
+}
+
+#[embassy_executor::task]
+async fn logic_task() {
+    let mut transport = DeviceBLETransport::new();
+
+    loop {
+        Timer::after(Duration::from_secs(5)).await;
+
+        match transport.ping().await {
+            Ok(_) => info!("[logic] ping success"),
+            Err(e) => info!("[logic] ping failed: {:?}", e),
+        }
+
+        Timer::after(Duration::from_secs(5)).await;
+
+        match transport.refresh_data(WidgetId(12)).await {
+            Ok(data) => match core::str::from_utf8(&data) {
+                Ok(s) => info!("[logic] refresh success, data: {}", s),
+                Err(_) => info!("[logic] refresh success (invalid str): {:?}", data),
+            },
+            Err(e) => info!("[logic] refresh failed: {:?}", e),
         }
     }
 }

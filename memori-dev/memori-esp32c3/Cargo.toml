@@ -89,7 +89,9 @@ embassy-futures = "0.1.2"
 embassy-sync = "0.7.2"
 
 
-# memori-transport = {path = "../../memori-transport", default-features = false, features = ["ble"]}
+ble-device = { path = "../../memori-transport/ble-device" }
+transport = { path = "../../memori-transport/transport" }
+postcard = "1.1.3"
 
 
 

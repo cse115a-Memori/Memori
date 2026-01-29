@@ -1,58 +1,68 @@
-use transport::{ByteArray, DeviceTransport, TransResult, WidgetId, TransError};
+#![no_std]
+use core::sync::atomic::{AtomicBool, Ordering};
+use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
+use embassy_sync::channel::{Channel, Receiver, Sender};
+use embassy_time::{Duration, with_timeout};
+use log::{debug, error, info, trace, warn};
 use transport::ble_types::*;
-use trouble_host::prelude::*;
-use log::{error, warn, info, debug, trace};
+use transport::{ByteArray, DeviceTransport, TransError, TransResult, WidgetId};
 
-const CHARACTERISTIC_SIZE: usize = 32;
-// GATT Server definition
-//
-#[gatt_server]
-struct Server {
-    nus_service: NordicUartService,
+pub const BLE_TIMEOUT_DUR: u64 = 5;
+pub static BLE_CMD_CHANNEL: Channel<CriticalSectionRawMutex, DeviceBLECommand, 5> = Channel::new();
+pub static BLE_RESP_CHANNEL: Channel<CriticalSectionRawMutex, HostBLEResponse, 5> = Channel::new();
+
+pub static BLE_CONNECTED: AtomicBool = AtomicBool::new(false);
+
+pub struct DeviceBLETransport {
+    cmd_tx: Sender<'static, CriticalSectionRawMutex, DeviceBLECommand, 5>,
+    resp_rx: Receiver<'static, CriticalSectionRawMutex, HostBLEResponse, 5>,
 }
 
-#[gatt_service(uuid = "6e400001-b5a3-f393-e0a9-e50e24dcca9e")]
-struct NordicUartService {
-    #[characteristic(uuid = "6e400002-b5a3-f393-e0a9-e50e24dcca9e", write, write_without_response)]
-    #[descriptor(uuid = "2901", value = "RX Characteristic")]
-    rx: [u8; CHARACTERISTIC_SIZE],
-    
-    #[characteristic(uuid = "6e400003-b5a3-f393-e0a9-e50e24dcca9e", read, notify)]
-    #[descriptor(uuid = "2901", value = "TX Characteristic")]
-    tx: [u8; CHARACTERISTIC_SIZE],
+
+impl DeviceBLETransport {
+    pub fn new() -> Self {
+        Self {
+            cmd_tx: BLE_CMD_CHANNEL.sender(),
+            resp_rx: BLE_RESP_CHANNEL.receiver(),
+        }
+    }
 }
 
-struct DeviceBLETransport<'a, P: PacketPool> {
-    connection: &'a GattConnection<'a, 'a, P>,
-    gattServer: &'a Server<'a>,
-}
+impl DeviceTransport for DeviceBLETransport {
+    async fn refresh_data(&mut self, widget_id: WidgetId) -> TransResult<ByteArray> {
+        if !BLE_CONNECTED.load(Ordering::SeqCst) {
+            return Err(TransError::NotConnected);
+        }
 
-impl<'a, P: PacketPool> DeviceTransport for DeviceBLETransport<'a, P> {
-    async fn ping(&mut self) -> TransResult<()> {
-        let tx = self.gattServer.nus_service.tx;
-        let mut buffer = [0u8; 32];
-        let binary_string = b"pingas";
-        buffer[..binary_string.len()].copy_from_slice(binary_string);
+        self.cmd_tx
+            .send(DeviceBLECommand::RefreshData { widget_id })
+            .await;
 
-        // use indicate for all of these later? not sure how semantics work
-        if let Err(e) = tx.notify(self.connection, &buffer).await { 
-            warn!("[ble] failed to send ping: {:?}", e);
-            Err(TransError::NoAck)//placeholder
-        } else {
-            info!("[ble] ping sent successfully");
-            Ok(())
-        }    
+        // TODO might want to keep the timeout here, but just make sure it's notably longer than
+        // BLE_TIMEOUT_DUR to avoid channel fuckery
+        //
+        // match with_timeout(Duration::from_secs(BLE_TIMEOUT_DUR), self.resp_rx.receive()).await {
+        //     Ok(HostBLEResponse::RefreshData { result }) => result,
+        //     Ok(_) => Err(TransError::InvalidMessage),
+        //     Err(_) => Err(TransError::Timeout),
+        // }
+        match self.resp_rx.receive().await {
+            HostBLEResponse::RefreshData { result } => result,
+            _ => Err(TransError::InvalidMessage),
+        }
     }
 
-    async fn refresh_data(&mut self, widget_id: WidgetId) -> TransResult<ByteArray> {
-        // let tx = self.gattServer.nus_service.tx;
-        // let mut request = [0u8; CHARACTERISTIC_SIZE];
-        //
-        // request[0..4].copy_from_slice(&widget_id.0.to_le_bytes()); //le
-        //
-        // tx.notify(self.connection, &request).await
-        //     .map_err(|_| TransError::NoAck)?; //placeholder
-        // Ok()
-        todo!();
+    async fn ping(&mut self) -> TransResult<()> {
+        if !BLE_CONNECTED.load(Ordering::SeqCst) {
+            return Err(TransError::NotConnected);
+        }
+
+        self.cmd_tx.send(DeviceBLECommand::Ping).await;
+
+        match self.resp_rx.receive().await {
+            HostBLEResponse::Ping { result } => result,
+            _ => Err(TransError::InvalidMessage),
+        }
+
     }
 }
