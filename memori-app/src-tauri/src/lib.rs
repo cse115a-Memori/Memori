@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use memori_tcp::{
     host::{DeviceConnected, DeviceDisconnected},
-    DeviceRequest, HostResponse, HostTcpTransport,
+    DeviceRequest, HostResponse, HostTcpTransport, Sequenced,
 };
 use tauri_plugin_tracing::{tracing::error, Builder, LevelFilter};
 use tokio::sync::{
@@ -113,12 +113,12 @@ pub async fn run() {
 
 // tokio::spawn(async { request_handler(dev_req_rx, host_resp_tx) });
 pub async fn request_handler(
-    mut dev_req_rx: UnboundedReceiver<DeviceRequest>,
-    host_resp_tx: UnboundedSender<HostResponse>,
+    mut dev_req_rx: UnboundedReceiver<Sequenced<DeviceRequest>>,
+    host_resp_tx: UnboundedSender<Sequenced<HostResponse>>,
 ) {
     while let Some(req) = dev_req_rx.recv().await {
         println!("received request from device! {req:#?}");
-        let resp = match req {
+        let resp = match req.msg_kind {
             DeviceRequest::RefreshData(id) => {
                 todo!()
             }
@@ -128,7 +128,7 @@ pub async fn request_handler(
 
         println!("responding with :{resp:?}");
         host_resp_tx
-            .send(resp)
+            .send(Sequenced::new(req.seq_num, resp))
             .inspect_err(|e| error!("expected to send response successfully: {e}"))
             .unwrap()
     }

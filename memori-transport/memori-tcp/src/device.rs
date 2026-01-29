@@ -1,29 +1,39 @@
+use std::{collections::HashMap, sync::Arc};
+
 use postcard::{from_bytes, to_allocvec};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
-    net::TcpListener,
-    sync::mpsc::{self, UnboundedReceiver, UnboundedSender},
+    net::{
+        TcpListener,
+        tcp::{OwnedReadHalf, OwnedWriteHalf},
+    },
+    sync::{
+        Mutex,
+        mpsc::{self, UnboundedReceiver, UnboundedSender},
+        oneshot,
+    },
     task::JoinHandle,
 };
 use tracing::{debug, error};
-use transport::TransError;
+use transport::{TransError, TransResult};
 
 pub use transport::DeviceTransport;
 
 use crate::{
     DeviceRequest, DeviceResponse, DeviceTcpTransport, HostRequest, HostResponse, Message,
-    TCP_ADDR, TcpTransportResult,
+    MessageKind, Sequenced, TCP_ADDR, TcpTransportResult,
 };
 
-pub struct HostConnected {
-    msg_sender: UnboundedSender<Message>,
-    responses: UnboundedReceiver<HostResponse>,
-    send_task: JoinHandle<()>,
-    recv_task: JoinHandle<()>,
-}
+pub struct HostDisconnected {}
 
-pub struct HostDisconnected {
-    // request_handler: DeviceRequestHandler,
+type Responses = Arc<Mutex<HashMap<u32, oneshot::Sender<HostResponse>>>>;
+pub struct HostConnected {
+    device_response_task: JoinHandle<()>,
+    msg_sender: UnboundedSender<Message>,
+    recv_task: JoinHandle<()>,
+    responses: Responses,
+    send_task: JoinHandle<()>,
+    seq_num: u32,
 }
 
 impl Default for DeviceTcpTransport<HostDisconnected> {
@@ -40,135 +50,197 @@ impl DeviceTcpTransport<HostDisconnected> {
     ) -> TcpTransportResult<(
         DeviceTcpTransport<HostConnected>,
         (
-            UnboundedReceiver<HostRequest>,
-            UnboundedSender<DeviceResponse>,
+            UnboundedReceiver<Sequenced<HostRequest>>,
+            UnboundedSender<Sequenced<DeviceResponse>>,
         ),
     )> {
+        // initialize tcp listener
         let listener = TcpListener::bind(TCP_ADDR)
             .await
             .inspect_err(|e| error!("{:#?}", e))?;
+
+        // form tcp stream
         let (stream, _) = listener
             .accept()
             .await
             .inspect_err(|e| error!("{:#?}", e))?;
 
+        // split it up
         let (stream_rx, stream_tx) = stream.into_split();
 
-        let (host_request_tx, host_request_rx) = mpsc::unbounded_channel::<HostRequest>();
-        let (device_response_tx, mut device_response_rx) =
-            mpsc::unbounded_channel::<DeviceResponse>();
+        // channel for host requests
+        let (host_request_tx, host_request_rx) =
+            mpsc::unbounded_channel::<Sequenced<HostRequest>>();
 
-        let (write_tx, mut write_rx) = mpsc::unbounded_channel::<Message>();
+        // channel for sending device responses
+        let (device_response_tx, device_response_rx) =
+            mpsc::unbounded_channel::<Sequenced<DeviceResponse>>();
 
-        // to send responses out of the reader task
-        let (response_tx, response_rx) = mpsc::unbounded_channel::<HostResponse>();
+        // channel for sending messages
+        let (msg_sender_tx, msg_sender_rx): (UnboundedSender<Message>, UnboundedReceiver<Message>) =
+            mpsc::unbounded_channel::<Message>();
 
-        let write_tx_clone = write_tx.clone();
+        // data structure to store responses
+        let responses = Arc::new(Mutex::new(
+            HashMap::<u32, oneshot::Sender<HostResponse>>::new(),
+        ));
 
-        let device_response_task = tokio::spawn(async move {
-            let write_tx = write_tx_clone;
-            if let Some(resp) = device_response_rx.recv().await {
-                let message = Message::DeviceResponse(Box::new(resp));
-                write_tx
-                    .send(message)
-                    .expect("write channel should not be closed")
-            }
-        });
+        // task to take responses and send it back out the wire
+        let device_response_task = tokio::spawn(Self::resp_handler(
+            msg_sender_tx.clone(),
+            device_response_rx,
+        ));
 
-        let recv_task = tokio::spawn(async move {
-            let mut stream_rx = stream_rx;
-            loop {
-                let mut msg_len_buf = [0; size_of::<u32>()];
-                if stream_rx
-                    .read_exact(&mut msg_len_buf)
-                    .await
-                    .inspect_err(|e| error!("{e:#?}"))
-                    .is_err()
-                {
-                    error!("connection closed");
-                    break;
-                }
-                debug!("received header bytes: {msg_len_buf:?}");
-                let msg_len = u32::from_be_bytes(msg_len_buf) as usize;
+        // task to handle receiving messages from the other side of the wire
+        let recv_task = tokio::spawn(Self::recv_handler(
+            stream_rx,
+            host_request_tx,
+            responses.clone(),
+        ));
 
-                if msg_len > 2048 {
-                    error!("received message that's longer than 2048 bytes, aborting message");
-                    continue;
-                }
-
-                let mut buf = vec![0u8; msg_len];
-                if stream_rx.read_exact(&mut buf).await.is_err() {
-                    // connection closed
-                    error!("connection closed");
-                    break;
-                }
-
-                // now we try to deserialize this message
-                debug!("received message_bytes: {buf:#?}");
-
-                // this should only ever receive a device tcp request
-                // actually it could be a device_tcp_request or a host tcp response
-                let Ok(message) =
-                    from_bytes(&buf).inspect_err(|e| error!("Failed to deserialize bytes {e:#?}"))
-                else {
-                    continue;
-                };
-
-                debug!("received message: {message:#?}");
-
-                match message {
-                    Message::HostRequest(req) => {
-                        // we send the host request, if it fails, its because it closed, we cant really do anything about that.
-                        let _ = host_request_tx.send(req);
-                    }
-
-                    Message::HostResponse(resp) => response_tx
-                        .send(resp)
-                        .inspect_err(|e| error!("response_tx channel closed: {e:?}"))
-                        .unwrap(),
-
-                    _ => {
-                        error!("Received invalid message type");
-                        panic!("Received invalid message type");
-                    }
-                }
-            }
-        });
-
-        let send_task = tokio::spawn(async move {
-            let mut stream_tx = stream_tx;
-
-            while let Some(msg) = write_rx.recv().await {
-                let msg_bytes = to_allocvec(&msg)
-                    .inspect_err(|e| error!("Failed to deserialize: {e:#?}"))
-                    .unwrap();
-
-                let len = msg_bytes.len() as u32;
-                let header_bytes = len.to_be_bytes();
-
-                let message_bytes = &[&header_bytes[..], &msg_bytes].concat();
-
-                debug!("sending message: {msg:#?}, bytes: {message_bytes:?}");
-
-                stream_tx
-                    .write_all(&[&header_bytes[..], &msg_bytes].concat())
-                    .await
-                    .inspect_err(|e| error!("{e:#?}"))
-                    .unwrap()
-            }
-        });
+        // task to send messages to the other side of the wire
+        let send_task = tokio::spawn(Self::trans_handler(stream_tx, msg_sender_rx));
 
         Ok((
             DeviceTcpTransport::<HostConnected> {
                 state: HostConnected {
-                    msg_sender: write_tx,
-                    responses: response_rx,
+                    msg_sender: msg_sender_tx,
+                    responses,
                     send_task,
                     recv_task,
+                    seq_num: 1,
+                    device_response_task,
                 },
             },
             (host_request_rx, device_response_tx),
         ))
+    }
+
+    async fn resp_handler(
+        msg_sender_tx: UnboundedSender<Message>,
+        mut device_response_rx: UnboundedReceiver<Sequenced<DeviceResponse>>,
+    ) {
+        while let Some(resp) = device_response_rx.recv().await {
+            msg_sender_tx
+                .send(resp.into())
+                .expect("write channel should not be closed")
+        }
+    }
+
+    async fn recv_handler(
+        mut stream_rx: OwnedReadHalf,
+        host_request_tx: UnboundedSender<Sequenced<HostRequest>>,
+        responses: Responses,
+    ) {
+        loop {
+            let mut msg_len_buf = [0; size_of::<u32>()];
+            if stream_rx
+                .read_exact(&mut msg_len_buf)
+                .await
+                .inspect_err(|e| error!("{e:#?}"))
+                .is_err()
+            {
+                error!("connection closed");
+                break;
+            }
+            debug!("received header bytes: {msg_len_buf:?}");
+            let msg_len = u32::from_be_bytes(msg_len_buf) as usize;
+
+            if msg_len > 2048 {
+                error!("received message that's longer than 2048 bytes, aborting message");
+                continue;
+            }
+
+            let mut buf = vec![0u8; msg_len];
+            if stream_rx.read_exact(&mut buf).await.is_err() {
+                // connection closed
+                error!("connection closed");
+                break;
+            }
+
+            // now we try to deserialize this message
+            debug!("received message_bytes: {buf:#?}");
+
+            // this should only ever receive a device tcp request
+            // actually it could be a device_tcp_request or a host tcp response
+            let Ok(message): Result<Message, postcard::Error> =
+                from_bytes(&buf).inspect_err(|e| error!("Failed to deserialize bytes {e:#?}"))
+            else {
+                continue;
+            };
+
+            debug!("received message: {message:#?}");
+
+            let seq_num = message.seq_num;
+
+            match message.kind {
+                MessageKind::HostRequest(req) => {
+                    // we send the host request, if it fails, its because it closed, we cant really do anything about that.
+
+                    let _ = host_request_tx.send(Sequenced::new(seq_num, req));
+                }
+
+                MessageKind::HostResponse(resp) => {
+                    let mut responses = responses.lock().await;
+                    let tx = responses.remove(&seq_num ).expect("Invariant broken, expecting to have a oneshot channel to sent to for this response");
+                    tx.send(resp).expect("receiver should not be closed");
+                }
+
+                _ => {
+                    error!("Received invalid message type");
+                    panic!("Received invalid message type");
+                }
+            }
+        }
+    }
+
+    async fn trans_handler(
+        mut stream_tx: OwnedWriteHalf,
+        mut msg_sender_rx: UnboundedReceiver<Message>,
+    ) {
+        while let Some(msg) = msg_sender_rx.recv().await {
+            let msg_bytes = to_allocvec(&msg)
+                .inspect_err(|e| error!("Failed to deserialize: {e:#?}"))
+                .unwrap();
+
+            let len = msg_bytes.len() as u32;
+            let header_bytes = len.to_be_bytes();
+
+            let message_bytes = &[&header_bytes[..], &msg_bytes].concat();
+
+            debug!("sending message: {msg:#?}, bytes: {message_bytes:?}");
+
+            stream_tx
+                .write_all(&[&header_bytes[..], &msg_bytes].concat())
+                .await
+                .inspect_err(|e| error!("{e:#?}"))
+                .unwrap()
+        }
+    }
+}
+
+impl DeviceTcpTransport<HostConnected> {
+    async fn send_request(
+        &mut self,
+        msg: MessageKind,
+    ) -> TransResult<oneshot::Receiver<HostResponse>> {
+        self.state.seq_num = self.state.seq_num.saturating_add(2);
+
+        let seq_num = self.state.seq_num;
+
+        let msg = Message { seq_num, kind: msg };
+
+        let mut responses = self.state.responses.lock().await;
+
+        let (resp_tx, resp_rx) = oneshot::channel::<HostResponse>();
+        responses.insert(seq_num, resp_tx);
+
+        self.state.msg_sender.send(msg).map_err(|e| {
+            error!("Failed to send into message sender! {e}");
+            TransError::InternalError
+        })?;
+
+        Ok(resp_rx)
     }
 }
 
@@ -177,42 +249,38 @@ impl DeviceTransport for DeviceTcpTransport<HostConnected> {
         &mut self,
         widget_id: transport::WidgetId,
     ) -> transport::TransResult<transport::ByteArray> {
-        self.state
-            .msg_sender
-            .send(Message::DeviceRequest(DeviceRequest::RefreshData(
+        let resp = self
+            .send_request(MessageKind::DeviceRequest(DeviceRequest::RefreshData(
                 widget_id,
             )))
-            .map_err(|e| {
-                error!("Failed to send into message sender! {e:#?}");
-                TransError::InternalError
-            })?;
+            .await?
+            .await
+            .inspect_err(|e| error!("error receiving message: {e}"))
+            .map_err(|_| TransError::InternalError)?;
 
-        if let Some(resp) = self.state.responses.recv().await
-            && let HostResponse::UpdatedWidget(data) = resp
-        {
+        if let HostResponse::UpdatedWidget(data) = resp {
             Ok(*data)
         } else {
-            error!("Failed to receive the expected response");
-            Err(TransError::NoAck)
+            panic!(
+                "Invariant failed! the same seq_num had a different response type than the request"
+            );
         }
     }
 
     async fn ping(&mut self) -> transport::TransResult<()> {
-        self.state
-            .msg_sender
-            .send(Message::DeviceRequest(DeviceRequest::Ping))
-            .map_err(|e| {
-                error!("Failed to send into message sender! {e:#?}");
-                TransError::InternalError
-            })?;
+        let resp = self
+            .send_request(MessageKind::DeviceRequest(DeviceRequest::Ping))
+            .await?
+            .await
+            .inspect_err(|e| error!("error receiving message: {e}"))
+            .map_err(|_| TransError::InternalError)?;
 
-        if let Some(resp) = self.state.responses.recv().await
-            && let HostResponse::Pong = resp
-        {
+        if let HostResponse::Pong = resp {
             Ok(())
         } else {
-            error!("Failed to receive the expected response");
-            Err(TransError::NoAck)
+            panic!(
+                "Invariant failed! the same seq_num had a different response type than the request"
+            );
         }
     }
 }
@@ -221,5 +289,6 @@ impl DeviceTcpTransport<HostConnected> {
         // aborting the tasks so they dont run in the backgrund when transport is dropped
         self.state.send_task.abort();
         self.state.recv_task.abort();
+        self.state.device_response_task.abort();
     }
 }

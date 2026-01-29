@@ -4,13 +4,13 @@ use color_eyre::eyre::Result;
 use embedded_graphics::{pixelcolor::BinaryColor, prelude::*};
 use embedded_graphics_simulator::{OutputSettings, SimulatorDisplay, SimulatorEvent, Window};
 use memori::{Memori, MemoriState};
-use memori_tcp::{DeviceResponse, DeviceTcpTransport, HostRequest};
+use memori_tcp::{DeviceResponse, DeviceTcpTransport, HostRequest, Sequenced};
 use mousefood::{EmbeddedBackend, EmbeddedBackendConfig};
 use tokio::{sync::Mutex, time::sleep};
 use transport::DeviceTransport;
 
 use ratatui::Terminal;
-use tracing::{Level, info};
+use tracing::{Level, error, info};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -80,7 +80,7 @@ async fn state_handler(state: Arc<Mutex<MemoriState>>) -> Result<()> {
 
         if let Ok(req) = host_req_rx.try_recv() {
             info!("received device request! {req:?}");
-            let resp = match req {
+            let resp = match req.msg_kind {
                 HostRequest::Ping => DeviceResponse::Pong,
                 HostRequest::GetBatteryLevel => DeviceResponse::BatteryLevel(69),
                 HostRequest::SetDeviceConfig(config) => {
@@ -93,7 +93,10 @@ async fn state_handler(state: Arc<Mutex<MemoriState>>) -> Result<()> {
             };
 
             info!("sending response: {resp:#?}");
-            dev_resp_tx.send(resp).unwrap();
+            dev_resp_tx
+                .send(Sequenced::new(req.seq_num, resp))
+                .inspect_err(|e| error!("failed to send: {e}"))
+                .unwrap();
         }
 
         let state = &mut *state.lock().await;

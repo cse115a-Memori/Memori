@@ -1,15 +1,14 @@
-use memori_tcp::DeviceRequest;
 use memori_tcp::DeviceResponse;
 use memori_tcp::DeviceTcpTransport;
 use memori_tcp::HostRequest;
-use memori_tcp::HostResponse;
 use memori_tcp::HostTcpTransport;
+use memori_tcp::Sequenced;
 use std::time::Duration;
 use tokio::time::sleep;
 use transport::HostTransport;
 
 #[test]
-pub fn test() {
+pub fn battery_transmission_test() {
     let expected_battery = 10;
 
     let _ = tracing_subscriber::fmt()
@@ -23,20 +22,20 @@ pub fn test() {
         rt.block_on(async move {
             let device = DeviceTcpTransport::default();
 
-            let (conn, (mut host_req_rx, mut dev_resp_tx)) = device.connect().await.unwrap();
+            let (_, (mut host_req_rx, dev_resp_tx)) = device.connect().await.unwrap();
 
             tokio::spawn(async move {
                 while let Some(req) = host_req_rx.recv().await {
-                    let resp = match req {
+                    let resp = match req.msg_kind {
                         HostRequest::GetBatteryLevel => {
                             DeviceResponse::BatteryLevel(expected_battery)
                         }
                         HostRequest::Ping => DeviceResponse::Pong,
-                        HostRequest::SetWidgets(wid) => todo!(),
+                        HostRequest::SetWidgets(_) => todo!(),
                         _ => todo!(),
                     };
 
-                    dev_resp_tx.send(resp).unwrap();
+                    dev_resp_tx.send(Sequenced::new(req.seq_num, resp)).unwrap();
                 }
             });
 
@@ -49,7 +48,7 @@ pub fn test() {
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
             let host = HostTcpTransport::default();
-            let (mut conn, (dev_req_rx, host_resp_tx)) = host.connect().await.unwrap();
+            let (mut conn, (_, _)) = host.connect().await.unwrap();
 
             conn.get_battery_level()
                 .await
