@@ -83,6 +83,8 @@ weact-studio-epd = { version = "0.1.2", features = ["blocking"] }
 profont = "0.7.0"
 
 
+memori-transport = {path = "../../memori-transport", default-features = false, features = ["ble"]}
+
 
 
 
