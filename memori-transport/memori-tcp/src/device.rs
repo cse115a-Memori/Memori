@@ -116,6 +116,9 @@ impl DeviceTcpTransport<HostDisconnected> {
         ))
     }
 
+    /// Handler for sending responses from the device implementer into the sender task.
+    ///
+    ///**Warning**: This function should be called from a `tokio::spawn` as it will loop forever.
     async fn resp_handler(
         msg_sender_tx: UnboundedSender<Message>,
         mut device_response_rx: UnboundedReceiver<Sequenced<DeviceResponse>>,
@@ -127,6 +130,10 @@ impl DeviceTcpTransport<HostDisconnected> {
         }
     }
 
+    /// Handler for receiving messages form the other side of the wire and doing the proper
+    /// things with them.
+    ///
+    ///**Warning**: This function should be called from a `tokio::spawn` as it will loop forever.
     async fn recv_handler(
         mut stream_rx: OwnedReadHalf,
         host_request_tx: UnboundedSender<Sequenced<HostRequest>>,
@@ -145,11 +152,6 @@ impl DeviceTcpTransport<HostDisconnected> {
             }
             debug!("received header bytes: {msg_len_buf:?}");
             let msg_len = u32::from_be_bytes(msg_len_buf) as usize;
-
-            if msg_len > 2048 {
-                error!("received message that's longer than 2048 bytes, aborting message");
-                continue;
-            }
 
             let mut buf = vec![0u8; msg_len];
             if stream_rx.read_exact(&mut buf).await.is_err() {
@@ -175,9 +177,9 @@ impl DeviceTcpTransport<HostDisconnected> {
 
             match message.kind {
                 MessageKind::HostRequest(req) => {
-                    // we send the host request, if it fails, its because it closed, we cant really do anything about that.
-
-                    let _ = host_request_tx.send(Sequenced::new(seq_num, req));
+                    host_request_tx
+                        .send(Sequenced::new(seq_num, req))
+                        .expect("this should not be closed");
                 }
 
                 MessageKind::HostResponse(resp) => {
@@ -194,6 +196,9 @@ impl DeviceTcpTransport<HostDisconnected> {
         }
     }
 
+    /// Handler that deals with sending any and all messages to the other side of the wire.
+    ///
+    ///**Warning**: This function should be called from a `tokio::spawn` as it will loop forever.
     async fn trans_handler(
         mut stream_tx: OwnedWriteHalf,
         mut msg_sender_rx: UnboundedReceiver<Message>,
@@ -220,6 +225,8 @@ impl DeviceTcpTransport<HostDisconnected> {
 }
 
 impl DeviceTcpTransport<HostConnected> {
+    /// Helper function to send requests to the other side of the wire,
+    /// namely exists to deal with sequence numbers for requests and responses.
     async fn send_request(
         &mut self,
         msg: MessageKind,

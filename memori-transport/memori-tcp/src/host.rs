@@ -105,6 +105,9 @@ impl HostTcpTransport<DeviceDisconnected> {
         ))
     }
 
+    /// Handler for sending responses from the host implementer into the sender task.
+    ///
+    ///**Warning**: This function should be called from a `tokio::spawn` as it will loop forever.
     async fn resp_handler(
         msg_sender_tx: UnboundedSender<Message>,
         mut host_response_rx: UnboundedReceiver<Sequenced<HostResponse>>,
@@ -116,6 +119,10 @@ impl HostTcpTransport<DeviceDisconnected> {
         }
     }
 
+    /// Handler for receiving messages form the other side of the wire and doing the proper
+    /// things with them.
+    ///
+    ///**Warning**: This function should be called from a `tokio::spawn` as it will loop forever.
     async fn recv_handler(
         mut stream_rx: OwnedReadHalf,
         device_request_tx: UnboundedSender<Sequenced<DeviceRequest>>,
@@ -134,11 +141,6 @@ impl HostTcpTransport<DeviceDisconnected> {
             }
             debug!("received header bytes: {msg_len_buf:?}");
             let msg_len = u32::from_be_bytes(msg_len_buf) as usize;
-
-            if msg_len > 2048 {
-                error!("received message that's longer than 2048 bytes, aborting message");
-                continue;
-            }
 
             let mut buf = vec![0u8; msg_len];
             if stream_rx.read_exact(&mut buf).await.is_err() {
@@ -179,6 +181,9 @@ impl HostTcpTransport<DeviceDisconnected> {
         }
     }
 
+    /// Handler that deals with sending any and all messages to the other side of the wire.
+    ///
+    ///**Warning**: This function should be called from a `tokio::spawn` as it will loop forever.
     async fn trans_handler(
         mut stream_tx: OwnedWriteHalf,
         mut msg_sender_rx: UnboundedReceiver<Message>,
@@ -205,6 +210,8 @@ impl HostTcpTransport<DeviceDisconnected> {
 }
 
 impl HostTcpTransport<DeviceConnected> {
+    /// Helper function to send requests to the other side of the wire,
+    /// namely exists to deal with sequence numbers for requests and responses.
     async fn send_request(
         &mut self,
         msg: MessageKind,

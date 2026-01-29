@@ -17,24 +17,27 @@ pub enum TcpTransportError {
 
 pub type TcpTransportResult<T> = Result<T, TcpTransportError>;
 
+/// Composition of a TCP Message
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Message {
-    seq_num: u32,
-    kind: MessageKind,
-}
-
-#[derive(Debug)]
-pub struct Sequenced<T> {
     /// Sequence number for this message. A response's sequence number is always
     /// equal to its requests' sequence number. Additionally requests sent from the
     /// device always have odd sequence numbers, while events sent from the host
     /// always have even sequence numbers
+    seq_num: u32,
+    kind: MessageKind,
+}
+
+/// Helper generic to pass a sequence number with any sub enum of the `MessageKind` enum.
+#[derive(Debug)]
+pub struct Sequenced<T> {
     pub seq_num: u32,
     /// will be an enum variant of message kind
     pub msg_kind: T,
 }
 
 impl<T> Sequenced<T> {
+    /// If creating a response from this, please use the same `seq_num` from the request.
     pub fn new(seq_num: u32, msg_kind: T) -> Self {
         Self { seq_num, msg_kind }
     }
@@ -70,6 +73,7 @@ impl_sequenced_to_message!(DeviceResponse, DeviceResponse, boxed);
 impl_sequenced_to_message!(HostRequest, HostRequest);
 impl_sequenced_to_message!(HostResponse, HostResponse);
 
+/// The different kinds of messages we support.
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum MessageKind {
     DeviceRequest(DeviceRequest),
