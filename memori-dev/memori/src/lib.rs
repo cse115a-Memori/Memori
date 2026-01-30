@@ -1,10 +1,12 @@
 #![no_std]
+pub mod clock;
 
-use alloc::format;
 use core::convert::Infallible;
 use embedded_graphics::mono_font::MonoFont;
 use profont::PROFONT_18_POINT;
 use ratatui::prelude::*;
+
+use crate::clock::{Clock, TimeWidget};
 extern crate alloc;
 
 /// Regular font.
@@ -15,24 +17,13 @@ pub const FONT_BOLD: Option<MonoFont<'static>> = None;
 pub const FONT_ITALIC: Option<MonoFont<'static>> = None;
 
 pub enum MemoriState {
-    Example(Counter),
-    Time(Clock)
+    Time(Clock),
 }
 
 impl Default for MemoriState {
     fn default() -> Self {
-        MemoriState::Example(Counter { i: 0 })
+        MemoriState::Time(Clock::new())
     }
-}
-
-pub struct Counter {
-    pub i: u32,
-}
-
-pub struct Clock {
-    pub seconds: u32,
-    pub minutes: u32,
-    pub hours: u32
 }
 
 pub struct Memori<B: Backend> {
@@ -47,30 +38,21 @@ where
         Self { term }
     }
 
-    pub fn update(&mut self, state: &MemoriState) -> Result<(), Infallible> {
+    pub fn update(&mut self, state: &mut MemoriState) -> Result<(), Infallible> {
         use MemoriState::*;
-        let widget = match state {
-            Example(state) => {
-                let string = format!("Hello Cainan! {}", state.i);
-                Text::from(string)
-            }
-
-            Time(state) => {
-                if state.hours < 10 || state.minutes < 10 || state.seconds < 10 {
-                    let string = format!("0{}:0{}:0{}", state.hours, state.minutes, state.seconds);
-                    Text::from(string)
-                } else {
-                    let string = format!("{}:{}:{}", state.hours, state.minutes, state.seconds);
-                    Text::from(string)
-                }
-            }
-        };
-
         self.term
             .draw(|f| {
-                f.render_widget(widget, f.area());
+                let area = f.area();
+
+                match state {
+                    Time(clock) => {
+                        let widget = TimeWidget;
+                        f.render_stateful_widget(widget, area, clock);
+                    }
+                }
             })
             .expect("render callback should not fail");
+
         Ok(())
     }
 }

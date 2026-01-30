@@ -1,6 +1,7 @@
 use embedded_graphics::{pixelcolor::BinaryColor, prelude::*};
 use embedded_graphics_simulator::{OutputSettings, SimulatorDisplay, SimulatorEvent, Window};
 use memori::{Memori, MemoriState};
+use memori::clock::Clock;
 use mousefood::{EmbeddedBackend, EmbeddedBackendConfig};
 use ratatui::Terminal;
 use std::time::Instant;
@@ -39,7 +40,7 @@ fn main() -> Result<(), std::convert::Infallible> {
     let term = Terminal::new(backend).expect("something went wrong");
 
     let mut memori = Memori::new(term);
-    let mut mem_state = MemoriState::default();
+    let mut mem_state = MemoriState::Time(Clock::new());
 
     let mut last_tick = Instant::now();
 
@@ -49,31 +50,15 @@ fn main() -> Result<(), std::convert::Infallible> {
         let elapsed = instant - last_tick;
 
         memori
-            .update(&mem_state)
+            .update(&mut mem_state)
             .expect("should have been successfull");
 
         match mem_state {
-            MemoriState::Example(ref mut cont) => cont.i += 1,
 
             //We will sync actual time later.
             MemoriState::Time(ref mut clock) => {
                 if elapsed >= Duration::from_secs(1) {
-                    clock.seconds += 1;
-
-                    if clock.seconds >= 60 {
-                        clock.seconds = 0;
-                        clock.minutes += 1;
-                    }
-
-                    if clock.minutes >= 60 {
-                        clock.minutes = 0;
-                        clock.hours += 1;
-                    }
-
-                    if clock.hours >= 12 {
-                        clock.hours = 1;
-                    }
-
+                    clock.tick();
                     last_tick = instant;
                 }
             }
