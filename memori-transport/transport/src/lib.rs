@@ -4,34 +4,70 @@ pub mod ble_types;
 
 use serde::Deserialize;
 use serde::Serialize;
+use tracing::error;
 
-use core::future::Future;
+use core::error::Error;
+use core::fmt::Display;
 /// Helper type to define a byte array.
-pub type ByteArray = heapless::Vec<u8, 1024>;
+pub type ByteArray = heapless::Vec<u8, 256>;
 
 /// New type struct for a widget identifier.
-#[derive(Serialize, Deserialize)]
-pub struct WidgetId(u32);
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub struct WidgetId(pub u32);
 
 /// Any errors risen during transport.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum TransError {
+    InternalError,
     NoAck,
     WidgetNotFound,
+    SerializationFailure,
 }
+
+impl Display for TransError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            TransError::InternalError => write!(f, "Internal Error!"),
+            TransError::NoAck => write!(
+                f,
+                "No Ack, also know we might send these errors for no reason"
+            ),
+            TransError::WidgetNotFound => write!(f, "Widget not found! possible invalid WidgetID!"),
+            TransError::SerializationFailure => {
+                write!(f, "Failed to draw widget")
+            }
+        }
+    }
+}
+
+impl Error for TransError {}
 
 /// Result type for transport errors.
 pub type TransResult<T> = Result<T, TransError>;
 
 /// The general information held by a widget.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Widget {
     id: WidgetId,
-    data: ByteArray,
+    // data: ByteArray,
+    data: heapless::Vec<u8, 256>,
+}
+
+impl Widget {
+    pub fn new(id: WidgetId, data: impl Serialize) -> TransResult<Self> {
+        let mut buf = [0u8; 256];
+        let used = postcard::to_slice(&data, &mut buf)
+            .inspect_err(|e| error!("{e:#?}"))
+            .map_err(|_| TransError::SerializationFailure)?;
+
+        let data = heapless::Vec::from_slice(used).map_err(|_| TransError::SerializationFailure)?;
+
+        Ok(Widget { id, data })
+    }
 }
 
 /// Device configuration options
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct DeviceConfig {
     dark_mode: bool,
 }
