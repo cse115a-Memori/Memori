@@ -8,7 +8,7 @@
       columns: (1fr, 1fr),
       rows: (auto, auto, auto),
       gutter: 3pt,
-      [*Sprint 1 Plan*], [],
+      [*Sprint 2 Plan*], [],
       [Product / Team: Memori], [1/27/26],
       [Revision 0.1.0], [Revision Date: 1/27/26],
     )
@@ -20,7 +20,7 @@
 #set par(justify: true)
 
 #align(center)[
-  #text(size: 18pt, weight: "bold")[Sprint 1 Plan]
+  #text(size: 18pt, weight: "bold")[Sprint 2 Plan]
   #v(0.5em)
   #text(size: 14pt)[Memori]
   #v(1em)
@@ -30,69 +30,74 @@
 
 == Sprint Goal
 
-Our goals for this sprint are to set up a development environment on everyones machines,
-as well as making a simulator for the device as not everyone has a board and display.
-We also plan to make a Proof-of-Concept of being able to connect to the device over
-bluetooth and update what its displaying on its screen through a simple app.
-
+The goal of this sprint is to actually connect to the Memori device through the user's phone. We would
+also like to establish a way to display several widgets on the device at once such as github statistics
+and canvas assignments.
 
 == Duration
-*Start Date:* 1/14/26 \
-*End Date:* 1/27/26\
+*Start Date:* 1/28/26 \
+*End Date:* 2/11/26\
 *Sprint Length:* 2 weeks
 
 = Sprint Tasks
 
-== High Priority Items
-+ *User Story 1.1* - As a application user, I want to be able to connect to my Memori device using bluetooth via simulator / desktop.
-  - Estimated Points: 21
-  - Tasks
-    - Set up Bluetooth on device (2 Hours)
-    - Set up a host application with BL support from desktop (3 Hours)
-    - Write code to connect host application to device over bluetooth (2 Hours)
-  - Total Time: 7 Hours
-  - Assigned To: Preston
 
-+ *User Story 1.2* - As a user, I want a clear and intuitive interface to interact with the Memori device through my phone.
+// === Sprint 2, 34 pts
+
+// + {High} User Story 2.1 [8]: As a application user, I want to be able to connect to my Memori device using bluetooth from a mobile device.
+// + {High} User Story 2.2 [8]: As a developer, I would want to see my github statistics on the Memori device.
+// + {Medium} User Story 2.3 [13]: As a student, I would want to see my canvas assignments on the Memori device.
+// + {Medium} User Story 2.4 [5]: As an efficiency seeking user, I want to be able to display multiple widgets on my device at once.
+
+== High Priority Items
++ *User Story 2.1* - As an application user, I want to be able to connect to my Memori device using bluetooth from a mobile device.
   - Estimated Points: 8
   - Tasks
-    - Set up basic Tauri Application (1 hour)
-    - Add basic ui elements (1 hour)
-    - Write transport layer to facilitate communication between app and device (12 Hours)
-    - Hookup a transport layer to the backend (1 hour)
-  - Total Time: 15 Hours
-  - Assigned To: Kenric, Surendra, Preston
+    - Set up bluetooth on Tauri (4 Hours) (Preston)
+    - Write app-ui for pairing with device (3 Hours)(Kenric)
+    - Verify connection between phone and device (1 Hour) (Preston)
+  - Total Time: 7 Hours
 
++ *User Story 2.4* - As an efficiency seeking user, I want to be able to display multiple widgets on my device at once.
+  - Estimated Points: 34
+  - Tasks
+    - Develop a shared layout / widget representation between device and app (7 Hours) (Surendra)
+    - Implement visuals for different widgets on the app (5 Hours) (Kenric)
+      - per widget configuration
+    - Implement ui to configure different widgets in different layours (5 hours) (Kenric)
+      - layout configuration
+    - Ratatui logic to parse layout representation / widgets and put them in the right place (5 hours) (Cainan)
+  - Total Time: 17 Hours
 #pagebreak()
 == Medium Priority Items
-+ *User Story 1.3* - As a device owner, I want to be able to display simple widgets, such as time or weather on my Memori device.
-  - Estimated Points: 8
+// + {Medium} User Story 2.3 [13]: As a student, I would want to see my canvas assignments on the Memori device.
+// + {Medium} User Story 2.4 [5]: As an efficiency seeking user, I want to be able to display multiple widgets on my device at once.
++ *User Story 2.2* - As a developer, I would want to see my github statistics on the Memori device.
+  - Estimated Points: 13
   - Tasks
-    - Familiarize with Ratatui library (2 hours)
-    - Write a Weather widget (3 hours)
-    - Write a Time widget (1 hour)
-  - Total Time: 6 Hours
-  - Assigned To: Cainan, Julian
+    - Establish universal widget update framework (5 Hour) (Surendra)
+    - github widget data logic (3 hour) (Cainan)
+    - github widget ui (1 hour) (Cainan)
+  - Total Time: 9 Hours
++ *User Story 2.3* - As a student, I would want to see my canvas assignments on the Memori device.
+  - Estimated Points: 13
+  - Tasks
+    - canvas widget data logic (3 hour)
+    - canvas widget ui (1 hour)
+  - Total Time: 4 Hours
 
-== Low Priority Items
-+ *User Story 1.4* - As a user, I want to have a dark mode for the display.
-  - Estimated Points: 5
-  - Tasks
-    - Make the display dark. (0.5 Hours)
-  - Total Time: 0.5 Hours
-  - Assigned To: Surendra
+
 = Team
 
 #table(
   columns: (1fr, 1fr),
   [*Team Member*], [*Roles*],
   [Surendra Jammishetti], [Developer, Project Lead],
-  [Kenric Tee], [App Developer],
+  [Kenric Tee], [Scrum Master,App Developer],
   [Preston Clayton], [Hardware Developer],
-  [Cainan Enneking], [Scrum Master, Device UI Developer],
+  [Cainan Enneking], [Device UI Developer],
   [Julian Montano], [Device UI Developer],
 )
-
 
 
 = Scrum Board
@@ -102,6 +107,3 @@ We are using github projects for our scrum board, which can be viewed #link("htt
 = Scrum Times
 *Scrum Meetings:* Sunday 10-10:30am, Monday 1:15-2pm, Wednesday 1-2pm, Friday 2-2:30pm\
 *TA meetings:* Monday 1:15 - 2pm
-
-
-
