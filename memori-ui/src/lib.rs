@@ -1,11 +1,15 @@
 #![no_std]
 
-use alloc::format;
+use alloc::{format, sync::Arc};
 use core::convert::Infallible;
 use embedded_graphics::mono_font::MonoFont;
 use profont::PROFONT_18_POINT;
 use ratatui::prelude::*;
+
+use crate::name::Name;
 extern crate alloc;
+
+pub mod name;
 
 /// Regular font.
 pub const FONT_REGULAR: MonoFont<'static> = PROFONT_18_POINT;
@@ -14,9 +18,10 @@ pub const FONT_BOLD: Option<MonoFont<'static>> = None;
 /// Italic font.
 pub const FONT_ITALIC: Option<MonoFont<'static>> = None;
 
-
 pub enum MemoriState {
     Example(Counter),
+    Name(Name),
+    // Clo(Clo)
 }
 
 impl Default for MemoriState {
@@ -41,20 +46,30 @@ where
         Self { term }
     }
 
-    pub fn update(&mut self, state: &MemoriState) -> Result<(), Infallible> {
-        use MemoriState::*;
-        let widget = match state {
-            Example(state) => {
-                let string = format!("Hello Suri! {}", state.i);
-                Text::from(string)
-            }
-        };
-
+    pub fn update(&mut self, state: &MemoriState) -> Result<(), B::Error> {
         self.term
             .draw(|f| {
-                f.render_widget(widget, f.area());
+                f.render_widget(state, f.area());
             })
-            .expect("render callback should not fail");
-        Ok(())
+            .map(|_| ())
+    }
+}
+
+impl Widget for &MemoriState {
+    fn render(self, area: Rect, buf: &mut Buffer)
+    where
+        Self: Sized,
+    {
+        match self {
+            MemoriState::Example(counter) => {
+                let string = format!("Hello Suri! {}", counter.i);
+                Text::from(string).render(area, buf);
+            }
+            MemoriState::Name(name) => {
+                name.render(area, buf);
+            }
+
+            
+        }
     }
 }

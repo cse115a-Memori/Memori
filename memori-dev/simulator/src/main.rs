@@ -1,11 +1,11 @@
-use std::{sync::Arc, time::Duration};
-
 use color_eyre::eyre::Result;
 use embedded_graphics::{pixelcolor::BinaryColor, prelude::*};
 use embedded_graphics_simulator::{OutputSettings, SimulatorDisplay, SimulatorEvent, Window};
-use memori::{Memori, MemoriState};
 use memori_tcp::{DeviceResponse, DeviceTcpTransport, HostRequest, Sequenced};
+use memori_ui::{Memori, MemoriState, name::Name};
 use mousefood::{EmbeddedBackend, EmbeddedBackendConfig};
+use ratatui::prelude::StatefulWidget;
+use std::{sync::Arc, time::Duration};
 use tokio::{sync::Mutex, time::sleep};
 use transport::DeviceTransport;
 
@@ -37,9 +37,9 @@ async fn main() -> Result<()> {
     simulator_window.set_max_fps(1);
 
     let backend_config = EmbeddedBackendConfig {
-        font_regular: memori::FONT_REGULAR,
-        font_bold: memori::FONT_BOLD,
-        font_italic: memori::FONT_ITALIC,
+        font_regular: memori_ui::FONT_REGULAR,
+        font_bold: memori_ui::FONT_BOLD,
+        font_italic: memori_ui::FONT_ITALIC,
         // Define how to display newly rendered widgets to the simulator window
         flush_callback: Box::new(move |display| {
             simulator_window.update(display);
@@ -56,10 +56,14 @@ async fn main() -> Result<()> {
     let term = Terminal::new(backend).expect("something went wrong");
 
     let mut memori = Memori::new(term);
-    let mem_state = Arc::new(Mutex::new(MemoriState::default()));
+
+    let mem_state = Arc::new(Mutex::new(MemoriState::Name(Name {
+        name: "Surendra".to_string(),
+    })));
 
     tokio::spawn(state_handler(mem_state.clone()));
 
+    // this loop contains the logic for running the ui
     loop {
         memori
             .update(&*mem_state.lock().await)
@@ -82,7 +86,16 @@ async fn state_handler(state: Arc<Mutex<MemoriState>>) -> Result<()> {
             info!("received device request! {req:?}");
             let resp = match req.msg_kind {
                 HostRequest::Ping => DeviceResponse::Pong,
-                HostRequest::GetBatteryLevel => DeviceResponse::BatteryLevel(69),
+                HostRequest::GetBatteryLevel => {
+                    let state = &mut *state.lock().await;
+
+                    match state {
+                        MemoriState::Example(counter) => todo!(),
+                        MemoriState::Name(name) => name.name = "Cainan".to_string(),
+                    }
+
+                    DeviceResponse::BatteryLevel(69)
+                }
                 HostRequest::SetDeviceConfig(config) => {
                     todo!()
                 }
@@ -102,6 +115,7 @@ async fn state_handler(state: Arc<Mutex<MemoriState>>) -> Result<()> {
         let state = &mut *state.lock().await;
         match state {
             MemoriState::Example(counter) => counter.i += 1,
+            _ => {}
         }
 
         info!("incr num");

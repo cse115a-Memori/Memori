@@ -11,7 +11,7 @@ profont = "0.7.0"
 ratatui = { version = "0.30.0" ,default-features = false, features=["portable-atomic"] }
 mousefood = { git="https://github.com/j-g00da/mousefood.git", rev="693d82ae9482c32be6363e72474faeb7d962cb1b", features = ["epd-weact","framebuffer"] }
 
-memori = {path="../memori"}
+memori-ui = {path="../../memori-ui"}
 transport = {path="../../memori-transport/transport"}
 memori-tcp = {path="../../memori-transport/memori-tcp"}
 tokio = { version = "1.49.0", features = ["full"] }
