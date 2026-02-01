@@ -82,9 +82,9 @@ and canvas assignments.
 + *User Story 2.3* - As a student, I would want to see my canvas assignments on the Memori device.
   - Estimated Points: 13
   - Tasks
-    - canvas widget data logic (3 hour)
-    - canvas widget ui (1 hour)
-  - Total Time: 4 Hours
+    - santa cruz metro real time logic (5 hour) (Julian)
+    - bus widget map ui (2 hour) (Julian)
+  - Total Time: 7 Hours
 
 
 = Team
