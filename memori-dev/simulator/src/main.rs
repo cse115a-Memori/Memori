@@ -2,7 +2,7 @@ use color_eyre::eyre::Result;
 use embedded_graphics::{pixelcolor::BinaryColor, prelude::*};
 use embedded_graphics_simulator::{OutputSettings, SimulatorDisplay, SimulatorEvent, Window};
 use memori_tcp::{DeviceResponse, DeviceTcpTransport, HostRequest, Sequenced};
-use memori_ui::{Memori, MemoriState, name::Name};
+use memori_ui::{Memori, MemoriState, name::Name, clock::Clock};
 use mousefood::{EmbeddedBackend, EmbeddedBackendConfig};
 use std::{sync::Arc, time::Duration};
 use tokio::{sync::Mutex, time::sleep};
@@ -56,8 +56,15 @@ async fn main() -> Result<()> {
 
     let mut memori = Memori::new(term);
 
-    let mem_state = Arc::new(Mutex::new(MemoriState::Name(Name {
+   /* let mem_state = Arc::new(Mutex::new(MemoriState::Name(Name {
         name: "Surendra".to_string(),
+    })));
+    */
+    
+    let mem_state = Arc::new(Mutex::new(MemoriState::Clock(Clock {
+        hours: 11,
+        minutes: 59,
+        seconds: 6,
     })));
 
     tokio::spawn(state_handler(mem_state.clone()));

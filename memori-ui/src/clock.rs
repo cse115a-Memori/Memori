@@ -2,8 +2,9 @@ use alloc::format;
 use alloc::string::String;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-use ratatui::widgets::Widget;
-use ratatui::text::Text;
+use ratatui::widgets::{Widget, Block, Borders};
+use ratatui::style::Style;
+use ratatui::symbols::border;
 use crate::alloc::string::ToString;
 
 pub struct Clock {
@@ -54,6 +55,29 @@ impl Widget for &Clock{
         }
         
         let string = format!("{}:{}:{}", hours_string, minutes_string, seconds_string);
-        Text::from(string).render(area, buf);
+    
+        let border_set = border::Set {
+            top_left: "+",
+            top_right: "+",
+            bottom_left: "+",
+            bottom_right: "+",
+            vertical_left: "|",
+            vertical_right: "|",
+            horizontal_top: "=",
+            horizontal_bottom: "=",
+        };
+        
+        // Render the block with borders
+        let block = Block::default().borders(Borders::ALL).border_set(border_set);
+        let inner_area = block.inner(area);
+        block.render(area, buf);
+        
+        // Calculate center position
+        let text_len = string.len() as u16;
+        let center_x = inner_area.x + (inner_area.width.saturating_sub(text_len)) / 2;
+        let center_y = inner_area.y + inner_area.height / 2;
+        
+        // Render the centered text
+        buf.set_string(center_x, center_y, string, Style::default());
     }
 }
