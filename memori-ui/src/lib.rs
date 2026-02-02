@@ -1,15 +1,16 @@
 #![no_std]
 
-use alloc::{format, sync::Arc};
-use core::convert::Infallible;
+use alloc::{format};
 use embedded_graphics::mono_font::MonoFont;
 use profont::PROFONT_18_POINT;
 use ratatui::prelude::*;
 
 use crate::name::Name;
+use crate::clock::Clock;
 extern crate alloc;
 
 pub mod name;
+pub mod clock;
 
 /// Regular font.
 pub const FONT_REGULAR: MonoFont<'static> = PROFONT_18_POINT;
@@ -21,6 +22,7 @@ pub const FONT_ITALIC: Option<MonoFont<'static>> = None;
 pub enum MemoriState {
     Example(Counter),
     Name(Name),
+    Clock(Clock),
     // Clo(Clo)
 }
 
@@ -68,8 +70,9 @@ impl Widget for &MemoriState {
             MemoriState::Name(name) => {
                 name.render(area, buf);
             }
-
-            
+            MemoriState::Clock(clock) => {
+                clock.render(area, buf);
+            }
         }
     }
 }
