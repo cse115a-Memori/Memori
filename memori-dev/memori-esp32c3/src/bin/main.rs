@@ -96,9 +96,9 @@ async fn main(spawner: Spawner) -> () {
         .spawn(ble_task(radio, peripherals.BT))
         .expect("failed to begin ble task");
 
-    // spawner
-    //     .spawn(logic_task())
-    //     .expect("failed to begin logic task");
+    spawner
+        .spawn(logic_task())
+        .expect("failed to begin logic task");
     // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/esp-hal-v~1.0/examples
 }
 
@@ -145,14 +145,14 @@ async fn logic_task() {
     let mut transport = DeviceBLETransport::new();
 
     loop {
-        Timer::after(Duration::from_secs(5)).await;
+        Timer::after(Duration::from_secs(1)).await;
 
         match transport.ping().await {
             Ok(_) => info!("[logic] ping success"),
             Err(e) => info!("[logic] ping failed: {:?}", e),
         }
 
-        Timer::after(Duration::from_secs(5)).await;
+        Timer::after(Duration::from_secs(1)).await;
 
         match transport.refresh_data(WidgetId(12)).await {
             Ok(data) => match core::str::from_utf8(&data) {

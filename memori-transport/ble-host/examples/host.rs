@@ -14,11 +14,20 @@ async fn main() -> anyhow::Result<()> {
 
 
     loop {
-        time::sleep(Duration::from_secs(5)).await;
-        
+        time::sleep(Duration::from_secs(1)).await;
+
         match transport.get_widget(WidgetId(12)).await {
             Ok(widget) =>{
                 println!("[logic] got widget, data: {:?}", widget)
+            },
+            Err(e) => println!("[logic] refresh failed: {:?}", e)
+        }
+
+        time::sleep(Duration::from_secs(1)).await;
+
+        match transport.get_battery_level().await {
+            Ok(level) =>{
+                println!("[logic] got battery level: {level}")
             },
             Err(e) => println!("[logic] refresh failed: {:?}", e)
         }

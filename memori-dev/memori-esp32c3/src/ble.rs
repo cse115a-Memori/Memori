@@ -1,8 +1,10 @@
+use core::usize;
 use ble_device::{BLE_CMD_CHANNEL, BLE_RESP_CHANNEL, BLE_CONNECTED};
 use embassy_executor::Spawner;
 use embassy_futures::{join::join, select::select};
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::channel::{Channel, Receiver, Sender};
+use embassy_sync::signal::Signal;
 use embassy_time::{Duration, with_timeout};
 use esp_hal::peripherals;
 use esp_radio::ble::controller::BleConnector;
@@ -14,11 +16,13 @@ use trouble_host::prelude::*;
 
 const CONNECTIONS_MAX: usize = 1;
 const L2CAP_CHANNELS_MAX: usize = 1;
+const MAX_INFLIGHT: usize = 4;
 
 const PERIPHERAL_NAME: &str = "memori";
 
-// this will be used to pass response messages to the async functions handling them
-static BLE_HOST_RESPONSE: Channel<CriticalSectionRawMutex, HostBLEResponse, 1> = Channel::new();
+static BLE_HOST_RESPONSE: 
+    [Signal<CriticalSectionRawMutex, HostBLEResponse>; MAX_INFLIGHT] = 
+    [const {Signal::new()}; MAX_INFLIGHT];
 
 // GATT Server definition
 #[gatt_server]
@@ -114,61 +118,27 @@ async fn gatt_events_task<P: PacketPool>(
     server: &Server<'_>,
     conn: &GattConnection<'_, '_, P>,
 ) -> Result<(), Error> {
+    let rx_handle = server.nus_service.rx.handle;
+    let battery_handle = server.nus_service.rx.handle;
+
     let reason = loop {
         match conn.next().await {
             GattConnectionEvent::Disconnected { reason } => break reason,
             GattConnectionEvent::Gatt { event } => {
                 match &event {
                     GattEvent::Write(event) => {
-                        if event.handle() == server.nus_service.rx.handle {
-                            let data = event.data();
-                            info!("[gatt] received {} bytes", data.len());
-
-                            // bit wide
-                            match from_bytes::<HostBLEPacket>(data) {
-                                Ok(packet) => {
-                                    match packet {
-                                        HostBLEPacket::Command(cmd) => {
-                                            info!("[transport] received cmd {:?}", cmd);
-                                            match cmd {
-                                                HostBLECommand::GetWidget { widget_id } => {
-                                                    // dubious naming. should be (get_widget)_response
-                                                    get_widget_response(widget_id, server, conn).await;
-                                                },
-                                                HostBLECommand::SetWidget { widget } => {
-                                                    todo!()
-                                                },
-                                                HostBLECommand::SetConfig { config } => {
-                                                    todo!()
-                                                },
-                                            }
-                                            // handle command
-                                        }
-                                        HostBLEPacket::Response(resp) => {
-                                            info!("[transport] received response {:?}", resp);
-                                            // push into resp_rx channel
-                                            BLE_HOST_RESPONSE.send(resp).await;
-                                        }
-                                    }
-                                }
-                                Err(e) => {
-                                    warn!("[gatt] failed to decode HostBLEPacket: {:?}", e);
-                                }
-                            }
+                        if event.handle() == rx_handle {
+                            handle_recieve_data(event.data(), server, conn).await;
                         }
                     }
                     GattEvent::Read(event) => {
-                        if event.handle() == server.nus_service.tx.handle {
-                           info!("[gatt] read from TX characteristic");
-                        }
-                        if event.handle() == server.battery_service.level.handle {
+                        if event.handle() == battery_handle {
                             let value = server.get(&server.battery_service.level);
-                            info!("[gatt] Read Event to Level Characteristic: {:?}", value);}
+                            info!("[gatt] Read event to battery level characteristic: {:?}", value);
+                        }
                     }
                     _ => {}
                 };
-                // This step is also performed at drop(), but writing it explicitly is necessary
-                // in order to ensure reply is sent.
                 match event.accept() {
                     Ok(reply) => reply.send().await,
                     Err(e) => warn!("[gatt] error sending response: {:?}", e),
@@ -181,21 +151,69 @@ async fn gatt_events_task<P: PacketPool>(
     Ok(())
 }
 
+async fn handle_recieve_data<P: PacketPool>(data: &[u8], server: &Server<'_>, conn: &GattConnection<'_, '_, P>) {
+    info!("[gatt] received {} bytes", data.len());
+    let packet = match from_bytes::<BLEPacket>(data) {
+        Ok(packet) => packet,
+        Err(e) => {
+            warn!("[gatt] failed to decode BLEPacket: {:?}", e);
+            return;
+        }
+    };
+
+    let payload = match packet.payload {
+        BLEPacketPayload::HostPacket(payload) => payload,
+        BLEPacketPayload::DevicePacket { .. } => {
+            warn!("[transport] received devicepacket...");
+            return;
+        }
+    };
+
+    match payload {
+        HostBLEPacket::Command(cmd) => {
+            handle_host_cmd(cmd, packet.id, server, conn).await;
+        }
+        HostBLEPacket::Response(resp) => {
+            BLE_HOST_RESPONSE[packet.id % MAX_INFLIGHT].signal(resp);
+        }
+    }
+}
+
+async fn handle_host_cmd<P: PacketPool>(cmd: HostBLECommand, msg_id: usize, server: &Server<'_>, conn: &GattConnection<'_, '_, P>) {
+    info!("[transport] received cmd {:?}", cmd);
+
+    match cmd {
+        HostBLECommand::GetWidget { widget_id } => {
+            get_widget_response(widget_id, msg_id, server, conn).await;
+        },
+        HostBLECommand::SetWidget { widget } => {
+            todo!()
+        },
+        HostBLECommand::SetConfig { config } => {
+            todo!()
+        },
+    }
+}
+
 async fn channel_task<P: PacketPool>(server: &Server<'_>, conn: &GattConnection<'_, '_, P>) {
     let cmd_rx = BLE_CMD_CHANNEL.receiver();
     let resp_tx = BLE_RESP_CHANNEL.sender();
 
+    let mut msg_id: usize = 0;
+
     loop {
         let cmd = cmd_rx.receive().await;
+        msg_id = msg_id.wrapping_add(1);
         match cmd {
             DeviceBLECommand::Ping => {
-                info!("[transport-channel] running send ping");
-                let result = send_ping(server, conn).await;
+                // info!("[transport-channel] running send ping");
+                let result = send_ping(server, conn, msg_id).await;
                 // send result of ble operation back to transport
                 resp_tx.send(HostBLEResponse::Ping { result }).await;
             }
             DeviceBLECommand::RefreshData { widget_id } => {
-                let result = request_refresh(server, conn, widget_id).await;
+                // return a hostble request
+                let result = request_refresh(server, conn, msg_id, widget_id).await;
                 resp_tx.send(HostBLEResponse::RefreshData { result }).await;
             }
         };
@@ -204,33 +222,43 @@ async fn channel_task<P: PacketPool>(server: &Server<'_>, conn: &GattConnection<
 
 // device commands
 
-//TODO abstract sending
-async fn send_ping<P: PacketPool>(
-    server: &Server<'_>,
-    conn: &GattConnection<'_, '_, P>,
-) -> TransResult<()> {
+async fn send_packet<P: PacketPool>(packet: DeviceBLEPacket, msg_id: usize, server: &Server<'_>, conn: &GattConnection<'_, '_, P>) -> TransResult<()> {
     let tx = server.nus_service.tx;
     let mut buffer = [0u8; BLE_CHAR_SIZE];
 
-    let pkt = DeviceBLEPacket::Command(DeviceBLECommand::Ping);
-    let _encoded = to_slice(&pkt, &mut buffer).unwrap();
+    let packet = BLEPacket {
+        payload: BLEPacketPayload::DevicePacket(packet),
+        id: msg_id
+    };
 
-    // are trailing 0s ok here
+
+    let _encoded = to_slice(&packet, &mut buffer).unwrap();
+
     tx.notify(conn, &buffer)
         .await
         .map_err(|_| TransError::ProtocolIssue)?;
 
 
-    // because we're sending commands over channels we
-    // need to await this with a timeout in addition to
-    // hte main task or else BLE_HOST_RESPONSE writers
-    // start piling up
-    // TODO switch to signal arr to handle multiple in flight
+    Ok(())
+}
+
+async fn recieve_response(id: usize) -> TransResult<HostBLEResponse> {
     let response: HostBLEResponse = with_timeout(
         Duration::from_secs(5),
-        BLE_HOST_RESPONSE.receive(),
+        BLE_HOST_RESPONSE[id % MAX_INFLIGHT].wait(),
     ).await.map_err(|_| TransError::Timeout)?; 
-    match response {
+
+    Ok(response)
+}
+
+async fn send_ping<P: PacketPool>(
+    server: &Server<'_>,
+    conn: &GattConnection<'_, '_, P>,
+    msg_id: usize
+) -> TransResult<()> {
+    send_packet(DeviceBLEPacket::Command(DeviceBLECommand::Ping), msg_id, server, conn).await?;
+
+    match recieve_response(msg_id).await? {
         HostBLEResponse::Ping { result } => {
             return result
         }
@@ -243,30 +271,14 @@ async fn send_ping<P: PacketPool>(
 async fn request_refresh<P: PacketPool>(
     server: &Server<'_>,
     conn: &GattConnection<'_, '_, P>,
+    msg_id: usize,
     widget_id: WidgetId,
 ) -> TransResult<ByteArray> {
-    let tx = server.nus_service.tx;
-    let mut buffer = [0u8; BLE_CHAR_SIZE];
+    send_packet(DeviceBLEPacket::Command(DeviceBLECommand::RefreshData { widget_id }), msg_id, server, conn).await?;
 
-    let pkt = DeviceBLEPacket::Command(DeviceBLECommand::RefreshData { widget_id });
-    let _encoded = to_slice(&pkt, &mut buffer).unwrap();
-
-    // are trailing 0s ok here
-    tx.notify(conn, &buffer)
-        .await
-        .map_err(|_| TransError::ProtocolIssue)?;
-
-    let response: HostBLEResponse = with_timeout(
-        Duration::from_secs(5),
-        BLE_HOST_RESPONSE.receive(),
-    ).await.map_err(|_| TransError::Timeout)?; 
-    match response {
-        HostBLEResponse::RefreshData { result } => {
-            return result
-        }
-        _ => {
-            return Err(TransError::ProtocolIssue);
-        }
+    match recieve_response(msg_id).await? {
+        HostBLEResponse::RefreshData { result } => { result }
+        _ => { Err(TransError::ProtocolIssue) }
     }
 }
 
@@ -274,24 +286,17 @@ async fn request_refresh<P: PacketPool>(
 //
 async fn get_widget_response<P: PacketPool>(
     widget_id: WidgetId,
+    msg_id: usize,
     server: &Server<'_>,
     conn: &GattConnection<'_, '_, P>,
 ) {
-    let tx = server.nus_service.tx;
-    let mut buffer = [0u8; BLE_CHAR_SIZE];
-
     let mut bytes: ByteArray = Default::default();
     bytes.extend_from_slice(b"this is the data of a widget").unwrap();
-
     let widget = Widget::new(widget_id, bytes);
 
     let pkt = DeviceBLEPacket::Response(DeviceBLEResponse::WidgetGet { result: Ok(widget) });
-    let _encoded = to_slice(&pkt, &mut buffer).unwrap();
-
-    // are trailing 0s ok here
-    tx.notify(conn, &buffer)
+    let _ = send_packet(pkt, msg_id,  server, conn)
         .await;
-        // .map_err(|_| TransError::ProtocolIssue)?
 }
 
 
