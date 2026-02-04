@@ -19,8 +19,8 @@ use esp_hal::timer::timg::TimerGroup;
 use esp_hal::{Blocking, clock::CpuClock};
 use esp_radio::ble::controller::BleConnector;
 use log::{info, trace};
-use memori::{Memori, MemoriState};
 use memori_esp32c3::{MemTermInitPins, setup_term};
+use memori_ui::{Memori, MemoriState};
 use trouble_host::prelude::*;
 use weact_studio_epd::graphics::Display290BlackWhite;
 
