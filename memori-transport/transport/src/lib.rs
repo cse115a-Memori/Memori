@@ -64,12 +64,6 @@ impl Widget {
     }
 }
 
-impl Widget {
-    pub fn new(id: WidgetId, data: ByteArray) -> Self {
-        Self { id, data }
-    }
-}
-
 /// Device configuration options
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct DeviceConfig {
