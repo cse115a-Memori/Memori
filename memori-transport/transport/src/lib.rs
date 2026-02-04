@@ -4,7 +4,6 @@ pub mod ble_types;
 
 use serde::Deserialize;
 use serde::Serialize;
-use tracing::error;
 
 use core::error::Error;
 use core::fmt::Display;
@@ -56,9 +55,8 @@ pub struct Widget {
 impl Widget {
     pub fn new(id: WidgetId, data: impl Serialize) -> TransResult<Self> {
         let mut buf = [0u8; 256];
-        let used = postcard::to_slice(&data, &mut buf)
-            .inspect_err(|e| error!("{e:#?}"))
-            .map_err(|_| TransError::SerializationFailure)?;
+        let used =
+            postcard::to_slice(&data, &mut buf).map_err(|_| TransError::SerializationFailure)?;
 
         let data = heapless::Vec::from_slice(used).map_err(|_| TransError::SerializationFailure)?;
 
@@ -99,7 +97,7 @@ pub trait HostTransport {
 pub trait DeviceTransport {
     /// Ask the host for a refresh of widget data.
     fn refresh_data(&mut self, widget_id: WidgetId)
-        -> impl Future<Output = TransResult<ByteArray>>;
+    -> impl Future<Output = TransResult<ByteArray>>;
 
     /// Ping the host to ensure they are still connected.
     fn ping(&mut self) -> impl Future<Output = TransResult<()>>;

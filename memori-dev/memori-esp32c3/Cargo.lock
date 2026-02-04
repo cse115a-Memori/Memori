@@ -1432,16 +1432,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f52b00d39961fc5b2736ea853c9cc86238e165017a493d1d5c8eac6bdc4cc273"
 
 [[package]]
-name = "memori"
-version = "0.1.0"
-dependencies = [
- "embedded-graphics",
- "log",
- "profont",
- "ratatui",
-]
-
-[[package]]
 name = "memori-esp32c3"
 version = "0.1.0"
 dependencies = [
@@ -1465,7 +1455,7 @@ dependencies = [
  "esp-radio",
  "esp-rtos",
  "log",
- "memori",
+ "memori-ui",
  "mousefood",
  "postcard",
  "profont",
@@ -1475,6 +1465,16 @@ dependencies = [
  "transport",
  "trouble-host",
  "weact-studio-epd",
+]
+
+[[package]]
+name = "memori-ui"
+version = "0.1.0"
+dependencies = [
+ "embedded-graphics",
+ "log",
+ "profont",
+ "ratatui",
 ]
 
 [[package]]
@@ -2097,12 +2097,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "tracing"
+version = "0.1.44"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "63e71662fa4b2a2c3a26f570f037eb95bb1f85397f3cd8076caed2f026a6d100"
+dependencies = [
+ "pin-project-lite",
+ "tracing-core",
+]
+
+[[package]]
+name = "tracing-core"
+version = "0.1.36"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db97caf9d906fbde555dd62fa95ddba9eecfd14cb388e4f491a66d74cd5fb79a"
+
+[[package]]
 name = "transport"
 version = "0.1.0"
 dependencies = [
  "heapless 0.9.2",
  "postcard",
  "serde",
+ "tracing",
 ]
 
 [[package]]
