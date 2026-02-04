@@ -78,7 +78,7 @@ static_cell      = "2.1.1"
 ratatui = { version = "0.30.0" ,default-features = false, features=["portable-atomic"] }
 mousefood = { git="https://github.com/j-g00da/mousefood.git", rev="693d82ae9482c32be6363e72474faeb7d962cb1b", features = ["epd-weact","framebuffer"] }
 
-memori = {path="../memori"}
+memori-ui = {path="../../memori-ui"}
 
 # needed to drive the display
 display-interface-spi = "0.5.0"

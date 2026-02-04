@@ -4,33 +4,66 @@ pub mod ble_types;
 
 use serde::Deserialize;
 use serde::Serialize;
+use tracing::error;
 
-use core::future::Future;
+use core::error::Error;
+use core::fmt::Display;
 /// Helper type to define a byte array.
-pub type ByteArray = heapless::Vec<u8, 64>;
+pub type ByteArray = heapless::Vec<u8, 256>;
 
 /// New type struct for a widget identifier.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct WidgetId(pub u32);
 
 /// Any errors risen during transport.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum TransError {
-    Timeout,
+    InternalError,
+    NoAck,
     WidgetNotFound,
-    NotConnected,
-    InvalidMessage,
-    ProtocolIssue
+    SerializationFailure,
 }
+
+impl Display for TransError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            TransError::InternalError => write!(f, "Internal Error!"),
+            TransError::NoAck => write!(
+                f,
+                "No Ack, also know we might send these errors for no reason"
+            ),
+            TransError::WidgetNotFound => write!(f, "Widget not found! possible invalid WidgetID!"),
+            TransError::SerializationFailure => {
+                write!(f, "Failed to draw widget")
+            }
+        }
+    }
+}
+
+impl Error for TransError {}
 
 /// Result type for transport errors.
 pub type TransResult<T> = Result<T, TransError>;
 
 /// The general information held by a widget.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct Widget {
     id: WidgetId,
-    data: ByteArray,
+    // data: ByteArray,
+    data: heapless::Vec<u8, 256>,
+}
+
+impl Widget {
+    pub fn new(id: WidgetId, data: impl Serialize) -> TransResult<Self> {
+        let mut buf = [0u8; 256];
+        let used = postcard::to_slice(&data, &mut buf)
+            .inspect_err(|e| error!("{e:#?}"))
+            .map_err(|_| TransError::SerializationFailure)?;
+
+        let data = heapless::Vec::from_slice(used).map_err(|_| TransError::SerializationFailure)?;
+
+        Ok(Widget { id, data })
+    }
 }
 
 impl Widget {
@@ -40,7 +73,7 @@ impl Widget {
 }
 
 /// Device configuration options
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct DeviceConfig {
     dark_mode: bool,
 }
@@ -66,7 +99,7 @@ pub trait HostTransport {
 pub trait DeviceTransport {
     /// Ask the host for a refresh of widget data.
     fn refresh_data(&mut self, widget_id: WidgetId)
-    -> impl Future<Output = TransResult<ByteArray>>;
+        -> impl Future<Output = TransResult<ByteArray>>;
 
     /// Ping the host to ensure they are still connected.
     fn ping(&mut self) -> impl Future<Output = TransResult<()>>;

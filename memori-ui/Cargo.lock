@@ -249,7 +249,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "memori"
+name = "memori-ui"
 version = "0.1.0"
 dependencies = [
  "embedded-graphics",
