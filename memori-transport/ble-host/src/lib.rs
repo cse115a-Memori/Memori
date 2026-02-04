@@ -276,8 +276,10 @@ impl HostBLETransport {
                 }
                 DeviceBLECommand::RefreshData { widget_id } => {
                     let mut bytes: ByteArray = Default::default();
-                    bytes.extend_from_slice(b"default data").unwrap();
+                    bytes.extend_from_slice(b"widget data for widget: ").unwrap();
+                    bytes.extend_from_slice(widget_id.0.to_string().as_bytes()).unwrap();
                     println!("[cmd_handler] Sending refresh response for widget {:?}", widget_id);
+
                     HostBLEResponse::RefreshData { result: Ok(bytes) }
                 }
             }; 

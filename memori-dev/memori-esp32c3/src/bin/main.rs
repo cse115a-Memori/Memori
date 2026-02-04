@@ -77,12 +77,12 @@ async fn main(spawner: Spawner) -> () {
     .with_sck(sclk_pin)
     .with_mosi(mosi_pin);
 
-    let term_init_pins = MemTermInitPins {
-        cs_pin: peripherals.GPIO3,
-        dc_pin: peripherals.GPIO2,
-        rst_pin: peripherals.GPIO4,
-        busy_pin: peripherals.GPIO5,
-    };
+    // let term_init_pins = MemTermInitPins {
+    //     cs_pin: peripherals.GPIO3,
+    //     dc_pin: peripherals.GPIO2,
+    //     rst_pin: peripherals.GPIO4,
+    //     busy_pin: peripherals.GPIO5,
+    // };
 
     // spawner
     //     .spawn(hello_task())
@@ -96,9 +96,19 @@ async fn main(spawner: Spawner) -> () {
         .spawn(ble_task(radio, peripherals.BT))
         .expect("failed to begin ble task");
 
-    spawner
-        .spawn(logic_task())
-        .expect("failed to begin logic task");
+    // spawner
+    //     .spawn(logic_task())
+    //     .expect("failed to begin logic task");
+    //
+    // spawner
+    //     .spawn(logic_task2())
+    //     .expect("failed to begin logic2 task");
+    // spawner
+    //     .spawn(logic_task3())
+    //     .expect("failed to begin logic2 task");
+    // spawner
+    //     .spawn(logic_task4())
+    //     .expect("failed to begin logic2 task");
     // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/esp-hal-v~1.0/examples
 }
 
@@ -151,15 +161,45 @@ async fn logic_task() {
             Ok(_) => info!("[logic] ping success"),
             Err(e) => info!("[logic] ping failed: {:?}", e),
         }
+    }
+}
 
+#[embassy_executor::task]
+async fn logic_task2() {
+    let mut transport = DeviceBLETransport::new();
+
+    loop {
         Timer::after(Duration::from_secs(1)).await;
 
-        match transport.refresh_data(WidgetId(12)).await {
-            Ok(data) => match core::str::from_utf8(&data) {
-                Ok(s) => info!("[logic] refresh success, data: {}", s),
-                Err(_) => info!("[logic] refresh success (invalid str): {:?}", data),
-            },
-            Err(e) => info!("[logic] refresh failed: {:?}", e),
+        match transport.refresh_data(WidgetId(1)).await {
+            Ok(data) => info!("[logic] ref1 success: {:?}", data),
+            Err(e) => info!("[logic] ref1 failed: {:?}", e),
+        }
+    }
+}
+#[embassy_executor::task]
+async fn logic_task3() {
+    let mut transport = DeviceBLETransport::new();
+
+    loop {
+        Timer::after(Duration::from_secs(1)).await;
+
+        match transport.refresh_data(WidgetId(2)).await {
+            Ok(data) => info!("[logic] ref2 success: {:?}", data),
+            Err(e) => info!("[logic] ref2 failed: {:?}", e),
+        }
+    }
+}
+#[embassy_executor::task]
+async fn logic_task4() {
+    let mut transport = DeviceBLETransport::new();
+
+    loop {
+        Timer::after(Duration::from_secs(1)).await;
+
+        match transport.refresh_data(WidgetId(3)).await {
+            Ok(data) => info!("[logic] ref3 success: {:?}", data),
+            Err(e) => info!("[logic] ref3 failed: {:?}", e),
         }
     }
 }
