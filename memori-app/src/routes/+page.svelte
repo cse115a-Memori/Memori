@@ -1,61 +1,59 @@
 <script lang="ts">
-	import { Button } from "$lib/components/ui/button/index.js";
-	import * as Field from "$lib/components/ui/field/index.js";
-	import { Input } from "$lib/components/ui/input/index.js";
-	import type { UnlistenFn } from "@tauri-apps/api/event";
-	import { onDestroy, onMount } from "svelte";
-	import {
-		createTauRPCProxy,
-		type InferCommandOutput,
-		type Router,
-	} from "$lib/ipc";
+	import type { UnlistenFn } from '@tauri-apps/api/event'
+  import { onDestroy, onMount } from 'svelte'
+  import { taurpcContext } from '@/tauri/context'
+  import { Button } from '$lib/components/ui/button/index.js'
+  import * as Field from '$lib/components/ui/field/index.js'
+  import { Input } from '$lib/components/ui/input/index.js'
+  import { createTauRPCProxy, type InferCommandOutput, type Router } from '$lib/ipc'
 
-	let name = $state("");
-	let string = $state("");
-	let res = $state("");
-	let unlisten: UnlistenFn[] = $state([]);
-	let taurpc: ReturnType<typeof createTauRPCProxy>;
+  let name = $state('')
+  let string = $state('')
+  let res: number | string = $state('')
+  let unlisten: UnlistenFn[] = $state([])
+  let taurpc: ReturnType<typeof createTauRPCProxy>
 
-	onMount(async () => {
-		taurpc = createTauRPCProxy();
-	});
+  onMount(async () => {
+    taurpc = createTauRPCProxy()
+    // taurpc = taurpcContext.get()
+  })
 
-	const call_backend = async (e: Event) => {
-		e.preventDefault();
-		try {
-			res = await taurpc.hello(name);
-			console.log(res);
-		} catch (error) {
-			console.error(error);
-		}
-	};
-	const get_battery = async (e: Event) => {
-		e.preventDefault();
-		try {
-			res = await taurpc.get_battery();
-			console.log(res);
-		} catch (error) {
-			console.error(error);
-		}
-	};
-	const connect = async (e: Event) => {
-		e.preventDefault();
-		try {
-			res = await taurpc.connect();
-			console.log(res);
-		} catch (error) {
-			console.error(error);
-		}
-	};
-	const send_string = async (e: Event) => {
-		e.preventDefault();
-		try {
-			res = await taurpc.send_string(string);
-			console.log(res);
-		} catch (error) {
-			console.error(error);
-		}
-	};
+  const call_backend = async (e: Event) => {
+    e.preventDefault()
+    try {
+      res = await taurpc.hello(name)
+      console.log(res)
+    } catch (error) {
+      console.error(error)
+    }
+  }
+  const get_battery = async (e: Event) => {
+    e.preventDefault()
+    try {
+      res = await taurpc.get_battery()
+      console.log(res)
+    } catch (error) {
+      console.error(error)
+    }
+  }
+  const connect = async (e: Event) => {
+    e.preventDefault()
+    try {
+      res = await taurpc.connect()
+      console.log(res)
+    } catch (error) {
+      console.error(error)
+    }
+  }
+  const send_string = async (e: Event) => {
+    e.preventDefault()
+    try {
+      res = await taurpc.send_string(string)
+      console.log(res)
+    } catch (error) {
+      console.error(error)
+    }
+  }
 </script>
 
 <main>
@@ -66,7 +64,11 @@
 		>
 			<Field.Label for="greet-input" class="sr-only">Name</Field.Label>
 
-			<Input id="greet-input" placeholder="Enter a name..." bind:value={name} />
+			<Input
+				id="greet-input"
+				placeholder="Enter a name..."
+				bind:value={name}
+			/>
 
 			<Button type="submit" variant="outline">Greet</Button>
 		</Field.Field>
@@ -78,8 +80,7 @@
 			class="justify-center mx-auto max-w-xs"
 		>
 			<Field.Label for="greet-input" class="sr-only"
-				>show on display</Field.Label
-			>
+			>show on display</Field.Label>
 
 			<Input
 				id="greet-input"
