@@ -26,6 +26,13 @@ impl DeviceBLETransport {
             resp_rx: BLE_RESP_CHANNEL.receiver(),
         }
     }
+
+    async fn get_response(&self) -> TransResult<HostBLEResponse> {
+        match with_timeout(Duration::from_secs(BLE_TIMEOUT_DUR), self.resp_rx.receive()).await {
+            Ok(host_response) => Ok(host_response),
+            Err(_) => Err(TransError::Timeout),
+        }
+    }
 }
 
 // forgot that this assumes synchronous behavior (bad) even though device level
@@ -41,7 +48,7 @@ impl DeviceTransport for DeviceBLETransport {
             .send(DeviceBLECommand::RefreshData { widget_id })
             .await;
 
-        match with_timeout(Duration::from_secs(BLE_TIMEOUT_DUR), self.resp_rx.receive()).await {
+        match self.get_response().await {
             Ok(HostBLEResponse::RefreshData { result }) => result,
             Ok(_) => Err(TransError::InvalidMessage),
             Err(_) => Err(TransError::Timeout),
@@ -55,10 +62,10 @@ impl DeviceTransport for DeviceBLETransport {
 
         self.cmd_tx.send(DeviceBLECommand::Ping).await;
 
-        match self.resp_rx.receive().await {
-            HostBLEResponse::Ping { result } => result,
-            _ => Err(TransError::InvalidMessage),
+        match self.get_response().await {
+            Ok(HostBLEResponse::Ping { result }) => result,
+            Ok(_) => Err(TransError::InvalidMessage),
+            Err(_) => Err(TransError::Timeout),
         }
-
     }
 }
