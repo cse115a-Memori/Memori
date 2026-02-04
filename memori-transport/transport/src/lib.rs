@@ -12,11 +12,11 @@ use core::fmt::Display;
 pub type ByteArray = heapless::Vec<u8, 256>;
 
 /// New type struct for a widget identifier.
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct WidgetId(pub u32);
 
 /// Any errors risen during transport.
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum TransError {
     InternalError,
     NoAck,
@@ -46,7 +46,7 @@ impl Error for TransError {}
 pub type TransResult<T> = Result<T, TransError>;
 
 /// The general information held by a widget.
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct Widget {
     id: WidgetId,
     // data: ByteArray,
@@ -66,8 +66,14 @@ impl Widget {
     }
 }
 
+impl Widget {
+    pub fn new(id: WidgetId, data: ByteArray) -> Self {
+        Self { id, data }
+    }
+}
+
 /// Device configuration options
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct DeviceConfig {
     dark_mode: bool,
 }
@@ -93,7 +99,7 @@ pub trait HostTransport {
 pub trait DeviceTransport {
     /// Ask the host for a refresh of widget data.
     fn refresh_data(&mut self, widget_id: WidgetId)
-    -> impl Future<Output = TransResult<ByteArray>>;
+        -> impl Future<Output = TransResult<ByteArray>>;
 
     /// Ping the host to ensure they are still connected.
     fn ping(&mut self) -> impl Future<Output = TransResult<()>>;
