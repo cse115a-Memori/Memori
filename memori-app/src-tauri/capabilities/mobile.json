@@ -19,11 +19,13 @@
     "core:resources:default",
     "core:menu:default",
     "core:tray:default",
+    "geolocation:default",
     "geolocation:allow-check-permissions",
     "geolocation:allow-request-permissions",
     "geolocation:allow-get-current-position",
     "geolocation:allow-watch-position",
     "store:default",
-    "geolocation:default"
+    "log:default",
+    "blec:default"
   ]
 }

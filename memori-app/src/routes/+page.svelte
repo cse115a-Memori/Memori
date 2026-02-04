@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { UnlistenFn } from '@tauri-apps/api/event'
-  import { onDestroy, onMount } from 'svelte'
-  import { taurpcContext } from '@/tauri/context'
+  import { onMount } from 'svelte'
   import { Button } from '$lib/components/ui/button/index.js'
   import * as Field from '$lib/components/ui/field/index.js'
   import { Input } from '$lib/components/ui/input/index.js'
@@ -9,7 +8,7 @@
 
   let name = $state('')
   let string = $state('')
-  let res: number | string = $state('')
+  let res: number | string | null = $state('')
   let unlisten: UnlistenFn[] = $state([])
   let taurpc: ReturnType<typeof createTauRPCProxy>
 

@@ -1,10 +1,7 @@
 <script lang="ts">
-	import { onMount } from 'svelte'
   import { Button } from '@/components/ui/button'
   import { onNavigate } from '$app/navigation'
   import { page } from '$app/state'
-  import { createTauRPCProxy } from '$lib/ipc'
-  import { taurpcContext } from '$lib/tauri/context'
   import '../app.css'
 
   const { children } = $props()
@@ -19,11 +16,6 @@
       })
     })
   })
-
-  // onMount(async () => {
-  //   const taurpc = createTauRPCProxy()
-  //   taurpcContext.set(taurpc)
-  // })
 </script>
 
 {@render navLinks('/', 'Home')}

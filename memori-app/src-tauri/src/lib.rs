@@ -1,10 +1,9 @@
-use std::sync::Arc;
+use std::{error, sync::Arc};
 
 use memori_tcp::{
     host::{DeviceConnected, DeviceDisconnected},
     DeviceRequest, HostResponse, HostTcpTransport, Sequenced,
 };
-use tauri_plugin_tracing::{tracing::error, Builder, LevelFilter};
 use tokio::sync::{
     mpsc::{UnboundedReceiver, UnboundedSender},
     Mutex,
@@ -89,16 +88,17 @@ impl Api for ApiImpl {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-#[tokio::main]
-pub async fn run() {
+pub fn run() {
     let conn = Connection::Disconnected(HostTcpTransport::default());
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_geolocation::init())
+        .plugin(tauri_plugin_blec::init())
+        .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(
-            Builder::new()
-                .with_max_level(LevelFilter::DEBUG)
-                .with_default_subscriber()
+            tauri_plugin_log::Builder::new()
+                .level(tauri_plugin_log::log::LevelFilter::Info)
                 .build(),
         )
         .invoke_handler(taurpc::create_ipc_handler(
@@ -129,7 +129,7 @@ pub async fn request_handler(
         println!("responding with :{resp:?}");
         host_resp_tx
             .send(Sequenced::new(req.seq_num, resp))
-            .inspect_err(|e| error!("expected to send response successfully: {e}"))
+            // .inspect_err(|e| error!("expected to send response successfully: {e}"))
             .unwrap()
     }
 }

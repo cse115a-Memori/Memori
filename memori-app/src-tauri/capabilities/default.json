@@ -16,6 +16,8 @@
     "core:resources:default",
     "core:menu:default",
     "core:tray:default",
-    "store:default"
+    "store:default",
+    "log:default",
+    "blec:default"
   ]
 }
