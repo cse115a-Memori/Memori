@@ -11,11 +11,12 @@ pub const BATTERY_NOTIFY_CHAR_UUID: u128 = 0x408813df5dd41f87ec11cdb001100000;
 
 pub const BLE_CHAR_SIZE: usize = 128;
 
+pub type MessageID = u32;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct BLEPacket {
     pub payload: BLEPacketPayload,
-    pub id: usize
+    pub id: MessageID
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

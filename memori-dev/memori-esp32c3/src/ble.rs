@@ -119,7 +119,7 @@ async fn gatt_events_task<P: PacketPool>(
     conn: &GattConnection<'_, '_, P>,
 ) -> Result<(), Error> {
     let rx_handle = server.nus_service.rx.handle;
-    let battery_handle = server.nus_service.rx.handle;
+    let battery_handle = server.battery_service.level.handle;
 
     let reason = loop {
         match conn.next().await {
@@ -128,7 +128,7 @@ async fn gatt_events_task<P: PacketPool>(
                 match &event {
                     GattEvent::Write(event) => {
                         if event.handle() == rx_handle {
-                            handle_recieve_data(event.data(), server, conn).await;
+                            handle_receive_data(event.data(), server, conn).await;
                         }
                     }
                     GattEvent::Read(event) => {
@@ -151,7 +151,7 @@ async fn gatt_events_task<P: PacketPool>(
     Ok(())
 }
 
-async fn handle_recieve_data<P: PacketPool>(data: &[u8], server: &Server<'_>, conn: &GattConnection<'_, '_, P>) {
+async fn handle_receive_data<P: PacketPool>(data: &[u8], server: &Server<'_>, conn: &GattConnection<'_, '_, P>) {
     info!("[gatt] received {} bytes", data.len());
     let packet = match from_bytes::<BLEPacket>(data) {
         Ok(packet) => packet,
@@ -174,12 +174,13 @@ async fn handle_recieve_data<P: PacketPool>(data: &[u8], server: &Server<'_>, co
             handle_host_cmd(cmd, packet.id, server, conn).await;
         }
         HostBLEPacket::Response(resp) => {
-            BLE_HOST_RESPONSE[packet.id % MAX_INFLIGHT].signal(resp);
+            let index = packet.id as usize; // as long as architecture is >= 32b we chill
+            BLE_HOST_RESPONSE[index % MAX_INFLIGHT].signal(resp);
         }
     }
 }
 
-async fn handle_host_cmd<P: PacketPool>(cmd: HostBLECommand, msg_id: usize, server: &Server<'_>, conn: &GattConnection<'_, '_, P>) {
+async fn handle_host_cmd<P: PacketPool>(cmd: HostBLECommand, msg_id: MessageID, server: &Server<'_>, conn: &GattConnection<'_, '_, P>) {
     info!("[transport] received cmd {:?}", cmd);
 
     match cmd {
@@ -199,7 +200,7 @@ async fn channel_task<P: PacketPool>(server: &Server<'_>, conn: &GattConnection<
     let cmd_rx = BLE_CMD_CHANNEL.receiver();
     let resp_tx = BLE_RESP_CHANNEL.sender();
 
-    let mut msg_id: usize = 0;
+    let mut msg_id: MessageID = 0;
 
     loop {
         let cmd = cmd_rx.receive().await;
@@ -222,7 +223,7 @@ async fn channel_task<P: PacketPool>(server: &Server<'_>, conn: &GattConnection<
 
 // device commands
 
-async fn send_packet<P: PacketPool>(packet: DeviceBLEPacket, msg_id: usize, server: &Server<'_>, conn: &GattConnection<'_, '_, P>) -> TransResult<()> {
+async fn send_packet<P: PacketPool>(packet: DeviceBLEPacket, msg_id: MessageID, server: &Server<'_>, conn: &GattConnection<'_, '_, P>) -> TransResult<()> {
     let tx = server.nus_service.tx;
     let mut buffer = [0u8; BLE_CHAR_SIZE];
 
@@ -242,7 +243,9 @@ async fn send_packet<P: PacketPool>(packet: DeviceBLEPacket, msg_id: usize, serv
     Ok(())
 }
 
-async fn recieve_response(id: usize) -> TransResult<HostBLEResponse> {
+async fn receive_response(id: MessageID) -> TransResult<HostBLEResponse> {
+    let id = id as usize;
+
     let response: HostBLEResponse = with_timeout(
         Duration::from_secs(5),
         BLE_HOST_RESPONSE[id % MAX_INFLIGHT].wait(),
@@ -254,11 +257,11 @@ async fn recieve_response(id: usize) -> TransResult<HostBLEResponse> {
 async fn send_ping<P: PacketPool>(
     server: &Server<'_>,
     conn: &GattConnection<'_, '_, P>,
-    msg_id: usize
+    msg_id: MessageID
 ) -> TransResult<()> {
     send_packet(DeviceBLEPacket::Command(DeviceBLECommand::Ping), msg_id, server, conn).await?;
 
-    match recieve_response(msg_id).await? {
+    match receive_response(msg_id).await? {
         HostBLEResponse::Ping { result } => {
             return result
         }
@@ -271,12 +274,12 @@ async fn send_ping<P: PacketPool>(
 async fn request_refresh<P: PacketPool>(
     server: &Server<'_>,
     conn: &GattConnection<'_, '_, P>,
-    msg_id: usize,
+    msg_id: MessageID,
     widget_id: WidgetId,
 ) -> TransResult<ByteArray> {
     send_packet(DeviceBLEPacket::Command(DeviceBLECommand::RefreshData { widget_id }), msg_id, server, conn).await?;
 
-    match recieve_response(msg_id).await? {
+    match receive_response(msg_id).await? {
         HostBLEResponse::RefreshData { result } => { result }
         _ => { Err(TransError::ProtocolIssue) }
     }
@@ -286,7 +289,7 @@ async fn request_refresh<P: PacketPool>(
 //
 async fn get_widget_response<P: PacketPool>(
     widget_id: WidgetId,
-    msg_id: usize,
+    msg_id: MessageID,
     server: &Server<'_>,
     conn: &GattConnection<'_, '_, P>,
 ) {

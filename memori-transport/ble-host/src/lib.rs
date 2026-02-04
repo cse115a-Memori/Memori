@@ -27,24 +27,32 @@ const NUS_RX_CHAR_UUID: Uuid = Uuid::from_u128(NUS_RX_STR);
 const NUS_TX_CHAR_UUID: Uuid = Uuid::from_u128(NUS_TX_STR);
 const BATTERY_LEVEL_CHAR_UUID: Uuid = uuid_from_u16(BATTERY_CHAR_STR);
 
-type ResponseMap = Arc<Mutex<HashMap<usize, oneshot::Sender<DeviceBLEResponse>>>>;
+type ResponseMap = Arc<Mutex<HashMap<MessageID, oneshot::Sender<DeviceBLEResponse>>>>;
 
 struct OutboundPacket {
     packet: HostBLEPacket,
-    id: Option<usize>, // none = auto-assign, some = use this ID
+    id: Option<MessageID>, // none = auto-assign, some = use this ID
     response_tx: Option<oneshot::Sender<DeviceBLEResponse>>,
 }
 
+// function to find the first currently advertising memori device
+//
+// eventually we want this to be a pairing process with some sort of bonded id
+// instead of something that just finds the nearest device
 async fn find_memori(central: &Adapter) -> Option<Peripheral> {
-    for p in central.peripherals().await.unwrap() {
-        if p.properties()
+    for p in central.peripherals().await.ok()?.into_iter() {
+        // p.properties returns a future<result<option<deviceproperties>>>
+        //  therefore we await the future, .ok to convert result to option
+        //  then flatten the external option giving us opt<properties> which 
+        //  we can run map on to reach inside and run the closure on
+        let has_memori = p.properties()
             .await
-            .unwrap()
-            .unwrap()
-            .local_name
-            .iter()
-            .any(|name| name.contains("memori"))
-        {
+            .ok()
+            .flatten()
+            .map(|props| props.local_name.iter().any(|name| name.contains("memori")))
+            .unwrap_or(false);
+        
+        if has_memori {
             return Some(p);
         }
     }
@@ -87,7 +95,7 @@ impl HostBLETransport {
         
         println!("[connect] Found adapter, starting scan...");
         central.start_scan(ScanFilter::default()).await?;
-        sleep(Duration::from_secs(3)).await;
+        sleep(Duration::from_secs(5)).await;
         
         println!("[connect] Looking for Memori device...");
         let peripheral = find_memori(&central)
@@ -122,7 +130,7 @@ impl HostBLETransport {
         println!("[connect] Subscribed to TX characteristic");
         
         let (out_tx, out_rx) = mpsc::channel::<OutboundPacket>(16);
-        let (cmd_tx, cmd_rx) = mpsc::channel::<(DeviceBLECommand, usize)>(16);
+        let (cmd_tx, cmd_rx) = mpsc::channel::<(DeviceBLECommand, u32)>(16);
         
         let pending_responses: ResponseMap = Arc::new(Mutex::new(HashMap::new()));
         let notif_stream = peripheral.notifications().await?;
@@ -177,7 +185,7 @@ impl HostBLETransport {
     
     async fn notification_reader(
         mut notif_stream: impl futures::Stream<Item = ValueNotification> + Unpin,
-        cmd_tx: mpsc::Sender<(DeviceBLECommand, usize)>,
+        cmd_tx: mpsc::Sender<(DeviceBLECommand, MessageID)>,
         pending_responses: ResponseMap,
     ) {
         println!("[notif_reader] Started");
@@ -226,7 +234,7 @@ impl HostBLETransport {
         rx_char: Characteristic,
         pending_responses: ResponseMap,
     ) {
-        let mut next_msg_id: usize = 0;
+        let mut next_msg_id: MessageID = 0;
         
         while let Some(outbound) = outbound_rx.recv().await {
             let id = outbound.id.unwrap_or_else(|| {
@@ -253,7 +261,7 @@ impl HostBLETransport {
     }
     
     async fn server_command_handler(
-        mut cmd_rx: mpsc::Receiver<(DeviceBLECommand, usize)>,
+        mut cmd_rx: mpsc::Receiver<(DeviceBLECommand, MessageID)>,
         outbound_tx: mpsc::Sender<OutboundPacket>,
     ) {
         println!("[cmd_handler] Started");

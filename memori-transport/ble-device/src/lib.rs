@@ -28,6 +28,9 @@ impl DeviceBLETransport {
     }
 }
 
+// forgot that this assumes synchronous behavior (bad) even though device level
+// doesn't. realistically the entire ble task should be created in here so i'll
+// fix that later, or when it causes issues
 impl DeviceTransport for DeviceBLETransport {
     async fn refresh_data(&mut self, widget_id: WidgetId) -> TransResult<ByteArray> {
         if !BLE_CONNECTED.load(Ordering::SeqCst) {
@@ -38,17 +41,10 @@ impl DeviceTransport for DeviceBLETransport {
             .send(DeviceBLECommand::RefreshData { widget_id })
             .await;
 
-        // TODO might want to keep the timeout here, but just make sure it's notably longer than
-        // BLE_TIMEOUT_DUR to avoid channel fuckery
-        //
-        // match with_timeout(Duration::from_secs(BLE_TIMEOUT_DUR), self.resp_rx.receive()).await {
-        //     Ok(HostBLEResponse::RefreshData { result }) => result,
-        //     Ok(_) => Err(TransError::InvalidMessage),
-        //     Err(_) => Err(TransError::Timeout),
-        // }
-        match self.resp_rx.receive().await {
-            HostBLEResponse::RefreshData { result } => result,
-            _ => Err(TransError::InvalidMessage),
+        match with_timeout(Duration::from_secs(BLE_TIMEOUT_DUR), self.resp_rx.receive()).await {
+            Ok(HostBLEResponse::RefreshData { result }) => result,
+            Ok(_) => Err(TransError::InvalidMessage),
+            Err(_) => Err(TransError::Timeout),
         }
     }
 
