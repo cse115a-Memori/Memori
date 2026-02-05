@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
+use memori_ui::widgets::{MemoriWidget, WidgetId};
 use postcard::{from_bytes, to_allocvec};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -252,10 +253,7 @@ impl DeviceTcpTransport<HostConnected> {
 }
 
 impl DeviceTransport for DeviceTcpTransport<HostConnected> {
-    async fn refresh_data(
-        &mut self,
-        widget_id: transport::WidgetId,
-    ) -> transport::TransResult<transport::ByteArray> {
+    async fn refresh_data(&mut self, widget_id: WidgetId) -> transport::TransResult<MemoriWidget> {
         let resp = self
             .send_request(MessageKind::DeviceRequest(DeviceRequest::RefreshData(
                 widget_id,

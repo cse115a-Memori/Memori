@@ -1,5 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
 
+use memori_ui::{
+    MemoriState,
+    widgets::{MemoriWidget, WidgetId},
+};
 use tracing::{debug, error, info};
 
 use tokio::{
@@ -237,10 +241,10 @@ impl HostTcpTransport<DeviceConnected> {
 }
 
 impl HostTransport for HostTcpTransport<DeviceConnected> {
-    async fn set_widgets(&mut self, widget: transport::Widget) -> transport::TransResult<()> {
+    async fn set_state(&mut self, state: MemoriState) -> transport::TransResult<()> {
         let resp = self
-            .send_request(MessageKind::HostRequest(HostRequest::SetWidgets(Box::new(
-                widget,
+            .send_request(MessageKind::HostRequest(HostRequest::SetState(Box::new(
+                state,
             ))))
             .await?
             .await
@@ -256,10 +260,7 @@ impl HostTransport for HostTcpTransport<DeviceConnected> {
         }
     }
 
-    async fn get_widget(
-        &mut self,
-        id: transport::WidgetId,
-    ) -> transport::TransResult<transport::Widget> {
+    async fn get_widget(&mut self, id: WidgetId) -> transport::TransResult<MemoriWidget> {
         let resp = self
             .send_request(MessageKind::HostRequest(HostRequest::GetWidget(id)))
             .await?

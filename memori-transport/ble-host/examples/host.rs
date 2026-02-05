@@ -1,7 +1,8 @@
+use ble_host::*;
+use memori_ui::widgets::WidgetId;
 use std::time::Duration;
 use tokio::time::{self};
-use transport::{HostTransport, WidgetId};
-use ble_host::*;
+use transport::HostTransport;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -10,27 +11,23 @@ async fn main() -> anyhow::Result<()> {
         std::process::exit(1);
     });
 
-    // time::sleep(Duration::from_secs(5)).await;
-
-
     loop {
         time::sleep(Duration::from_secs(1)).await;
 
         match transport.get_widget(WidgetId(12)).await {
-            Ok(widget) =>{
+            Ok(widget) => {
                 println!("[logic] got widget, data: {:?}", widget)
-            },
-            Err(e) => println!("[logic] refresh failed: {:?}", e)
+            }
+            Err(e) => println!("[logic] refresh failed: {:?}", e),
         }
 
         time::sleep(Duration::from_secs(1)).await;
 
         match transport.get_battery_level().await {
-            Ok(level) =>{
+            Ok(level) => {
                 println!("[logic] got battery level: {level}")
-            },
-            Err(e) => println!("[logic] refresh failed: {:?}", e)
+            }
+            Err(e) => println!("[logic] refresh failed: {:?}", e),
         }
     }
-    // Ok(())
 }

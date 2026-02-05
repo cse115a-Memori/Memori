@@ -4,12 +4,17 @@ use memori_tcp::{
     host::{DeviceConnected, DeviceDisconnected},
     DeviceRequest, HostResponse, HostTcpTransport, Sequenced,
 };
+use memori_ui::{
+    layout::MemoriLayout,
+    widgets::{MemoriWidget, Name, WidgetId, WidgetKind},
+    MemoriState,
+};
 use tauri_plugin_tracing::{tracing::error, Builder, LevelFilter};
 use tokio::sync::{
     mpsc::{UnboundedReceiver, UnboundedSender},
     Mutex,
 };
-use transport::{HostTransport as _, Widget, WidgetId};
+use transport::HostTransport as _;
 
 #[taurpc::procedures(event_trigger = ApiEventTrigger, export_to = "../src/lib/bindings.ts")]
 trait Api {
@@ -75,11 +80,33 @@ impl Api for ApiImpl {
     async fn send_string(self, string: String) -> Result<(), String> {
         let mut state_guard = self.state.lock().await;
 
-        let widget = Widget::new(WidgetId(0), string).unwrap();
+        // let memori_state = MemoriState::new(
+        //     0,
+        //     vec![MemoriWidget::new(
+        //         WidgetId(0),
+        //         WidgetKind::Name(Name::new(string)),
+        //     )],
+        //     vec![MemoriLayout::Full(WidgetId(0))],
+        //     5,
+        // );
 
+        let memori_state = MemoriState::new(
+            0,
+            vec![MemoriWidget::new(
+                WidgetId(0),
+                WidgetKind::Name(Name::new(string)),
+            )],
+            vec![MemoriLayout::Fourths {
+                top_right: WidgetId(0),
+                bottom_left: WidgetId(0),
+                bottom_right: WidgetId(0),
+                top_left: WidgetId(0),
+            }],
+            5,
+        );
         if let Connection::Connected(ref mut conn) = state_guard.conn {
             return conn
-                .set_widgets(widget)
+                .set_state(memori_state)
                 .await
                 .map_err(|e| format!("Failed to get battery: {e}"));
         }
@@ -119,7 +146,7 @@ pub async fn request_handler(
     while let Some(req) = dev_req_rx.recv().await {
         println!("received request from device! {req:#?}");
         let resp = match req.msg_kind {
-            DeviceRequest::RefreshData(id) => {
+            DeviceRequest::RefreshData(_id) => {
                 todo!()
             }
 

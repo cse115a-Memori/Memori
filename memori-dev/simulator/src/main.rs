@@ -2,7 +2,9 @@ use color_eyre::eyre::Result;
 use embedded_graphics::{pixelcolor::BinaryColor, prelude::*};
 use embedded_graphics_simulator::{OutputSettings, SimulatorDisplay, SimulatorEvent, Window};
 use memori_tcp::{DeviceResponse, DeviceTcpTransport, HostRequest, Sequenced};
-use memori_ui::{Memori, MemoriState, name::Name, clock::Clock};
+use memori_ui::layout::MemoriLayout;
+use memori_ui::widgets::{MemoriWidget, Name, WidgetId, WidgetKind};
+use memori_ui::{Memori, MemoriState};
 use mousefood::{EmbeddedBackend, EmbeddedBackendConfig};
 use std::{sync::Arc, time::Duration};
 use tokio::{sync::Mutex, time::sleep};
@@ -15,12 +17,12 @@ use tracing::{Level, error, info};
 async fn main() -> Result<()> {
     color_eyre::install().unwrap();
 
-    // install global subscriber configured based on RUST_LOG envvar.
+    // Install global subscriber configured based on RUST_LOG envvar.
 
     tracing_subscriber::fmt()
-        // filter spans/events with level TRACE or higher.
+        // Filter spans/events with level TRACE or higher.
         .with_max_level(Level::DEBUG)
-        // build but do not install the subscriber.
+        // Build but do not install the subscriber.
         .init();
 
     let mut simulator_window = Window::new(
@@ -56,26 +58,28 @@ async fn main() -> Result<()> {
 
     let mut memori = Memori::new(term);
 
-   /* let mem_state = Arc::new(Mutex::new(MemoriState::Name(Name {
-        name: "Surendra".to_string(),
-    })));
-    */
-    
-    let mem_state = Arc::new(Mutex::new(MemoriState::Clock(Clock {
-        hours: 11,
-        minutes: 59,
-        seconds: 6,
-    })));
+    let mem_state = {
+        let state = MemoriState::new(
+            0,
+            vec![MemoriWidget::new(
+                WidgetId(0),
+                WidgetKind::Name(Name::new("surendra")),
+            )],
+            vec![MemoriLayout::Full(WidgetId(0))],
+            5,
+        );
+        Arc::new(Mutex::new(state))
+    };
 
     tokio::spawn(state_handler(mem_state.clone()));
 
-    // this loop contains the logic for running the ui
+    // This loop contains the logic for running the UI
     loop {
         memori
             .update(&*mem_state.lock().await)
             .expect("should have been successfull");
 
-        // thread sleep so it doesnt busy loop
+        // Thread sleep so it doesn't busy loop
         std::thread::sleep(std::time::Duration::from_millis(30));
     }
 }
@@ -92,24 +96,16 @@ async fn state_handler(state: Arc<Mutex<MemoriState>>) -> Result<()> {
             info!("received device request! {req:?}");
             let resp = match req.msg_kind {
                 HostRequest::Ping => DeviceResponse::Pong,
-                HostRequest::GetBatteryLevel => {
+                HostRequest::GetBatteryLevel => DeviceResponse::BatteryLevel(69),
+                HostRequest::SetDeviceConfig(_config) => {
+                    todo!()
+                }
+                HostRequest::SetState(new_state) => {
                     let state = &mut *state.lock().await;
-
-                    match state {
-                        MemoriState::Example(counter) => todo!(),
-                        MemoriState::Name(name) => name.name = "Cainan".to_string(),
-                        MemoriState::Clock(clock) => clock.tick(),
-                    }
-
-                    DeviceResponse::BatteryLevel(69)
+                    *state = *new_state;
+                    DeviceResponse::Success
                 }
-                HostRequest::SetDeviceConfig(config) => {
-                    todo!()
-                }
-                HostRequest::SetWidgets(wid) => {
-                    todo!()
-                }
-                HostRequest::GetWidget(id) => todo!(),
+                HostRequest::GetWidget(_id) => todo!(),
             };
 
             info!("sending response: {resp:#?}");
@@ -118,14 +114,6 @@ async fn state_handler(state: Arc<Mutex<MemoriState>>) -> Result<()> {
                 .inspect_err(|e| error!("failed to send: {e}"))
                 .unwrap();
         }
-
-        let state = &mut *state.lock().await;
-        match state {
-            MemoriState::Example(counter) => counter.i += 1,
-            _ => {}
-        }
-
-        info!("incr num");
 
         sleep(Duration::from_secs(1)).await;
     }

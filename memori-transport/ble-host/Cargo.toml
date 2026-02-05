@@ -13,6 +13,7 @@ tokio = "1.49.0"
 # tokio = { version = "1.44.2", features = ["io-std", "io-util", "macros", "rt", "rt-multi-thread"] }
 transport = {path="../transport"}
 uuid = "1.20.0"
+memori-ui = {path = "../../memori-ui"}
 
 [dev-dependencies]
 async-trait = "0.1.89"

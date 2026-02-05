@@ -596,6 +596,8 @@ dependencies = [
  "allocator-api2",
  "equivalent",
  "foldhash",
+ "serde",
+ "serde_core",
 ]
 
 [[package]]
@@ -892,6 +894,7 @@ dependencies = [
  "axum",
  "futures-core",
  "futures-util",
+ "memori-ui",
  "postcard",
  "serde",
  "thiserror",
@@ -906,9 +909,11 @@ name = "memori-ui"
 version = "0.1.0"
 dependencies = [
  "embedded-graphics",
+ "hashbrown",
  "log",
  "profont",
  "ratatui",
+ "serde",
 ]
 
 [[package]]
@@ -1777,9 +1782,9 @@ name = "transport"
 version = "0.1.0"
 dependencies = [
  "heapless 0.9.2",
+ "memori-ui",
  "postcard",
  "serde",
- "tracing",
 ]
 
 [[package]]

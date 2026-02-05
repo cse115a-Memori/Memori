@@ -5,6 +5,9 @@ edition = "2024"
 
 [dependencies]
 embedded-graphics = "0.8.1"
+hashbrown = {version = "0.16.1", features = ["serde"]}
 log = "0.4.29"
 profont = "0.7.0"
 ratatui = { version = "0.30.0" ,default-features = false }
+serde = {version = "1.0.228", default-features = false, features = ["derive", "alloc"]}
+

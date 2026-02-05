@@ -1,8 +1,12 @@
 use std::io;
 
+use memori_ui::{
+    MemoriState,
+    widgets::{MemoriWidget, WidgetId},
+};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use transport::{ByteArray, DeviceConfig, Widget, WidgetId};
+use transport::DeviceConfig;
 
 pub mod device;
 pub mod host;
@@ -18,7 +22,7 @@ pub enum TcpTransportError {
 pub type TcpTransportResult<T> = Result<T, TcpTransportError>;
 
 /// Composition of a TCP Message
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Message {
     /// Sequence number for this message. A response's sequence number is always
     /// equal to its requests' sequence number. Additionally requests sent from the
@@ -74,7 +78,7 @@ impl_sequenced_to_message!(HostRequest, HostRequest);
 impl_sequenced_to_message!(HostResponse, HostResponse);
 
 /// The different kinds of messages we support.
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum MessageKind {
     DeviceRequest(DeviceRequest),
     DeviceResponse(Box<DeviceResponse>),
@@ -92,25 +96,25 @@ pub enum DeviceRequest {
 /// These are responses a device can receive
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum HostResponse {
-    UpdatedWidget(Box<ByteArray>),
+    UpdatedWidget(Box<MemoriWidget>),
     Pong,
 }
 
 /// These are requests a host can send
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum HostRequest {
     GetBatteryLevel,
     Ping,
     SetDeviceConfig(DeviceConfig),
     //NOTE: this will change in the future
-    SetWidgets(Box<Widget>),
+    SetState(Box<MemoriState>),
     GetWidget(WidgetId),
 }
 /// These are responses a host can receive
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum DeviceResponse {
     BatteryLevel(u8),
-    Widget(Box<Widget>),
+    Widget(Box<MemoriWidget>),
     Pong,
     /// General success message for any updates sent by host
     Success,

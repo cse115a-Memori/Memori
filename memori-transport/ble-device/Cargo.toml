@@ -12,3 +12,4 @@ postcard = "1.1.3"
 static_cell = "2.1.1"
 transport = {path="../transport"}
 trouble-host = "0.5.1"
+memori-ui = {path = "../../memori-ui"}

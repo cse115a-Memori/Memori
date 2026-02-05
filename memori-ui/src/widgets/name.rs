@@ -1,13 +1,18 @@
 use alloc::format;
 use alloc::string::String;
-use ratatui::{
-    text::Text,
-    widgets::{StatefulWidget, Widget},
-};
+use ratatui::{text::Text, widgets::Widget};
+use serde::{Deserialize, Serialize};
 
 /// Define a widget by its data
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct Name {
     pub name: String,
+}
+
+impl Name {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self { name: name.into() }
+    }
 }
 
 // impl the function like this
