@@ -20,9 +20,9 @@ use esp_hal::timer::timg::TimerGroup;
 use esp_hal::{Blocking, clock::CpuClock};
 use esp_radio::ble::controller::BleConnector;
 use log::{info, trace};
-use memori::{Memori, MemoriState};
 use memori_esp32c3::ble::ble_task;
 use memori_esp32c3::{MemTermInitPins, setup_term};
+use memori_ui::{Memori, MemoriState};
 use static_cell::StaticCell;
 use transport::{DeviceTransport, WidgetId};
 use weact_studio_epd::graphics::Display290BlackWhite;
@@ -146,6 +146,7 @@ pub async fn ui_task(spi: Spi<'static, Blocking>, term_init_pins: MemTermInitPin
 
         match mem_state {
             MemoriState::Example(ref mut cont) => cont.i += 1,
+            _ => {}
         }
     }
 }
