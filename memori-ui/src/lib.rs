@@ -26,6 +26,10 @@ pub enum MemoriState {
     // Clo(Clo)
 }
 
+pub trait Updateable {
+    fn update(&mut self);
+}
+
 impl Default for MemoriState {
     fn default() -> Self {
         MemoriState::Example(Counter { i: 0 })

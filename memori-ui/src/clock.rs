@@ -6,6 +6,7 @@ use ratatui::widgets::{Widget, Block, Borders};
 use ratatui::style::Style;
 use ratatui::symbols::border;
 use crate::alloc::string::ToString;
+use crate::Updateable;
 
 pub struct Clock {
     pub seconds: u32,
@@ -21,8 +22,10 @@ impl Clock {
             hours: 0,
         }
     }
+}
 
-    pub fn tick(&mut self) {
+impl Updateable for Clock {
+    fn update(&mut self) {
         self.seconds += 1;
         if self.seconds == 60 {
             self.seconds = 0;

@@ -22,10 +22,15 @@ use esp_radio::ble::controller::BleConnector;
 use log::{info, trace};
 use memori::{Memori, MemoriState};
 use memori_esp32c3::ble::ble_task;
+use memori_esp32c3::widget_update::widget_update_task;
 use memori_esp32c3::{MemTermInitPins, setup_term};
+use memori_ui::Clock;
+use mousefood::embedded_graphics::primitives::Arc;
 use static_cell::StaticCell;
 use transport::{DeviceTransport, WidgetId};
 use weact_studio_epd::graphics::Display290BlackWhite;
+use alloc::sync::Arc;
+use esp_hal::sync::Mutex;
 
 extern crate alloc;
 
@@ -88,13 +93,21 @@ async fn main(spawner: Spawner) -> () {
     //     .spawn(hello_task())
     //     .expect("Failed to begin hello_task");
 
-    // spawner
-    //     .spawn(ui_task(spi_bus, term_init_pins))
-    //     .expect("Failed to begin ui_task");
-
+    let clock_widget = Clock {hour: 12, minute: 59, second: 0};
+    let clock_shared = alloc::sync::Arc::new(esp_hal::sync::Mutex::new(clock_widget));
+    
     spawner
+        .spawn(widget_update_task(clock_shared.clone(), 1))
+        .expect("Failed to spawn clock update task");
+    
+    spawner
+        .spawn(ui_task(spi_bus, term_init_pins, clock_shared.clone()))
+        .expect("Failed to begin ui_task");
+
+    /* spawner
         .spawn(ble_task(radio, peripherals.BT))
         .expect("failed to begin ble task");
+        */
 
     // spawner
     //     .spawn(logic_task())
@@ -127,22 +140,24 @@ pub async fn hello_task() {
     clippy::large_stack_frames,
     reason = "The display needs a large frame buffer."
 )]
-pub async fn ui_task(spi: Spi<'static, Blocking>, term_init_pins: MemTermInitPins) {
+pub async fn ui_task(spi: Spi<'static, Blocking>, term_init_pins: MemTermInitPins, state: MemoriState) {
     info!("UI Task Begun!");
     let mut display = Display290BlackWhite::new();
     let term = setup_term(spi, &mut display, term_init_pins);
     let mut memori = Memori::new(term);
-    let mut mem_state = MemoriState::default();
 
     loop {
         let instant = Instant::now();
         memori
-            .update(&mem_state)
+            .update(&state)
             .expect("should have been successfull");
 
         let frame_time = instant.elapsed();
 
         trace!("frame time: {:?}ms", frame_time.as_millis());
+        
+        //For testing clock
+        info!("Clock after update: {}:{}:{}", state.hours, state.minutes, state.seconds);
 
         match mem_state {
             MemoriState::Example(ref mut cont) => cont.i += 1,
