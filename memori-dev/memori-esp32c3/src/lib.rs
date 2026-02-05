@@ -56,9 +56,9 @@ pub fn setup_term<'a>(
     driver.init().unwrap();
 
     let config = EmbeddedBackendConfig {
-        font_regular: memori::FONT_REGULAR,
-        font_bold: memori::FONT_BOLD,
-        font_italic: memori::FONT_ITALIC,
+        font_regular: memori_ui::FONT_REGULAR,
+        font_bold: memori_ui::FONT_BOLD,
+        font_italic: memori_ui::FONT_ITALIC,
         flush_callback: Box::new(move |d| {
             // driver.full_update(d).unwrap();
             driver.fast_update(d).unwrap();

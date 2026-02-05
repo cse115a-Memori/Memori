@@ -1,4 +1,6 @@
 #![no_std]
+// use core::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use core::usize;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::channel::{Channel, Sender};
 use embassy_sync::signal::Signal;
@@ -40,7 +42,7 @@ impl DeviceBLETransport {
 
     async fn handle_command(&self, cmd: DeviceBLECommand) -> TransResult<HostBLEResponse> {
         if !BLE_CONNECTED.load(Ordering::SeqCst) {
-            return Err(TransError::NotConnected);
+            return Err(TransError::InternalError);
         }
         let id = get_next_id();
         let outgoing = OutgoingCommand { cmd, id };
@@ -55,7 +57,7 @@ impl DeviceBLETransport {
         .await
         {
             Ok(host_response) => Ok(host_response),
-            Err(_) => Err(TransError::Timeout),
+            Err(_) => Err(TransError::InternalError),
         }
     }
 }
@@ -72,7 +74,7 @@ impl DeviceTransport for DeviceBLETransport {
 
         match self.handle_command(command).await {
             Ok(HostBLEResponse::RefreshData { result }) => result,
-            Ok(_) => Err(TransError::InvalidMessage),
+            Ok(_) => Err(TransError::InternalError),
             Err(e) => Err(e),
         }
     }
@@ -82,7 +84,7 @@ impl DeviceTransport for DeviceBLETransport {
 
         match self.handle_command(command).await {
             Ok(HostBLEResponse::Ping { result }) => result,
-            Ok(_) => Err(TransError::InvalidMessage),
+            Ok(_) => Err(TransError::InternalError),
             Err(e) => Err(e),
         }
     }
