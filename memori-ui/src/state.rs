@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     layout::MemoriLayout,
-    widgets::{MemoriWidget, Name, WidgetId, WidgetKind},
+    widgets::{MemoriWidget, Name, UpdateFrequency, WidgetId, WidgetKind},
 };
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -27,7 +27,11 @@ impl Default for MemoriState {
 
         let widget_id = WidgetId(0);
 
-        let widget = MemoriWidget::new(widget_id, WidgetKind::Name(Name::new("Surendra")));
+        let widget = MemoriWidget::new(
+            widget_id,
+            WidgetKind::Name(Name::new("Surendra")),
+            UpdateFrequency::Never,
+        );
 
         widgets.insert(widget_id, widget);
 

@@ -1,5 +1,5 @@
 use ble_device::{BLE_CMD_CHANNEL, BLE_CONNECTED, BLE_HOST_RESPONSE};
-use core::usize;
+use core::{result, usize};
 use embassy_executor::Spawner;
 use embassy_futures::{join::join, select::select};
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
@@ -9,9 +9,10 @@ use embassy_time::{Duration, with_timeout};
 use esp_hal::peripherals;
 use esp_radio::ble::controller::BleConnector;
 use log::{info, trace, warn};
+use memori_ui::widgets::{MemoriWidget, Name, WidgetId};
 use postcard::{from_bytes, to_slice};
 use transport::ble_types::*;
-use transport::{ByteArray, TransError, TransResult, Widget, WidgetId};
+use transport::{ByteArray, TransError, TransResult};
 use trouble_host::prelude::*;
 
 const CONNECTIONS_MAX: usize = 1;
@@ -195,7 +196,7 @@ async fn handle_host_cmd<P: PacketPool>(
         HostBLECommand::GetWidget { widget_id } => {
             get_widget_response(widget_id, msg_id, server, conn).await;
         }
-        HostBLECommand::SetWidget { widget } => {
+        HostBLECommand::SetState { state } => {
             todo!()
         }
         HostBLECommand::SetConfig { config } => {
@@ -213,11 +214,11 @@ async fn channel_task<P: PacketPool>(server: &Server<'_>, conn: &GattConnection<
 
         match outgoing.cmd {
             DeviceBLECommand::Ping => {
-                let result = send_ping(server, conn, msg_id).await;
+                let _result = send_ping(server, conn, msg_id).await;
             }
             DeviceBLECommand::RefreshData { widget_id } => {
                 // return a hostble request
-                let result = request_refresh(server, conn, msg_id, widget_id).await;
+                let _result = request_refresh(server, conn, msg_id, widget_id).await;
             }
         };
     }
@@ -285,11 +286,11 @@ async fn get_widget_response<P: PacketPool>(
     server: &Server<'_>,
     conn: &GattConnection<'_, '_, P>,
 ) {
-    let mut bytes: ByteArray = Default::default();
-    bytes
-        .extend_from_slice(b"this is the data of a widget")
-        .unwrap();
-    let widget = Widget::new(widget_id, bytes).expect("should be created properly");
+    let widget = MemoriWidget::new(
+        widget_id,
+        memori_ui::widgets::WidgetKind::Name(Name::new("Hi")),
+        memori_ui::widgets::UpdateFrequency::Never,
+    );
 
     let pkt = DeviceBLEPacket::Response(DeviceBLEResponse::WidgetGet { result: Ok(widget) });
     let _ = send_packet(pkt, msg_id, server, conn).await;
@@ -356,7 +357,7 @@ async fn gatt_events_echo_task<P: PacketPool>(
                 match &event {
                     GattEvent::Read(event) => {
                         if event.handle() == tx.handle {
-                            let value = server.get(&tx);
+                            let _value = server.get(&tx);
                             info!("[gatt] read from TX characteristic");
                         }
                     }

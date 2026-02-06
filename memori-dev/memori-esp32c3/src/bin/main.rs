@@ -7,7 +7,6 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
-use bt_hci::controller::ExternalController;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Instant, Timer};
 use esp_backtrace as _;
@@ -18,13 +17,13 @@ use esp_hal::spi::master::Spi;
 use esp_hal::time::Rate;
 use esp_hal::timer::timg::TimerGroup;
 use esp_hal::{Blocking, clock::CpuClock};
-use esp_radio::ble::controller::BleConnector;
 use log::{info, trace};
 use memori_esp32c3::ble::ble_task;
 use memori_esp32c3::{MemTermInitPins, setup_term};
+use memori_ui::widgets::WidgetId;
 use memori_ui::{Memori, MemoriState};
 use static_cell::StaticCell;
-use transport::{DeviceTransport, WidgetId};
+use transport::DeviceTransport;
 use weact_studio_epd::graphics::Display290BlackWhite;
 
 extern crate alloc;
@@ -67,7 +66,7 @@ async fn main(spawner: Spawner) -> () {
     let mosi_pin = peripherals.GPIO10;
     let sclk_pin = peripherals.GPIO8;
 
-    let spi_bus = Spi::new(
+    let _spi_bus = Spi::new(
         peripherals.SPI2,
         spi::master::Config::default()
             .with_frequency(Rate::from_khz(100))
@@ -132,7 +131,7 @@ pub async fn ui_task(spi: Spi<'static, Blocking>, term_init_pins: MemTermInitPin
     let mut display = Display290BlackWhite::new();
     let term = setup_term(spi, &mut display, term_init_pins);
     let mut memori = Memori::new(term);
-    let mut mem_state = MemoriState::default();
+    let mem_state = MemoriState::default();
 
     loop {
         let instant = Instant::now();
@@ -143,11 +142,6 @@ pub async fn ui_task(spi: Spi<'static, Blocking>, term_init_pins: MemTermInitPin
         let frame_time = instant.elapsed();
 
         trace!("frame time: {:?}ms", frame_time.as_millis());
-
-        match mem_state {
-            MemoriState::Example(ref mut cont) => cont.i += 1,
-            _ => {}
-        }
     }
 }
 

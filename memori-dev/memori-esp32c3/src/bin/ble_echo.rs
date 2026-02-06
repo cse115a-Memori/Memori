@@ -7,21 +7,13 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
-use bt_hci::controller::ExternalController;
 use embassy_executor::Spawner;
-use embassy_time::{Duration, Instant, Timer};
 use esp_backtrace as _;
 
-use esp_hal::spi;
-use esp_hal::spi::master::Spi;
-use esp_hal::time::Rate;
+use esp_hal::clock::CpuClock;
 use esp_hal::timer::timg::TimerGroup;
-use esp_hal::{Blocking, clock::CpuClock};
-use log::{info, trace, warn};
-use memori::{Memori, MemoriState};
-use memori_esp32c3::{MemTermInitPins, setup_term};
+use log::info;
 use memori_esp32c3::ble::ble_echo_task;
-use weact_studio_epd::graphics::Display290BlackWhite;
 use static_cell::StaticCell;
 
 extern crate alloc;
@@ -36,7 +28,6 @@ esp_bootloader_esp_idf::esp_app_desc!();
     clippy::large_stack_frames,
     reason = "it's not unusual to allocate larger buffers etc. in main"
 )]
-
 #[esp_rtos::main]
 async fn main(spawner: Spawner) -> () {
     esp_println::logger::init_logger_from_env();
@@ -56,29 +47,9 @@ async fn main(spawner: Spawner) -> () {
     info!("Embassy initialized!");
 
     let radio_init: esp_radio::Controller<'_> =
-    esp_radio::init().expect("Failed to initialize Wi-Fi/BLE controller");
+        esp_radio::init().expect("Failed to initialize Wi-Fi/BLE controller");
 
     let radio = RADIO.init(radio_init);
- 
-    let mosi_pin = peripherals.GPIO10;
-    let sclk_pin = peripherals.GPIO8;
-
-    let spi_bus = Spi::new(
-        peripherals.SPI2,
-        spi::master::Config::default()
-            .with_frequency(Rate::from_khz(100))
-            .with_mode(spi::Mode::_0),
-    )
-    .expect("Failed to create SPI bus")
-    .with_sck(sclk_pin)
-    .with_mosi(mosi_pin);
-
-    let term_init_pins = MemTermInitPins {
-        cs_pin: peripherals.GPIO3,
-        dc_pin: peripherals.GPIO2,
-        rst_pin: peripherals.GPIO1,
-        busy_pin: peripherals.GPIO0,
-    };
 
     spawner.spawn(ble_echo_task(radio, peripherals.BT)).unwrap();
 }

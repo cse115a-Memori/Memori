@@ -52,7 +52,7 @@ pub enum HostBLEResponse {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum HostBLECommand {
-    SetWidgets { state: MemoriState },
+    SetState { state: MemoriState },
     GetWidget { widget_id: WidgetId },
     SetConfig { config: DeviceConfig },
     // Ping,
