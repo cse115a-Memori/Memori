@@ -26,7 +26,7 @@ pub enum MemoriState {
     // Clo(Clo)
 }
 
-pub trait Updateable {
+pub trait Updatable {
     fn update(&mut self);
 }
 

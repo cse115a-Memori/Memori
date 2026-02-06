@@ -6,8 +6,9 @@ use ratatui::widgets::{Widget, Block, Borders};
 use ratatui::style::Style;
 use ratatui::symbols::border;
 use crate::alloc::string::ToString;
-use crate::Updateable;
+use crate::Updatable;
 
+#[derive(Clone)]
 pub struct Clock {
     pub seconds: u32,
     pub minutes: u32,
@@ -24,7 +25,7 @@ impl Clock {
     }
 }
 
-impl Updateable for Clock {
+impl Updatable for Clock {
     fn update(&mut self) {
         self.seconds += 1;
         if self.seconds == 60 {

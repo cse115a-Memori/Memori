@@ -2,7 +2,7 @@ use color_eyre::eyre::Result;
 use embedded_graphics::{pixelcolor::BinaryColor, prelude::*};
 use embedded_graphics_simulator::{OutputSettings, SimulatorDisplay, SimulatorEvent, Window};
 use memori_tcp::{DeviceResponse, DeviceTcpTransport, HostRequest, Sequenced};
-use memori_ui::{Memori, MemoriState, name::Name, clock::Clock};
+use memori_ui::{Memori, MemoriState, name::Name, clock::Clock, Updatable};
 use mousefood::{EmbeddedBackend, EmbeddedBackendConfig};
 use std::{sync::Arc, time::Duration};
 use tokio::{sync::Mutex, time::sleep};
@@ -98,7 +98,7 @@ async fn state_handler(state: Arc<Mutex<MemoriState>>) -> Result<()> {
                     match state {
                         MemoriState::Example(counter) => todo!(),
                         MemoriState::Name(name) => name.name = "Cainan".to_string(),
-                        MemoriState::Clock(clock) => clock.tick(),
+                        MemoriState::Clock(clock) => clock.update(),
                     }
 
                     DeviceResponse::BatteryLevel(69)
