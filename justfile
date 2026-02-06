@@ -4,7 +4,7 @@ list:
 # memori
 
 [working-directory('memori-dev/memori-esp32c3')]
-esp LOG="debug":
+esp LOG="info":
     ESP_LOG={{ LOG }} cargo run --release --bin memori-esp32c3
 
 [working-directory('memori-dev/simulator')]
