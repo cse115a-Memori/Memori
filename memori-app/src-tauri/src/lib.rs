@@ -6,7 +6,7 @@ use memori_tcp::{
 };
 use memori_ui::{
     layout::MemoriLayout,
-    widgets::{MemoriWidget, Name, UpdateFrequency, WidgetId, WidgetKind},
+    widgets::{MemoriWidget, Name, WidgetId, WidgetKind},
     MemoriState,
 };
 use tauri_plugin_tracing::{tracing::error, Builder, LevelFilter};
@@ -80,22 +80,12 @@ impl Api for ApiImpl {
     async fn send_string(self, string: String) -> Result<(), String> {
         let mut state_guard = self.state.lock().await;
 
-        // let memori_state = MemoriState::new(
-        //     0,
-        //     vec![MemoriWidget::new(
-        //         WidgetId(0),
-        //         WidgetKind::Name(Name::new(string)),
-        //     )],
-        //     vec![MemoriLayout::Full(WidgetId(0))],
-        //     5,
-        // );
-
         let memori_state = MemoriState::new(
             0,
             vec![MemoriWidget::new(
                 WidgetId(0),
                 WidgetKind::Name(Name::new(string)),
-                UpdateFrequency::Never,
+                None,
             )],
             vec![MemoriLayout::Fourths {
                 top_right: WidgetId(0),
@@ -139,7 +129,6 @@ pub async fn run() {
         .expect("error while running tauri application");
 }
 
-// tokio::spawn(async { request_handler(dev_req_rx, host_resp_tx) });
 pub async fn request_handler(
     mut dev_req_rx: UnboundedReceiver<Sequenced<DeviceRequest>>,
     host_resp_tx: UnboundedSender<Sequenced<HostResponse>>,
