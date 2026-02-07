@@ -2,22 +2,16 @@ use memori_tcp::{
     host::{DeviceConnected, DeviceDisconnected},
     DeviceRequest, HostResponse, HostTcpTransport, Sequenced,
 };
-use specta_typescript::Typescript;
-use tauri::State;
-use tauri_specta::{collect_commands, Builder};
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
-use tokio::sync::Mutex;
-use transport::{HostTransport as _, Widget, WidgetId};
 use memori_ui::{
     layout::MemoriLayout,
     widgets::{MemoriWidget, Name, UpdateFrequency, WidgetId, WidgetKind},
     MemoriState,
 };
-use tauri_plugin_tracing::{tracing::error, Builder, LevelFilter};
-use tokio::sync::{
-    mpsc::{UnboundedReceiver, UnboundedSender},
-    Mutex,
-};
+use specta_typescript::Typescript;
+use tauri::State;
+use tauri_specta::{collect_commands, Builder};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tokio::sync::Mutex;
 use transport::HostTransport as _;
 
 enum Connection {
@@ -107,7 +101,7 @@ async fn send_string(state: State<'_, AppState>, string: String) -> Result<(), S
         }],
         5,
     );
-    if let Connection::Connected(ref mut conn) = state_guard.conn {
+    if let Connection::Connected(conn) = &mut *state_guard {
         return conn
             .set_state(memori_state)
             .await
