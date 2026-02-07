@@ -15,6 +15,7 @@
 		29EEEE7F56AA49437B74F87C /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ED062C06E3542299019271E5 /* QuartzCore.framework */; };
 		3422E997C60E01DDB53588A3 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1084B3C769EEEB7F72230912 /* Metal.framework */; };
 		4D066D59448EBE92112B5CF5 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 34818AC372EFF36281420731 /* WebKit.framework */; };
+		528EDCE72F32D33A008E07A2 /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 528EDCE62F32D33A008E07A2 /* CoreBluetooth.framework */; };
 		797D2138DA2FA95BB7F9B6CF /* assets in Resources */ = {isa = PBXBuildFile; fileRef = 8A87A90F6CA9B214A63EA1CD /* assets */; };
 		8190CA9955937AD06316B45F /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1791B4D51C174ACDA7CCCA47 /* UIKit.framework */; };
 		86D063BF185602C25CACC2F0 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = C84ABEE6E6AA546A01423341 /* LaunchScreen.storyboard */; };
@@ -28,6 +29,7 @@
 		1084B3C769EEEB7F72230912 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		1791B4D51C174ACDA7CCCA47 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		34818AC372EFF36281420731 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
+		528EDCE62F32D33A008E07A2 /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = System/Library/Frameworks/CoreBluetooth.framework; sourceTree = SDKROOT; };
 		6EF77788FADAC3821E2E4EFD /* memori-app.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "memori-app.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		748281B2AB42969C69FD5B6C /* main.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = main.rs; sourceTree = "<group>"; };
 		82C10C52661A9233A516F91B /* lib.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = lib.rs; sourceTree = "<group>"; };
@@ -48,6 +50,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0958E58913A7D3FA67736679 /* libapp.a in Frameworks */,
+				528EDCE72F32D33A008E07A2 /* CoreBluetooth.framework in Frameworks */,
 				1703B3D1C4881B0213065F1F /* CoreGraphics.framework in Frameworks */,
 				3422E997C60E01DDB53588A3 /* Metal.framework in Frameworks */,
 				226FFAF5AA50CED9D22EA3D1 /* MetalKit.framework in Frameworks */,
@@ -113,6 +116,7 @@
 		8F1D509EBC532612AF531DC4 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				528EDCE62F32D33A008E07A2 /* CoreBluetooth.framework */,
 				E18181FC9C3CF4E2E96B7F1F /* CoreGraphics.framework */,
 				EDB22220FDF82048F420CCD4 /* libapp.a */,
 				1084B3C769EEEB7F72230912 /* Metal.framework */,
@@ -319,7 +323,7 @@
 					"$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)",
 					"$(TOOLCHAIN_DIR)/usr/lib/swift-5.0/$(PLATFORM_NAME)",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.kenricqq.memori-app";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.suri.memori-app";
 				PRODUCT_NAME = "memori-app";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";

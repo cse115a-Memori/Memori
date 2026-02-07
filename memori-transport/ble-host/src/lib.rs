@@ -322,13 +322,14 @@ impl HostBLETransport {
 impl HostTransport for HostBLETransport {
     async fn set_state(&mut self, state: MemoriState) -> TransResult<()> {
         println!("[host_transport] set_widgets called");
-        let command = HostBLECommand::SetWidgets { state };
-        let response = self.send_command(command).await?;
+        // let command = HostBLECommand::SetWidgets { state };
+        // let response = self.send_command(command).await?;
 
-        match response {
-            DeviceBLEResponse::WidgetSet { result } => result,
-            _ => Err(TransError::ProtocolIssue),
-        }
+        // match response {
+        //     DeviceBLEResponse::WidgetSet { result } => result,
+        //     _ => Err(TransError::ProtocolIssue),
+        // }
+        todo!()
     }
 
     async fn get_widget(&mut self, id: WidgetId) -> TransResult<MemoriWidget> {
