@@ -119,7 +119,7 @@ async fn send_string(state: State<'_, AppState>, string: String) -> Result<(), S
         return conn
             .set_state(memori_state)
             .await
-            .map_err(|e| format!("Failed to get battery: {e}"));
+            .map_err(|e| format!("Failed to set state: {e}"));
     }
 
     Err("Device is not connected".to_string())
