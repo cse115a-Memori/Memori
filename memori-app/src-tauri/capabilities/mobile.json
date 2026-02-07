@@ -1,9 +1,12 @@
 {
-  "$schema": "../gen/schemas/desktop-schema.json",
-  "identifier": "default",
-  "description": "Capability for the main window",
+  "$schema": "../gen/schemas/mobile-schema.json",
+  "identifier": "mobile-capability",
   "windows": [
     "main"
+  ],
+  "platforms": [
+    "iOS",
+    "android"
   ],
   "permissions": [
     "core:default",
@@ -16,6 +19,11 @@
     "core:resources:default",
     "core:menu:default",
     "core:tray:default",
+    "geolocation:default",
+    "geolocation:allow-check-permissions",
+    "geolocation:allow-request-permissions",
+    "geolocation:allow-get-current-position",
+    "geolocation:allow-watch-position",
     "store:default",
     "log:default",
     "blec:default"

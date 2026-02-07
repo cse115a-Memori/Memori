@@ -1,6 +1,7 @@
 test-results
 .DS_Store
 node_modules
+.helix
 /build
 /.svelte-kit
 /package
