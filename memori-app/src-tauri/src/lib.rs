@@ -138,7 +138,7 @@ async fn is_connected(state: State<'_, AppState>) -> Result<bool, String> {
 }
 
 #[tauri::command]
-#[specta::specta] // < You must annotate your commands
+#[specta::specta]
 async fn get_battery(state: State<'_, AppState>) -> Result<u8, String> {
     let mut guard = state.conn.lock().await;
 
@@ -163,7 +163,7 @@ async fn send_twitch(_state: State<'_, AppState>, token: String) -> Result<Strin
 }
 
 #[tauri::command]
-#[specta::specta] // hi
+#[specta::specta]
 async fn send_name(state: State<'_, AppState>, name: String) -> Result<(), String> {
     let mut state_guard = state.tcp_conn.lock().await;
 
@@ -213,7 +213,14 @@ async fn send_temp(state: State<'_, AppState>, city: String) -> Result<(), Strin
     }
     // add to .bashrc -> $ export ~/.bashrc
     // export API_KEY='api key goes here'
-    let api_key = env!("API_KEY_W");
+    let api_key = match env::var("API_KEY_W")
+        .ok()
+        .or_else(|| option_env!("API_KEY_W").map(ToString::to_string))
+    {
+        Some(value) => value,
+        None => return Ok(()),
+    };
+
     println!("city: {}", city);
     let url = format!(
         "https://api.openweathermap.org/data/2.5/weather?q={}&appid={}&units=metric",
@@ -299,7 +306,14 @@ async fn send_bustime(state: State<'_, AppState>, lat: f64, lon: f64) -> Result<
         rt: String,
         prdctdn: String,
     }
-    let api_key = env!("API_KEY");
+    let api_key = match env::var("API_KEY")
+        .ok()
+        .or_else(|| option_env!("API_KEY").map(ToString::to_string))
+    {
+        Some(value) => value,
+        None => return Ok("Bus API key not configured".to_string()),
+    };
+
     let client = Client::new();
     let url = format!(
         "https://rt.scmetro.org/bustime/api/v3/getroutes?key={}&format=json",
@@ -381,47 +395,6 @@ async fn send_bustime(state: State<'_, AppState>, lat: f64, lon: f64) -> Result<
         return Err("1111".into());
     }
     Ok(format!("closest stop: {}", closest_stop_id))
-    /*
-    let url = format!(
-        "https://rt.scmetro.org/bustime/api/v3/getpredictions?key={}&stpid={}&format=json",
-        api_key, closest_stop_id
-    );
-    let response: BustimeResponse<Predictions> = client
-        .get(&url)
-        .send()
-        .await
-        .map_err(|e| format!("request err: {e}"))?
-        .json()
-        .await
-        .map_err(|e| format!("deserialize err: {e}"))?;
-    let closest_bus: String;
-    let busstop_name: String;
-    if let Some(first_prediction) = response.bustime_response.prd.first() {
-        closest_bus = first_prediction.prdctdn.clone();
-        busstop_name = first_prediction.rt.clone();
-    } else {
-        return Err("prediction err".into());
-    }
-
-    let memori_state = MemoriState::new(
-        0,
-        vec![MemoriWidget::new(
-            WidgetId(0),
-            WidgetKind::Bus(Bus::new(closest_bus, busstop_name)), //response.bustime_response.prd)),
-            Some(UpdateFrequency::Seconds(60)),
-        )],
-        vec![MemoriLayout::Full(WidgetId(0))],
-        5,
-    );
-    if let TCPConnection::Connected(conn) = &mut *state_guard {
-        return conn
-            .set_state(memori_state)
-            .await
-            .map_err(|e| format!("Failed to set state: {e}"));
-    }
-    Err("Device is not connected".to_string())
-    */
-    // Err("Device is not connected on tcp".to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -451,7 +424,7 @@ pub fn run() {
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_geolocation::init())
         .plugin(tauri_plugin_svelte::init())
-        .plugin(tauri_plugin_store::Builder::new().build())
+        // .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_blec::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_oauth::init())

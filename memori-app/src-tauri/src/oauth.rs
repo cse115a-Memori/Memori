@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::sync::mpsc;
-use tauri::{Emitter, Window};
+use tauri::{path::BaseDirectory, Emitter, Manager, Window};
 use tauri_plugin_oauth::OauthConfig;
 use tauri_plugin_opener::OpenerExt;
 use url::Url;
@@ -54,7 +54,7 @@ pub async fn login_with_provider(
     _window: Window,
     provider: String,
 ) -> Result<UserInfo, String> {
-    let configs = load_oauth_configs()?;
+    let configs = load_oauth_configs(&app)?;
     println!("configs: {:?}", &configs);
     // Get provider-specific configuration
     let config = match provider.as_str() {
@@ -243,34 +243,37 @@ fn generate_random_string(length: usize) -> String {
         .collect()
 }
 
-fn load_oauth_configs() -> Result<OAuthConfigs, String> {
-    // println!("configs");
-    static OAUTH_CONFIG: &[u8] = include_bytes!("../oauth_config.json");
-    // let config_path = std::path::Path::new("oauth_config.json");
-    /*
-    let config_content = obfstr::obfstr!(dotenvy_macro::dotenv!("OAUTH_CONFIG")).to_string();
-    let configs: OAuthConfigs = serde_json::from_str(&config_content)
-        .map_err(|e| format!("Failed to parse config file: {}", e))?;
+fn load_oauth_configs(app: &tauri::AppHandle) -> Result<OAuthConfigs, String> {
+    if let Ok(config_content) = std::env::var("OAUTH_CONFIG_JSON") {
+        return serde_json::from_str(&config_content)
+            .map_err(|e| format!("Failed to parse OAUTH_CONFIG_JSON: {e}"));
+    }
 
-    return Ok(configs);
-    */
-    // if config_path.exists() {
-    /*
-    let config_content = std::fs::read_to_string(config_path).map_err(|e| {
-        format!(
-            "Failed to read config file: {} config  path {:?}",
-            e, config_path
-        )
-    })?;
-    */
-    let config_content = std::str::from_utf8(OAUTH_CONFIG)
-        .map_err(|e| format!("Failed to convert OAUTH_CONFIG bytes to string: {}", e))?;
+    if let Some(config_content) = option_env!("OAUTH_CONFIG_JSON") {
+        return serde_json::from_str(config_content)
+            .map_err(|e| format!("Failed to parse embedded OAUTH_CONFIG_JSON: {e}"));
+    }
 
-    let configs: OAuthConfigs = serde_json::from_str(&config_content)
-        .map_err(|e| format!("Failed to parse config file: {}", e))?;
+    let mut candidates = Vec::new();
+    if let Ok(resource_path) = app
+        .path()
+        .resolve("oauth_config.json", BaseDirectory::Resource)
+    {
+        candidates.push(resource_path);
+    }
+    candidates.push(std::path::PathBuf::from("oauth_config.json"));
+    candidates.push(std::path::PathBuf::from("src-tauri/oauth_config.json"));
 
-    return Ok(configs);
-    // }
+    for candidate in candidates {
+        if let Ok(config_content) = std::fs::read_to_string(&candidate) {
+            return serde_json::from_str(&config_content).map_err(|e| {
+                format!("Failed to parse config file `{}`: {e}", candidate.display())
+            });
+        }
+    }
 
-    Err("cannot find config".to_string())
+    Err(
+        "OAuth config not found. Set OAUTH_CONFIG_JSON or provide oauth_config.json as a resource"
+            .to_string(),
+    )
 }

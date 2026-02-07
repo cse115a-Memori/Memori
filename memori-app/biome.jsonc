@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.3.13/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.3.14/schema.json",
   "root": true,
   "assist": {
     "actions": {
@@ -15,7 +15,8 @@
     "includes": [
       "**",
       "!**/src/lib/components/ui",
-      "!**/src/lib/utils.ts"
+      "!**/src/lib/utils.ts",
+      "!**/bindings.ts"
       // "!.sst",
     ]
   },

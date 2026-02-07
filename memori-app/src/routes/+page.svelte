@@ -1,26 +1,30 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core'
-  import type { DeviceMode } from '$lib/tauri/bindings'
   import type { UnlistenFn } from '@tauri-apps/api/event'
+  import { getCurrent, onOpenUrl } from '@tauri-apps/plugin-deep-link'
+  import {
+    checkPermissions,
+    getCurrentPosition,
+    requestPermissions,
+    watchPosition,
+  } from '@tauri-apps/plugin-geolocation'
+  import { load } from '@tauri-apps/plugin-store'
+  import { commands } from '@/tauri'
+  import { goto } from '$app/navigation'
   import { Button } from '$lib/components/ui/button/index.js'
   import * as Field from '$lib/components/ui/field/index.js'
   import { Input } from '$lib/components/ui/input/index.js'
-  import { commands } from '@/tauri'
-  import { goto } from '$app/navigation'
-  import { load } from '@tauri-apps/plugin-store';
-  import {login, getCurrentUser} from '$lib/services/auth'; 
-  import { getCurrent, onOpenUrl } from '@tauri-apps/plugin-deep-link';
-  import {
-    checkPermissions,
-    requestPermissions,
-    getCurrentPosition,
-    watchPosition,
-  } from '@tauri-apps/plugin-geolocation';
+  import { getCurrentUser, login } from '$lib/services/auth'
+  import type { DeviceMode } from '$lib/tauri/bindings'
 
-  let errorMessage = $state('');
-  let isTwitchLoading = $state(false);
-  let isLoading = $derived(isGoogleLoading || isGithubLoading || isTwitchLoading);
-  let error: string | null = null;
+  let errorMessage = $state('')
+  let isTwitchLoading = $state(false)
+  let isGoogleLoading = $state(false)
+  let isGithubLoading = $state(false)
+  let isLoading = $derived(
+    isGoogleLoading || isGithubLoading || isTwitchLoading
+  )
+  let error: string | null = null
   let name = $state('')
   let string = $state('')
   let res: number | string | null = $state('')
@@ -30,7 +34,7 @@
   let currentUser = $state(await getCurrentUser())
   let token = $derived(currentUser?.accessToken)
 
-  const startUrls = await getCurrent();
+  const startUrls = await getCurrent()
 
   let isConnected = $state(false)
   let connecting = $state(false)
@@ -40,7 +44,7 @@
     e.preventDefault()
     try {
       const result = await commands.getBattery()
-      if (result.status == 'ok') {
+      if (result.status === 'ok') {
         res = result.data
       } else {
         res = result.error
@@ -95,7 +99,7 @@
       console.error(error)
     }
   }
-  
+
   const send_temp = async (e: Event) => {
     e.preventDefault()
     try {
@@ -107,50 +111,49 @@
   }
   const send_bustime = async (e: Event) => {
     e.preventDefault()
-    let permissions = await checkPermissions();  
-    if (  
-      permissions.location === 'prompt' ||  
-      permissions.location === 'prompt-with-rationale'  
-    ) {  
-      permissions = await requestPermissions(['location']);  
-    }  
-    if (permissions.location === 'granted') {  
-      const pos = await getCurrentPosition();  
-      
-      // Send position to device  
-      try {  
-        res = await invoke('send_bustime', { 
-          lat: pos.coords.latitude, 
-          lon: pos.coords.longitude })  
-        console.log('Bustime sent with position:', pos);
+    let permissions = await checkPermissions()
+    if (
+      permissions.location === 'prompt' ||
+      permissions.location === 'prompt-with-rationale'
+    ) {
+      permissions = await requestPermissions(['location'])
+    }
+    if (permissions.location === 'granted') {
+      const pos = await getCurrentPosition()
+
+      // Send position to device
+      try {
+        res = await invoke('send_bustime', {
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude,
+        })
+        console.log('Bustime sent with position:', pos)
         console.log(res)
-      } catch (error) {  
-        console.error('Failed to send bustime:', error);  
-      }  
-  
-    } 
+      } catch (error) {
+        console.error('Failed to send bustime:', error)
+      }
+    }
   }
   const login_twitch = async (e: Event) => {
     e.preventDefault()
     try {
-      errorMessage = '';
-      isTwitchLoading = true;
-      await login('twitch');
-      
+      errorMessage = ''
+      isTwitchLoading = true
+      await login('twitch')
     } catch (error) {
-      console.error('Twitch login failed:', error);
-      errorMessage = 'Twitch log failed, please retry';
+      console.error('Twitch login failed:', error)
+      errorMessage = 'Twitch log failed, please retry'
     } finally {
-      isTwitchLoading = false;
+      isTwitchLoading = false
     }
   }
   const send_twitch = async (e: Event) => {
     e.preventDefault()
     try {
-      res = await invoke('send_twitch', {token})
+      res = await invoke('send_twitch', { token })
       console.log(res)
     } catch (error) {
-      console.error(error) 
+      console.error(error)
     }
   }
 </script>
