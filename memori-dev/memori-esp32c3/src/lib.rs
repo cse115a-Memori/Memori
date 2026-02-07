@@ -36,7 +36,7 @@ pub struct MemTermInitPins {
     pub busy_pin: GPIO5<'static>,
 }
 
-/// Setup the terminal with the given SPI device and display.
+/// Set up the terminal with the given SPI device and display.
 pub fn setup_term<'a>(
     spi: Spi<'static, Blocking>,
     display: &'a mut MemDisplay,
@@ -55,13 +55,21 @@ pub fn setup_term<'a>(
     display.set_rotation(DisplayRotation::Rotate90);
     driver.init().unwrap();
 
+    let mut frame_count = 0;
+
     let config = EmbeddedBackendConfig {
         font_regular: memori_ui::FONT_REGULAR,
         font_bold: memori_ui::FONT_BOLD,
         font_italic: memori_ui::FONT_ITALIC,
         flush_callback: Box::new(move |d| {
-            // driver.full_update(d).unwrap();
-            driver.fast_update(d).unwrap();
+            // do full update every 5 frames to maintain display health.
+            frame_count += 1;
+            if frame_count == 5 {
+                driver.full_update(d).unwrap();
+                frame_count = 0;
+            } else {
+                driver.fast_update(d).unwrap();
+            }
         }),
         ..Default::default()
     };

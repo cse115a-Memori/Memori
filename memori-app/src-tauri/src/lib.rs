@@ -6,7 +6,7 @@ use memori_tcp::{
 };
 use memori_ui::{
     layout::MemoriLayout,
-    widgets::{MemoriWidget, Name, WidgetId, WidgetKind},
+    widgets::{MemoriWidget, Name, UpdateFrequency, WidgetId, WidgetKind},
     MemoriState,
 };
 use tauri_plugin_tracing::{tracing::error, Builder, LevelFilter};
@@ -95,6 +95,7 @@ impl Api for ApiImpl {
             vec![MemoriWidget::new(
                 WidgetId(0),
                 WidgetKind::Name(Name::new(string)),
+                UpdateFrequency::Never,
             )],
             vec![MemoriLayout::Fourths {
                 top_right: WidgetId(0),
