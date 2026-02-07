@@ -15,7 +15,8 @@
     "includes": [
       "**",
       "!**/src/lib/components/ui",
-      "!**/src/lib/utils.ts"
+      "!**/src/lib/utils.ts",
+      "!**/bindings.ts"
       // "!.sst",
     ]
   },

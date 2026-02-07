@@ -72,7 +72,7 @@ async fn ble_connect(_state: State<'_, AppState>) -> Result<(), String> {
 }
 
 #[tauri::command]
-#[specta::specta] // < You must annotate your commands
+#[specta::specta]
 async fn get_battery(state: State<'_, AppState>) -> Result<u8, String> {
     let mut guard = state.tcp_conn.lock().await;
 
@@ -86,7 +86,7 @@ async fn get_battery(state: State<'_, AppState>) -> Result<u8, String> {
 }
 
 #[tauri::command]
-#[specta::specta] // hi
+#[specta::specta]
 async fn send_string(state: State<'_, AppState>, string: String) -> Result<(), String> {
     let mut state_guard = state.tcp_conn.lock().await;
 

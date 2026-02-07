@@ -1,10 +1,10 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core'
   import type { UnlistenFn } from '@tauri-apps/api/event'
+  import { commands } from '@/tauri'
   import { Button } from '$lib/components/ui/button/index.js'
   import * as Field from '$lib/components/ui/field/index.js'
   import { Input } from '$lib/components/ui/input/index.js'
-  import { commands } from '@/tauri'
 
   let name = $state('')
   let string = $state('')
@@ -15,7 +15,7 @@
     e.preventDefault()
     try {
       const result = await commands.getBattery()
-      if (result.status == 'ok') {
+      if (result.status === 'ok') {
         res = result.data
       } else {
         res = result.error
