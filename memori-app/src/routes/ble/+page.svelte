@@ -12,15 +12,15 @@
   import { Label } from '$lib/components/ui/label/index'
   import { Separator } from '$lib/components/ui/separator/index'
   import { Spinner } from '$lib/components/ui/spinner/index'
-  import { store as bleStore } from '$lib/stores/ble.svelte'
 
-  import { createBlePageModel } from './ble-page-model.svelte'
+  import { createBlePageModel } from '$lib/features/ble/model.svelte.ts'
+  import { store as bleStore } from '$lib/features/ble/store.svelte.ts'
   import {
     displayName,
     filterAndSortDevices,
     signalClass,
     signalStrength,
-  } from './ble-utils'
+  } from '$lib/features/ble/utils.ts'
 
   const { state, actions } = createBlePageModel()
 
@@ -126,9 +126,7 @@
             <p class="text-sm font-medium">Service 1</p>
             <div class="flex items-center gap-2">
               <Input bind:value={state.sendData} placeholder="Send data" />
-              <Button onclick={actions.sendPrimary}>
-                Send
-              </Button>
+              <Button onclick={actions.sendPrimary}>Send</Button>
             </div>
             <div class="flex items-center gap-2">
               <Input bind:value={state.recvData} readonly />
@@ -148,9 +146,7 @@
             <p class="text-sm font-medium">Service 2</p>
             <div class="flex items-center gap-2">
               <Input bind:value={state.sendData2} placeholder="Send data" />
-              <Button onclick={actions.sendSecondary}>
-                Send
-              </Button>
+              <Button onclick={actions.sendSecondary}>Send</Button>
             </div>
             <div class="flex items-center gap-2">
               <Input bind:value={state.recvData2} readonly />
@@ -160,7 +156,10 @@
             </div>
             <div class="flex items-center gap-2">
               <Input bind:value={state.notifyData2} readonly />
-              <Button variant="secondary" onclick={actions.toggleNotifySecondary}>
+              <Button
+                variant="secondary"
+                onclick={actions.toggleNotifySecondary}
+              >
                 {state.notifyData2 ? 'Unsubscribe' : 'Subscribe'}
               </Button>
             </div>

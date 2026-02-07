@@ -5,4 +5,5 @@ export const store = new RuneStore('ble', {
 	showAllDevices: false,
 })
 
-await store.start()
+// await store.start()
+// await store.destroy()

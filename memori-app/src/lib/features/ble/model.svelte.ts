@@ -18,7 +18,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { saveAll } from '@tauri-store/svelte'
 import { onMount } from 'svelte'
 
-import { store as bleStore } from '$lib/stores/ble.svelte'
+import { store as bleStore } from './store.svelte'
 
 import {
 	CHARACTERISTIC_UUID,
@@ -26,7 +26,7 @@ import {
 	GAP_SERVICE_UUID,
 	SERVICE_UUID,
 	SERVICE2_UUID,
-} from './ble-uuids'
+} from './uuids'
 
 export function createBlePageModel() {
 	const state = $state({
@@ -67,7 +67,7 @@ export function createBlePageModel() {
 			skipInitialSave = false
 			return
 		}
-		void saveAll()
+		// void saveAll()
 	})
 
 	async function resolveMissingNames() {
@@ -97,9 +97,9 @@ export function createBlePageModel() {
 			}
 		}
 
-		if (didUpdate) {
-			await saveAll()
-		}
+		// if (didUpdate) {
+		// 	await saveAll()
+		// }
 		state.resolvingNames = false
 	}
 

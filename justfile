@@ -24,12 +24,12 @@ typ FILE="":
 doc PATH:
     cargo doc --open {{ PATH }}
 
-# mobile app
-
+# desktop app
 [working-directory('memori-app')]
-dev:
+pc:
     bunx tauri dev
 
+# mobile app
 [working-directory('memori-app')]
 app:
     bunx tauri ios dev --host
@@ -37,7 +37,8 @@ app:
 [working-directory('memori-app')]
 check:
     bunx @biomejs/biome check --write .
-    bunx dprint fmt "**/*.{svelte,astro}"
+    # bunx dprint fmt "**/*.{svelte,astro}"
+    bun run prettier --write "**/*.{svelte,astro}"
     bunx sv check --compiler-warnings "state_referenced_locally:ignore"
 
 [working-directory('memori-app')]

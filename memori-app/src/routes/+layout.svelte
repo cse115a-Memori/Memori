@@ -23,11 +23,12 @@
 {@render navLinks('/test', 'test')}
 
 {#snippet navLinks(route: string, name: string)}
-	<Button
-		variant="link"
-		href={route}
-		class={`${page.url.pathname == route ? 'font-bold' : ''} transition-all`}
-	>{name}</Button>
+  <Button
+    variant="link"
+    href={route}
+    class={`${page.url.pathname == route ? 'font-bold' : ''} transition-all`}
+    >{name}</Button
+  >
 {/snippet}
 
 {@render children?.()}
