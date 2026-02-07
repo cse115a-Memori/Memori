@@ -17,6 +17,7 @@ ios-sim:
 
 [working-directory('memori-app')]
 desktop:
+    bun install
     bun tauri dev 
 
 typ FILE="":

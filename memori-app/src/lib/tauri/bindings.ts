@@ -13,9 +13,17 @@ async hello(name: string) : Promise<Result<string, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async connect() : Promise<Result<null, string>> {
+async tcpConnect() : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("connect") };
+    return { status: "ok", data: await TAURI_INVOKE("tcp_connect") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async bleConnect() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("ble_connect") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };

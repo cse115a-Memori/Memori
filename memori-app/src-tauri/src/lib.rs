@@ -27,14 +27,14 @@ enum BLEConnection {
 
 struct AppState {
     tcp_conn: Mutex<TCPConnection>,
-    ble_conn: Mutex<BLEConnection>,
+    // ble_conn: Mutex<BLEConnection>,
 }
 
 impl AppState {
     fn new() -> Self {
         Self {
             tcp_conn: Mutex::new(TCPConnection::Disconnected(HostTcpTransport::default())),
-            ble_conn: Mutex::new(BLEConnection::Disconnected(HostBLETransport::default())),
+            // ble_conn: Mutex::new(BLEConnection::Disconnected(HostBLETransport::default())),
         }
     }
 }
@@ -65,14 +65,14 @@ async fn tcp_connect(state: State<'_, AppState>) -> Result<(), String> {
     Err("Already connected or in invalid state".to_string())
 }
 
-async fn ble_connect(state: State<'_, AppState>) -> Result<(), String> {
-    let mut guard = state.ble_conn.lock().await;
-
-    todo!()
+#[tauri::command]
+#[specta::specta]
+async fn ble_connect(_state: State<'_, AppState>) -> Result<(), String> {
+    Err("BLE connect is not implemented yet".to_string())
 }
 
 #[tauri::command]
-#[specta::specta]
+#[specta::specta] // < You must annotate your commands
 async fn get_battery(state: State<'_, AppState>) -> Result<u8, String> {
     let mut guard = state.tcp_conn.lock().await;
 
@@ -86,7 +86,7 @@ async fn get_battery(state: State<'_, AppState>) -> Result<u8, String> {
 }
 
 #[tauri::command]
-#[specta::specta]
+#[specta::specta] // hi
 async fn send_string(state: State<'_, AppState>, string: String) -> Result<(), String> {
     let mut state_guard = state.tcp_conn.lock().await;
 
@@ -134,7 +134,7 @@ pub fn run() {
         get_battery,
         send_string
     ]);
-
+    // hi
     #[cfg(debug_assertions)]
     builder
         .export(Typescript::default(), "../src/lib/tauri/bindings.ts")
