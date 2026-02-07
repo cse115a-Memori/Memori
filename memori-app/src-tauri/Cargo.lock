@@ -381,6 +381,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "ble-host"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "btleplug",
+ "futures",
+ "log",
+ "memori-ui",
+ "postcard",
+ "tokio",
+ "transport",
+ "uuid",
+]
+
+[[package]]
 name = "block-buffer"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2610,6 +2625,7 @@ dependencies = [
 name = "memori-app"
 version = "0.1.0"
 dependencies = [
+ "ble-host",
  "memori-tcp",
  "memori-ui",
  "serde",

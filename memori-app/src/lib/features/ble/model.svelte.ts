@@ -14,7 +14,6 @@ import {
 	subscribeString,
 	unsubscribe,
 } from '@mnlphlp/plugin-blec'
-import { invoke } from '@tauri-apps/api/core'
 import { saveAll } from '@tauri-store/svelte'
 import { onMount } from 'svelte'
 
@@ -185,7 +184,6 @@ export function createBlePageModel() {
 			sendSecondary,
 			startScanDevices,
 			stopScanDevices,
-			testRust,
 			toggleNotifyPrimary,
 			toggleNotifySecondary,
 		},

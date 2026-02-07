@@ -1,3 +1,4 @@
+use ble_host::HostBLETransport;
 use memori_tcp::{
     host::{DeviceConnected, DeviceDisconnected},
     DeviceRequest, HostResponse, HostTcpTransport, Sequenced,
@@ -14,19 +15,26 @@ use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tokio::sync::Mutex;
 use transport::HostTransport as _;
 
-enum Connection {
+enum TCPConnection {
     Connected(HostTcpTransport<DeviceConnected>),
     Disconnected(HostTcpTransport<DeviceDisconnected>),
 }
 
+enum BLEConnection {
+    Connected(HostBLETransport),
+    Disconnected(HostBLETransport),
+}
+
 struct AppState {
-    conn: Mutex<Connection>,
+    tcp_conn: Mutex<TCPConnection>,
+    ble_conn: Mutex<BLEConnection>,
 }
 
 impl AppState {
     fn new() -> Self {
         Self {
-            conn: Mutex::new(Connection::Disconnected(HostTcpTransport::default())),
+            tcp_conn: Mutex::new(TCPConnection::Disconnected(HostTcpTransport::default())),
+            ble_conn: Mutex::new(BLEConnection::Disconnected(HostBLETransport::default())),
         }
     }
 }
@@ -39,13 +47,13 @@ async fn hello(name: String) -> Result<String, String> {
 
 #[tauri::command]
 #[specta::specta]
-async fn connect(state: State<'_, AppState>) -> Result<(), String> {
-    let mut guard = state.conn.lock().await;
+async fn tcp_connect(state: State<'_, AppState>) -> Result<(), String> {
+    let mut guard = state.tcp_conn.lock().await;
 
-    if let Connection::Disconnected(transport) = &*guard {
+    if let TCPConnection::Disconnected(transport) = &*guard {
         let (conn, (dev_req_rx, host_resp_tx)) =
             transport.connect().await.map_err(|e| e.to_string())?;
-        *guard = Connection::Connected(conn);
+        *guard = TCPConnection::Connected(conn);
 
         tokio::spawn(async move {
             request_handler(dev_req_rx, host_resp_tx).await;
@@ -57,24 +65,30 @@ async fn connect(state: State<'_, AppState>) -> Result<(), String> {
     Err("Already connected or in invalid state".to_string())
 }
 
+async fn ble_connect(state: State<'_, AppState>) -> Result<(), String> {
+    let mut guard = state.ble_conn.lock().await;
+
+    todo!()
+}
+
 #[tauri::command]
 #[specta::specta]
 async fn get_battery(state: State<'_, AppState>) -> Result<u8, String> {
-    let mut guard = state.conn.lock().await;
+    let mut guard = state.tcp_conn.lock().await;
 
     match &mut *guard {
-        Connection::Connected(conn) => conn
+        TCPConnection::Connected(conn) => conn
             .get_battery_level()
             .await
             .map_err(|e| format!("Failed to get battery: {e}")),
-        Connection::Disconnected(_) => Err("Device is not connected".to_string()),
+        TCPConnection::Disconnected(_) => Err("Device is not connected".to_string()),
     }
 }
 
 #[tauri::command]
 #[specta::specta]
 async fn send_string(state: State<'_, AppState>, string: String) -> Result<(), String> {
-    let mut state_guard = state.conn.lock().await;
+    let mut state_guard = state.tcp_conn.lock().await;
 
     // let memori_state = MemoriState::new(
     //     0,
@@ -101,7 +115,7 @@ async fn send_string(state: State<'_, AppState>, string: String) -> Result<(), S
         }],
         5,
     );
-    if let Connection::Connected(conn) = &mut *state_guard {
+    if let TCPConnection::Connected(conn) = &mut *state_guard {
         return conn
             .set_state(memori_state)
             .await
@@ -115,7 +129,8 @@ async fn send_string(state: State<'_, AppState>, string: String) -> Result<(), S
 pub fn run() {
     let builder = Builder::<tauri::Wry>::new().commands(collect_commands![
         hello,
-        connect,
+        tcp_connect,
+        ble_connect,
         get_battery,
         send_string
     ]);
@@ -137,12 +152,7 @@ pub fn run() {
                 .level(tauri_plugin_log::log::LevelFilter::Info)
                 .build(),
         )
-        .invoke_handler(tauri::generate_handler![
-            hello,
-            connect,
-            get_battery,
-            send_string
-        ])
+        .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
             builder.mount_events(app);
             Ok(())
