@@ -125,15 +125,6 @@ export function createBlePageModel() {
 		}
 	}
 
-	async function testRust() {
-		try {
-			const resp = await invoke<boolean>('test')
-			state.rustTest = resp
-		} catch (error) {
-			console.error(error)
-		}
-	}
-
 	async function checkState() {
 		state.adapterState = await getAdapterState()
 	}
