@@ -7,9 +7,11 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
-use bt_hci::controller::ExternalController;
+use alloc::vec;
 use embassy_executor::Spawner;
-use embassy_time::{Duration, Instant, Timer};
+use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
+use embassy_sync::mutex::Mutex;
+use embassy_time::{Duration, Timer};
 use esp_backtrace as _;
 
 use esp_hal::spi;
@@ -17,17 +19,20 @@ use esp_hal::spi::master::Spi;
 use esp_hal::time::Rate;
 use esp_hal::timer::timg::TimerGroup;
 use esp_hal::{Blocking, clock::CpuClock};
-use esp_radio::ble::controller::BleConnector;
-use log::{info, trace};
+use log::{debug, info};
+use memori_esp32c3::ble::ble_task;
 use memori_esp32c3::{MemTermInitPins, setup_term};
+use memori_ui::layout::MemoriLayout;
+use memori_ui::widgets::{MemoriWidget, Name, UpdateFrequency, WidgetId, WidgetKind};
 use memori_ui::{Memori, MemoriState};
-use trouble_host::prelude::*;
+use static_cell::StaticCell;
 use weact_studio_epd::graphics::Display290BlackWhite;
 
 extern crate alloc;
 
-const CONNECTIONS_MAX: usize = 1;
-const L2CAP_CHANNELS_MAX: usize = 1;
+static RADIO: StaticCell<esp_radio::Controller<'static>> = StaticCell::new();
+
+static MEMORI_STATE: StaticCell<Mutex<CriticalSectionRawMutex, MemoriState>> = StaticCell::new();
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
@@ -39,16 +44,21 @@ esp_bootloader_esp_idf::esp_app_desc!();
 )]
 #[esp_rtos::main]
 async fn main(spawner: Spawner) -> () {
-    // generator version: 1.1.0
+    // Generator version: 1.1.0
 
     esp_println::logger::init_logger_from_env();
 
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
 
+    //NOTE: Need to check exactly how much memory we should use / if this
+    // will suffice
     esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 66320);
     // COEX needs more RAM - so we've added some more
-    esp_alloc::heap_allocator!(size: 170 * 1024);
+    // esp_alloc::heap_allocator!(size: 64 * 1024);
+    // shit ton of memory allocation
+    // esp_alloc::heap_allocator!(#[unsafe(link_section = ".dram2_uninit")] size: 66320);
+    esp_alloc::heap_allocator!(size: 170* 1024);
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     let sw_interrupt =
@@ -57,18 +67,7 @@ async fn main(spawner: Spawner) -> () {
 
     info!("Embassy initialized!");
 
-    let radio_init = esp_radio::init().expect("Failed to initialize Wi-Fi/BLE controller");
-    let (mut _wifi_controller, _interfaces) =
-        esp_radio::wifi::new(&radio_init, peripherals.WIFI, Default::default())
-            .expect("Failed to initialize Wi-Fi controller");
-    // find more examples https://github.com/embassy-rs/trouble/tree/main/examples/esp32
-    let transport = BleConnector::new(&radio_init, peripherals.BT, Default::default()).unwrap();
-    let ble_controller = ExternalController::<_, 1>::new(transport);
-    let mut resources: HostResources<DefaultPacketPool, CONNECTIONS_MAX, L2CAP_CHANNELS_MAX> =
-        HostResources::new();
-    let _stack = trouble_host::new(ble_controller, &mut resources);
-
-    // TODO: Spawn some tasks
+    let radio = RADIO.init(esp_radio::init().expect("Failed to initialize Wi-Fi/BLE controller"));
 
     let mosi_pin = peripherals.GPIO10;
     let sclk_pin = peripherals.GPIO8;
@@ -90,15 +89,32 @@ async fn main(spawner: Spawner) -> () {
         busy_pin: peripherals.GPIO5,
     };
 
+    let mem_state = MEMORI_STATE.init_with(|| {
+        let mem_state = MemoriState::new(
+            0,
+            vec![MemoriWidget::new(
+                WidgetId(0),
+                WidgetKind::Name(Name::new("Surendra")),
+                UpdateFrequency::Never,
+            )],
+            vec![MemoriLayout::Full(WidgetId(0))],
+            5,
+        );
+
+        Mutex::new(mem_state)
+    });
+
     spawner
         .spawn(hello_task())
         .expect("Failed to begin hello_task");
 
     spawner
-        .spawn(ui_task(spi_bus, term_init_pins))
+        .spawn(ui_task(spi_bus, term_init_pins, mem_state))
         .expect("Failed to begin ui_task");
 
-    // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/esp-hal-v~1.0/examples
+    spawner
+        .spawn(ble_task(radio, peripherals.BT))
+        .expect("Failed to start ble_task");
 }
 
 // This is an example of how to create a task.
@@ -110,31 +126,33 @@ pub async fn hello_task() {
     }
 }
 
-/// The UI task for our application.
 #[embassy_executor::task]
 #[allow(
     clippy::large_stack_frames,
     reason = "The display needs a large frame buffer."
 )]
-pub async fn ui_task(spi: Spi<'static, Blocking>, term_init_pins: MemTermInitPins) {
+/// The UI task for our application.
+pub async fn ui_task(
+    spi: Spi<'static, Blocking>,
+    term_init_pins: MemTermInitPins,
+    state: &'static Mutex<CriticalSectionRawMutex, MemoriState>,
+) {
     info!("UI Task Begun!");
+
     let mut display = Display290BlackWhite::new();
     let term = setup_term(spi, &mut display, term_init_pins);
+
+    debug!("initialized terminal");
     let mut memori = Memori::new(term);
-    let mut mem_state = MemoriState::default();
 
     loop {
-        let instant = Instant::now();
+        let state = &*state.lock().await;
         memori
-            .update(&mem_state)
-            .expect("should have been successfull");
+            .update(state)
+            .expect("memori should not panic on render");
 
-        let frame_time = instant.elapsed();
-
-        trace!("frame time: {:?}ms", frame_time.as_millis());
-
-        match mem_state {
-            MemoriState::Example(ref mut cont) => cont.i += 1,
-        }
+        // TODO: in reality this should wait for a signal for
+        // "hey! State changed you should re-render!"
+        Timer::after(Duration::from_secs(1)).await;
     }
 }

@@ -31,7 +31,7 @@ pub fn battery_transmission_test() {
                             DeviceResponse::BatteryLevel(expected_battery)
                         }
                         HostRequest::Ping => DeviceResponse::Pong,
-                        HostRequest::SetWidgets(_) => todo!(),
+                        HostRequest::SetState(_) => todo!(),
                         _ => todo!(),
                     };
 

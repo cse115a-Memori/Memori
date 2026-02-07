@@ -8,6 +8,17 @@ use tauri_specta::{collect_commands, Builder};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tokio::sync::Mutex;
 use transport::{HostTransport as _, Widget, WidgetId};
+use memori_ui::{
+    layout::MemoriLayout,
+    widgets::{MemoriWidget, Name, UpdateFrequency, WidgetId, WidgetKind},
+    MemoriState,
+};
+use tauri_plugin_tracing::{tracing::error, Builder, LevelFilter};
+use tokio::sync::{
+    mpsc::{UnboundedReceiver, UnboundedSender},
+    Mutex,
+};
+use transport::HostTransport as _;
 
 enum Connection {
     Connected(HostTcpTransport<DeviceConnected>),
@@ -69,17 +80,41 @@ async fn get_battery(state: State<'_, AppState>) -> Result<u8, String> {
 #[tauri::command]
 #[specta::specta]
 async fn send_string(state: State<'_, AppState>, string: String) -> Result<(), String> {
-    let widget = Widget::new(WidgetId(0), string).map_err(|e| e.to_string())?;
+    let mut state_guard = state.conn.lock().await;
 
-    let mut guard = state.conn.lock().await;
+    // let memori_state = MemoriState::new(
+    //     0,
+    //     vec![MemoriWidget::new(
+    //         WidgetId(0),
+    //         WidgetKind::Name(Name::new(string)),
+    //     )],
+    //     vec![MemoriLayout::Full(WidgetId(0))],
+    //     5,
+    // );
 
-    match &mut *guard {
-        Connection::Connected(conn) => conn
-            .set_widgets(widget)
+    let memori_state = MemoriState::new(
+        0,
+        vec![MemoriWidget::new(
+            WidgetId(0),
+            WidgetKind::Name(Name::new(string)),
+            UpdateFrequency::Never,
+        )],
+        vec![MemoriLayout::Fourths {
+            top_right: WidgetId(0),
+            bottom_left: WidgetId(0),
+            bottom_right: WidgetId(0),
+            top_left: WidgetId(0),
+        }],
+        5,
+    );
+    if let Connection::Connected(ref mut conn) = state_guard.conn {
+        return conn
+            .set_state(memori_state)
             .await
-            .map_err(|e| format!("Failed to set widget: {e}")),
-        Connection::Disconnected(_) => Err("Device is not connected".to_string()),
+            .map_err(|e| format!("Failed to get battery: {e}"));
     }
+
+    Err("Device is not connected".to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -131,7 +166,6 @@ pub async fn request_handler(
 
         let resp = match req.msg_kind {
             DeviceRequest::RefreshData(_id) => {
-                // TODO: implement your refresh response
                 todo!()
             }
             DeviceRequest::Ping => HostResponse::Pong,
