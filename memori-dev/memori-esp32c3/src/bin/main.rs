@@ -9,9 +9,8 @@
 
 use ble_device::DeviceBLETransport;
 use embassy_executor::Spawner;
-use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex};
+use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::mutex::Mutex;
-use embassy_sync::watch::Watch;
 use embassy_time::{Duration, Timer};
 use esp_backtrace as _;
 
@@ -21,7 +20,7 @@ use esp_hal::time::Rate;
 use esp_hal::timer::timg::TimerGroup;
 use esp_hal::{Blocking, clock::CpuClock};
 use log::{debug, info};
-use memori_esp32c3::ble::{ble_task, host_handler::MAX_REFRSEH_CANCEL_WATCHERS};
+use memori_esp32c3::ble::ble_task;
 use memori_esp32c3::{MemTermInitPins, setup_term};
 use memori_ui::{Memori, MemoriState};
 use static_cell::StaticCell;
@@ -34,15 +33,6 @@ static RADIO: StaticCell<esp_radio::Controller<'static>> = StaticCell::new();
 static MEMORI_STATE: StaticCell<Mutex<CriticalSectionRawMutex, MemoriState>> = StaticCell::new();
 static BLE_TRANSPORT: StaticCell<Mutex<CriticalSectionRawMutex, DeviceBLETransport>> =
     StaticCell::new();
-
-/// Cancellation token watch to cancel old widget refresh
-/// tasks when `MemoriState` is updated with new widgets.
-///
-/// NOTE: a max of 10 tasks can watch this, so maybe set a hard limit on how many
-/// widgets can be on the board at once? or perhaps increase this count.
-static REFRESH_CANCEL_WATCH: StaticCell<
-    Mutex<CriticalSectionRawMutex, &'static Watch<NoopRawMutex, u8, MAX_REFRSEH_CANCEL_WATCHERS>>,
-> = StaticCell::new();
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
@@ -109,13 +99,6 @@ async fn main(spawner: Spawner) -> () {
         DeviceBLETransport::new(),
     ));
 
-    let refresh_cancel_watch = REFRESH_CANCEL_WATCH.init_with(|| {
-        static WATCH: StaticCell<Watch<NoopRawMutex, u8, MAX_REFRSEH_CANCEL_WATCHERS>> =
-            StaticCell::new();
-        let watch = WATCH.init(Watch::new());
-        Mutex::new(watch)
-    });
-
     spawner
         .spawn(hello_task())
         .expect("Failed to begin hello_task");
@@ -130,7 +113,6 @@ async fn main(spawner: Spawner) -> () {
             peripherals.BT,
             transport,
             mem_state,
-            refresh_cancel_watch,
             spawner,
         ))
         .expect("Failed to start ble_task");

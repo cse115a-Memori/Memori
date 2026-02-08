@@ -31,10 +31,6 @@ static MEMORI_STATE: StaticCell<Mutex<CriticalSectionRawMutex, MemoriState>> = S
 static BLE_TRANSPORT: StaticCell<Mutex<CriticalSectionRawMutex, DeviceBLETransport>> =
     StaticCell::new();
 
-static REFRESH_CANCEL_WATCH: StaticCell<
-    Mutex<CriticalSectionRawMutex, &'static Watch<NoopRawMutex, u8, MAX_REFRSEH_CANCEL_WATCHERS>>,
-> = StaticCell::new();
-
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
 esp_bootloader_esp_idf::esp_app_desc!();
@@ -77,15 +73,12 @@ async fn main(spawner: Spawner) -> () {
         DeviceBLETransport::new(),
     ));
 
-    let refresh_cancel_watch = REFRESH_CANCEL_WATCH.init_with(|| Mutex::new(Watch::new()));
-
     spawner
         .spawn(ble_task(
             radio,
             peripherals.BT,
             transport,
             mem_state,
-            refresh_cancel_watch,
             spawner,
         ))
         .expect("failed to begin ble task");

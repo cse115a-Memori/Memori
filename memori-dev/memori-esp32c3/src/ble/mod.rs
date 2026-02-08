@@ -2,9 +2,8 @@ use ble_device::{BLE_CONNECTED, BLE_HOST_RESPONSE, DeviceBLETransport};
 use core::usize;
 use embassy_executor::Spawner;
 use embassy_futures::{join::join, select::select};
-use embassy_sync::blocking_mutex::raw::{CriticalSectionRawMutex, NoopRawMutex};
+use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::mutex::Mutex;
-use embassy_sync::watch::Watch;
 use esp_hal::peripherals;
 use esp_radio::ble::controller::BleConnector;
 use log::{info, warn};
@@ -14,7 +13,7 @@ use transport::ble_types::*;
 use transport::{TransError, TransResult};
 use trouble_host::prelude::*;
 
-use crate::ble::host_handler::{MAX_REFRSEH_CANCEL_WATCHERS, handle_host_cmd};
+use crate::ble::host_handler::handle_host_cmd;
 use crate::ble::sender::sender_task;
 
 const CONNECTIONS_MAX: usize = 1;
@@ -67,10 +66,6 @@ pub async fn ble_task(
     bt: peripherals::BT<'static>,
     ble_transport: &'static Mutex<CriticalSectionRawMutex, DeviceBLETransport>,
     state: &'static Mutex<CriticalSectionRawMutex, MemoriState>,
-    refresh_cancel_watch: &'static Mutex<
-        CriticalSectionRawMutex,
-        &'static Watch<NoopRawMutex, u8, MAX_REFRSEH_CANCEL_WATCHERS>,
-    >,
     spawner: Spawner,
 ) {
     info!("ble start");
@@ -103,14 +98,7 @@ pub async fn ble_task(
                 Ok(conn) => {
                     BLE_CONNECTED.store(true, core::sync::atomic::Ordering::SeqCst);
 
-                    let a = gatt_events_task(
-                        &server,
-                        &conn,
-                        state,
-                        ble_transport,
-                        refresh_cancel_watch,
-                        spawner,
-                    );
+                    let a = gatt_events_task(&server, &conn, state, ble_transport, spawner);
                     let b = sender_task(&server, &conn);
                     select(a, b).await;
 
@@ -138,10 +126,6 @@ async fn gatt_events_task<P: PacketPool>(
     conn: &GattConnection<'_, '_, P>,
     state: &'static Mutex<CriticalSectionRawMutex, MemoriState>,
     transport: &'static Mutex<CriticalSectionRawMutex, DeviceBLETransport>,
-    refresh_cancel_watch: &'static Mutex<
-        CriticalSectionRawMutex,
-        &'static Watch<NoopRawMutex, u8, MAX_REFRSEH_CANCEL_WATCHERS>,
-    >,
     spawner: Spawner,
 ) -> Result<(), Error> {
     let rx_handle = server.nus_service.rx.handle;
@@ -160,7 +144,6 @@ async fn gatt_events_task<P: PacketPool>(
                                 conn,
                                 transport,
                                 state,
-                                refresh_cancel_watch,
                                 spawner,
                             )
                             .await;
@@ -195,10 +178,6 @@ async fn handle_receive_data<P: PacketPool>(
     conn: &GattConnection<'_, '_, P>,
     transport: &'static Mutex<CriticalSectionRawMutex, DeviceBLETransport>,
     state: &'static Mutex<CriticalSectionRawMutex, MemoriState>,
-    refresh_cancel_watch: &'static Mutex<
-        CriticalSectionRawMutex,
-        &'static Watch<NoopRawMutex, u8, MAX_REFRSEH_CANCEL_WATCHERS>,
-    >,
 
     spawner: Spawner,
 ) {
@@ -221,17 +200,7 @@ async fn handle_receive_data<P: PacketPool>(
 
     match payload {
         HostBLEPacket::Command(cmd) => {
-            handle_host_cmd(
-                cmd,
-                packet.id,
-                server,
-                state,
-                transport,
-                refresh_cancel_watch,
-                spawner,
-                conn,
-            )
-            .await;
+            handle_host_cmd(cmd, packet.id, server, state, transport, spawner, conn).await;
         }
         HostBLEPacket::Response(resp) => {
             // we have a response!
