@@ -7,7 +7,7 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
-use alloc::vec;
+use ble_device::DeviceBLETransport;
 use embassy_executor::Spawner;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::mutex::Mutex;
@@ -22,8 +22,6 @@ use esp_hal::{Blocking, clock::CpuClock};
 use log::{debug, info};
 use memori_esp32c3::ble::ble_task;
 use memori_esp32c3::{MemTermInitPins, setup_term};
-use memori_ui::layout::MemoriLayout;
-use memori_ui::widgets::{MemoriWidget, Name, UpdateFrequency, WidgetId, WidgetKind};
 use memori_ui::{Memori, MemoriState};
 use static_cell::StaticCell;
 use weact_studio_epd::graphics::Display290BlackWhite;
@@ -33,6 +31,8 @@ extern crate alloc;
 static RADIO: StaticCell<esp_radio::Controller<'static>> = StaticCell::new();
 
 static MEMORI_STATE: StaticCell<Mutex<CriticalSectionRawMutex, MemoriState>> = StaticCell::new();
+static BLE_TRANSPORT: StaticCell<Mutex<CriticalSectionRawMutex, DeviceBLETransport>> =
+    StaticCell::new();
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
@@ -90,19 +90,14 @@ async fn main(spawner: Spawner) -> () {
     };
 
     let mem_state = MEMORI_STATE.init_with(|| {
-        let mem_state = MemoriState::new(
-            0,
-            vec![MemoriWidget::new(
-                WidgetId(0),
-                WidgetKind::Name(Name::new("Surendra")),
-                UpdateFrequency::Never,
-            )],
-            vec![MemoriLayout::Full(WidgetId(0))],
-            5,
-        );
+        let mem_state = MemoriState::default();
 
         Mutex::new(mem_state)
     });
+
+    let transport = BLE_TRANSPORT.init(Mutex::<CriticalSectionRawMutex, DeviceBLETransport>::new(
+        DeviceBLETransport::new(),
+    ));
 
     spawner
         .spawn(hello_task())
@@ -113,7 +108,13 @@ async fn main(spawner: Spawner) -> () {
         .expect("Failed to begin ui_task");
 
     spawner
-        .spawn(ble_task(radio, peripherals.BT))
+        .spawn(ble_task(
+            radio,
+            peripherals.BT,
+            transport,
+            mem_state,
+            spawner,
+        ))
         .expect("Failed to start ble_task");
 }
 
@@ -146,10 +147,14 @@ pub async fn ui_task(
     let mut memori = Memori::new(term);
 
     loop {
-        let state = &*state.lock().await;
+        let state_guard = state.lock().await;
+        let state = &*state_guard;
         memori
             .update(state)
             .expect("memori should not panic on render");
+
+        // Release mutex as soon as possible.
+        drop(state_guard);
 
         // TODO: in reality this should wait for a signal for
         // "hey! State changed you should re-render!"

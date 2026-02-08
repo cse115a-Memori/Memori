@@ -11,14 +11,13 @@ pub struct WidgetId(pub u32);
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct MemoriWidget {
-    pub(crate) id: WidgetId,
+    pub id: WidgetId,
     pub(crate) kind: WidgetKind,
-    update_frequency: UpdateFrequency,
+    pub update_frequency: Option<UpdateFrequency>,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum UpdateFrequency {
-    Never,
     Seconds(u32),
     Minutes(u32),
     Hours(u32),
@@ -27,7 +26,6 @@ pub enum UpdateFrequency {
 impl UpdateFrequency {
     pub fn to_seconds(&self) -> Option<u32> {
         match self {
-            Self::Never => None,
             Self::Seconds(s) => Some(*s),
             Self::Minutes(m) => Some(m * 60),
             Self::Hours(h) => Some(h * 3600),
@@ -36,7 +34,7 @@ impl UpdateFrequency {
 }
 
 impl MemoriWidget {
-    pub fn new(id: WidgetId, kind: WidgetKind, update_frequency: UpdateFrequency) -> Self {
+    pub fn new(id: WidgetId, kind: WidgetKind, update_frequency: Option<UpdateFrequency>) -> Self {
         Self {
             id,
             kind,

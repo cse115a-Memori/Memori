@@ -60,7 +60,7 @@ pub enum HostBLECommand {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum DeviceBLEResponse {
-    WidgetSet { result: TransResult<()> },
+    SetState { result: TransResult<()> },
     WidgetGet { result: TransResult<MemoriWidget> },
     DeviceConfigSet { result: TransResult<()> },
     // Ping { result: TransResult<()> },
