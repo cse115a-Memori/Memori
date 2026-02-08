@@ -15,7 +15,7 @@ use crate::{
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MemoriState {
     active_frame_idx: usize,
-    widgets: HashMap<WidgetId, MemoriWidget>,
+    pub widgets: HashMap<WidgetId, MemoriWidget>,
     frames: Vec<MemoriLayout>,
     #[allow(dead_code)]
     frame_time: u32,
@@ -30,6 +30,7 @@ impl Default for MemoriState {
         let widget = MemoriWidget::new(
             widget_id,
             WidgetKind::Name(Name::new("Surendra")),
+            UpdateFrequency::Never,
             UpdateFrequency::Never,
         );
 

@@ -6,6 +6,7 @@ use ratatui::style::Style;
 use ratatui::symbols::border;
 use ratatui::widgets::{Block, Borders, Widget};
 use serde::{Deserialize, Serialize};
+use log::info;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct Clock {
@@ -16,20 +17,20 @@ pub struct Clock {
 
 impl Default for Clock {
     fn default() -> Self {
-        Self::new()
+        Self::new(0, 0, 0)
     }
 }
 
 impl Clock {
-    pub fn new() -> Self {
+    pub fn new(hours: u32, minutes: u32, seconds: u32) -> Self {
         Clock {
-            seconds: 0,
-            minutes: 0,
-            hours: 0,
+            seconds: seconds,
+            minutes: minutes,
+            hours: hours,
         }
     }
 
-    pub fn tick(&mut self) {
+    pub fn update(&mut self) {
         self.seconds += 1;
         if self.seconds == 60 {
             self.seconds = 0;
@@ -39,9 +40,10 @@ impl Clock {
             self.minutes = 0;
             self.hours += 1;
         }
-        if self.hours == 24 {
-            self.hours = 0;
+        if self.hours == 13 {
+            self.hours = 1;
         }
+        //info!("Updated clock: {}:{}:{}", self.hours, self.minutes, self.seconds);
     }
 }
 

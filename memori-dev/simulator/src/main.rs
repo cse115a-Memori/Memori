@@ -65,6 +65,7 @@ async fn main() -> Result<()> {
                 WidgetId(0),
                 WidgetKind::Name(Name::new("surendra")),
                 UpdateFrequency::Never,
+                UpdateFrequency::Never,
             )],
             vec![MemoriLayout::Full(WidgetId(0))],
             5,

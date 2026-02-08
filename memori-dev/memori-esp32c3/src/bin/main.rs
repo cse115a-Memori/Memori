@@ -8,6 +8,7 @@
 #![deny(clippy::large_stack_frames)]
 
 use alloc::vec;
+use alloc::vec::Vec;
 use embassy_executor::Spawner;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::mutex::Mutex;
@@ -22,8 +23,9 @@ use esp_hal::{Blocking, clock::CpuClock};
 use log::{debug, info};
 use memori_esp32c3::ble::ble_task;
 use memori_esp32c3::{MemTermInitPins, setup_term};
+use memori_esp32c3::local_widget_update::widget_update_task;
 use memori_ui::layout::MemoriLayout;
-use memori_ui::widgets::{MemoriWidget, Name, UpdateFrequency, WidgetId, WidgetKind};
+use memori_ui::widgets::{MemoriWidget, Name, UpdateFrequency, WidgetId, WidgetKind, Clock};
 use memori_ui::{Memori, MemoriState};
 use static_cell::StaticCell;
 use weact_studio_epd::graphics::Display290BlackWhite;
@@ -96,25 +98,51 @@ async fn main(spawner: Spawner) -> () {
                 WidgetId(0),
                 WidgetKind::Name(Name::new("Surendra")),
                 UpdateFrequency::Never,
+                UpdateFrequency::Never,
+            ), MemoriWidget::new(
+                WidgetId(1),
+                WidgetKind::Clock(Clock::new(12, 59, 50)),
+                UpdateFrequency::Hours(1),
+                UpdateFrequency::Seconds(1),
             )],
-            vec![MemoriLayout::Full(WidgetId(0))],
+            vec![MemoriLayout::VSplit{left: WidgetId(0), right: WidgetId(1)}],
             5,
         );
 
         Mutex::new(mem_state)
-    });
+    }); 
+    
+    // Iterate through each widget and spawn update tasks
+    let widgets_to_update = {
+        let locked_state = mem_state.lock().await;
+        locked_state.widgets.iter()
+            .filter_map(|(widget_id, widget)| {
+                match widget.local_update_frequency {
+                    UpdateFrequency::Never => None,
+                    UpdateFrequency::Seconds(s) if s < 60 => Some((*widget_id, s)),
+                    _ => None,
+                }
+            })
+            .collect::<Vec<_>>()
+    };
+    
+    for (widget_id, seconds) in widgets_to_update {
+        spawner
+            .spawn(widget_update_task(mem_state, widget_id, seconds as u64))
+            .expect("Failed to spawn widget update task");
+    }
+    
+    //spawner
+    //  .spawn(hello_task())
+    //  .expect("Failed to begin hello_task");
 
-    spawner
-        .spawn(hello_task())
-        .expect("Failed to begin hello_task");
+    //spawner
+    //  .spawn(ui_task(spi_bus, term_init_pins, mem_state))
+    //  .expect("Failed to begin ui_task");
 
-    spawner
-        .spawn(ui_task(spi_bus, term_init_pins, mem_state))
-        .expect("Failed to begin ui_task");
-
-    spawner
-        .spawn(ble_task(radio, peripherals.BT))
-        .expect("Failed to start ble_task");
+    //spawner
+    //  .spawn(ble_task(radio, peripherals.BT))
+    //  .expect("Failed to start ble_task");
 }
 
 // This is an example of how to create a task.

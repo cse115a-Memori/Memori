@@ -37,6 +37,7 @@ async fn get_widget_response<P: PacketPool>(
         widget_id,
         memori_ui::widgets::WidgetKind::Name(Name::new("Hi")),
         memori_ui::widgets::UpdateFrequency::Never,
+        memori_ui::widgets::UpdateFrequency::Never,
     );
 
     let pkt = DeviceBLEPacket::Response(DeviceBLEResponse::WidgetGet { result: Ok(widget) });
