@@ -8,6 +8,8 @@
 #![deny(clippy::large_stack_frames)]
 
 use embassy_executor::Spawner;
+use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
+use embassy_sync::mutex::Mutex;
 use embassy_time::{Duration, Timer};
 use esp_backtrace as _;
 
@@ -16,12 +18,18 @@ use esp_hal::clock::CpuClock;
 use esp_hal::timer::timg::TimerGroup;
 use log::info;
 use memori_esp32c3::ble::ble_task;
+use memori_ui::MemoriState;
 use static_cell::StaticCell;
 use transport::DeviceTransport;
 
 extern crate alloc;
 
 static RADIO: StaticCell<esp_radio::Controller<'static>> = StaticCell::new();
+
+static MEMORI_STATE: StaticCell<Mutex<CriticalSectionRawMutex, MemoriState>> = StaticCell::new();
+
+static BLE_TRANSPORT: StaticCell<Mutex<CriticalSectionRawMutex, DeviceBLETransport>> =
+    StaticCell::new();
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
@@ -56,8 +64,23 @@ async fn main(spawner: Spawner) -> () {
 
     let radio = RADIO.init(radio_init);
 
+    let mem_state = MEMORI_STATE.init_with(|| {
+        let mem_state = MemoriState::default();
+
+        Mutex::new(mem_state)
+    });
+    let transport = BLE_TRANSPORT.init(Mutex::<CriticalSectionRawMutex, DeviceBLETransport>::new(
+        DeviceBLETransport::new(),
+    ));
+
     spawner
-        .spawn(ble_task(radio, peripherals.BT))
+        .spawn(ble_task(
+            radio,
+            peripherals.BT,
+            transport,
+            mem_state,
+            spawner,
+        ))
         .expect("failed to begin ble task");
 
     spawner
