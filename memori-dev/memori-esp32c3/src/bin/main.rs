@@ -117,7 +117,7 @@ async fn main(spawner: Spawner) -> () {
         let locked_state = mem_state.lock().await;
         locked_state.widgets.iter()
             .filter_map(|(widget_id, widget)| {
-                match widget.local_update_frequency {
+                match widget.get_local_update_frequency() {
                     UpdateFrequency::Never => None,
                     UpdateFrequency::Seconds(s) if s < 60 => Some((*widget_id, s)),
                     _ => None,
@@ -132,17 +132,17 @@ async fn main(spawner: Spawner) -> () {
             .expect("Failed to spawn widget update task");
     }
     
-    //spawner
-    //  .spawn(hello_task())
-    //  .expect("Failed to begin hello_task");
+    spawner
+      .spawn(hello_task())
+      .expect("Failed to begin hello_task");
 
-    //spawner
-    //  .spawn(ui_task(spi_bus, term_init_pins, mem_state))
-    //  .expect("Failed to begin ui_task");
+    spawner
+      .spawn(ui_task(spi_bus, term_init_pins, mem_state))
+      .expect("Failed to begin ui_task");
 
-    //spawner
-    //  .spawn(ble_task(radio, peripherals.BT))
-    //  .expect("Failed to start ble_task");
+    spawner
+      .spawn(ble_task(radio, peripherals.BT))
+      .expect("Failed to start ble_task");
 }
 
 // This is an example of how to create a task.

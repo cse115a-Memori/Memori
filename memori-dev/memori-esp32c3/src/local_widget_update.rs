@@ -3,13 +3,8 @@ use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::mutex::Mutex;
 use memori_ui::MemoriState;
 use memori_ui::widgets::WidgetId;
-use log::info;
 
-pub trait Updatable: Send {
-    fn update(&mut self);
-}
-
-#[embassy_executor::task]
+#[embassy_executor::task(pool_size = 4)]
 pub async fn widget_update_task(
     state: &'static Mutex<CriticalSectionRawMutex, MemoriState>,
     widget_id: WidgetId,
