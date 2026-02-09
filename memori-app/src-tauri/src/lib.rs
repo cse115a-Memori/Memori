@@ -14,6 +14,7 @@ use tauri_specta::{collect_commands, Builder};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tokio::sync::Mutex;
 use transport::HostTransport as _;
+use anyhow::Context;
 
 enum TCPConnection {
     Connected(HostTcpTransport<DeviceConnected>),
@@ -22,19 +23,19 @@ enum TCPConnection {
 
 enum BLEConnection {
     Connected(HostBLETransport),
-    Disconnected(HostBLETransport),
+    Disconnected,
 }
 
 struct AppState {
     tcp_conn: Mutex<TCPConnection>,
-    // ble_conn: Mutex<BLEConnection>,
+    ble_conn: Mutex<BLEConnection>,
 }
 
 impl AppState {
     fn new() -> Self {
         Self {
             tcp_conn: Mutex::new(TCPConnection::Disconnected(HostTcpTransport::default())),
-            // ble_conn: Mutex::new(BLEConnection::Disconnected(HostBLETransport::default())),
+            ble_conn: Mutex::new(BLEConnection::Disconnected),
         }
     }
 }
@@ -67,21 +68,38 @@ async fn tcp_connect(state: State<'_, AppState>) -> Result<(), String> {
 
 #[tauri::command]
 #[specta::specta]
-async fn ble_connect(_state: State<'_, AppState>) -> Result<(), String> {
-    Err("BLE connect is not implemented yet".to_string())
+async fn ble_connect(state: State<'_, AppState>) -> Result<(), String> {
+    let mut guard = state.ble_conn.lock().await;
+
+    if let BLEConnection::Disconnected = &*guard {
+        let conn = HostBLETransport::connect()
+            .await
+            .map_err(|e| {
+                let err_msg = format!("failed to connect over bluetooth: {e}");
+                eprintln!("{}", err_msg);
+                err_msg
+            })?;
+
+        *guard = BLEConnection::Connected(conn);
+        println!("hi");
+        return Ok(());
+    }
+
+    Err("Already connected or in invalid state".to_string())
+
 }
 
 #[tauri::command]
 #[specta::specta] // < You must annotate your commands
 async fn get_battery(state: State<'_, AppState>) -> Result<u8, String> {
-    let mut guard = state.tcp_conn.lock().await;
+    let mut guard = state.ble_conn.lock().await;
 
     match &mut *guard {
-        TCPConnection::Connected(conn) => conn
+        BLEConnection::Connected(conn) => conn
             .get_battery_level()
             .await
             .map_err(|e| format!("Failed to get battery: {e}")),
-        TCPConnection::Disconnected(_) => Err("Device is not connected".to_string()),
+        BLEConnection::Disconnected => Err("Device is not connected".to_string()),
     }
 }
 
@@ -122,7 +140,7 @@ async fn send_string(state: State<'_, AppState>, string: String) -> Result<(), S
             .map_err(|e| format!("Failed to set state: {e}"));
     }
 
-    Err("Device is not connected".to_string())
+    Err("Device is not connected on tcp".to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

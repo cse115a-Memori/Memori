@@ -29,7 +29,7 @@
   const connect = async (e: Event) => {
     e.preventDefault()
     try {
-      res = await invoke('tcp_connect')
+      res = await invoke('ble_connect')
       console.log(res)
     } catch (error) {
       console.error(error)
