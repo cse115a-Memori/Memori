@@ -13,8 +13,8 @@ pub struct WidgetId(pub u32);
 pub struct MemoriWidget {
     pub(crate) id: WidgetId,
     pub(crate) kind: WidgetKind,
-    pub update_frequency: UpdateFrequency,
-    pub local_update_frequency: UpdateFrequency,
+    update_frequency: UpdateFrequency,
+    local_update_frequency: UpdateFrequency,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
@@ -53,6 +53,16 @@ impl MemoriWidget {
     }
 }
 
+impl MemoriWidget {
+    pub fn get_update_frequency(&self) -> UpdateFrequency {
+        self.update_frequency
+    }
+    
+    pub fn get_local_update_frequency(&self) -> UpdateFrequency {
+        self.local_update_frequency
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum WidgetKind {
     Name(Name),
@@ -63,6 +73,7 @@ impl WidgetKind {
     pub fn update(&mut self) {
         match self {
             Self::Clock(c) => c.update(),
+            Self::Name(n) => n.update(),
             _ => {}
         }
     }

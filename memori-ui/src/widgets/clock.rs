@@ -6,7 +6,6 @@ use ratatui::style::Style;
 use ratatui::symbols::border;
 use ratatui::widgets::{Block, Borders, Widget};
 use serde::{Deserialize, Serialize};
-use log::info;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct Clock {
@@ -43,7 +42,6 @@ impl Clock {
         if self.hours == 13 {
             self.hours = 1;
         }
-        //info!("Updated clock: {}:{}:{}", self.hours, self.minutes, self.seconds);
     }
 }
 
