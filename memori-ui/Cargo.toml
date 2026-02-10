@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+embedded-graphics-unicodefonts = "0.1"
 embedded-graphics = "0.8.1"
 hashbrown = {version = "0.16.1", features = ["serde"]}
 log = "0.4.29"
