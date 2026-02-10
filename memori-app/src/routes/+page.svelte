@@ -10,6 +10,8 @@
   let string = $state('')
   let res: number | string | null = $state('')
   let unlisten: UnlistenFn[] = $state([])
+  let location: string = $state('');
+  let city: string = $state('');
 
   const get_battery = async (e: Event) => {
     e.preventDefault()
@@ -44,6 +46,25 @@
       console.error(error)
     }
   }
+  const send_temp = async (e: Event) => {
+    e.preventDefault();
+    try {
+      res = await invoke('send_temp', { city })
+      console.log(res)
+    } catch(error) {
+      console.error(error)
+    }
+  }
+  const send_bustime = async (e: Event) => {
+    e.preventDefault();
+    try {
+      res = await invoke('send_bustime', { location })
+      console.log(res)
+    } catch(error) {
+      console.error(error)
+    }
+  }
+
 </script>
 
 <main>
@@ -59,6 +80,20 @@
       <Button type="submit" variant="outline">Greet</Button>
     </Field.Field>
   </form>
+
+  <form class="mt-4" onsubmit={send_temp}>
+    <Field.Field
+      orientation="horizontal"
+      class="justify-center mx-auto max-w-xs"
+    >
+      <Field.Label for="greet-input" class="sr-only">Name</Field.Label>
+
+      <Input id="greet-input" placeholder="Enter a city..." bind:value={city} />
+
+      <Button type="submit" variant="outline">Send</Button>
+    </Field.Field>
+  </form>
+
 
   <form class="mt-4" onsubmit={send_string}>
     <Field.Field
@@ -89,5 +124,19 @@
       <Button type="submit" variant="outline">Connect to device</Button>
     </Field.Field>
   </form>
+  <form class="mt-4" onsubmit={send_bustime}>
+  <Field.Field orientation="horizontal" class="justify-center mx-auto max-w-xs">
+    <Field.Label for="dropdown-select" class="sr-only">Select Option</Field.Label>
+
+    <select id="dropdown-select" bind:value={location} class="border rounded p-2">
+      <option value="" disabled selected>Select an option</option>
+      <option value="1">Science Hill</option>
+      <option value="2">Base of Campus (Barn)</option>
+      <option value="3">Downtown Santa Cruz Metro Center</option>
+    </select>
+
+    <Button type="submit" variant="outline">Save Selection</Button>
+  </Field.Field>
+</form>
   {res}
 </main>

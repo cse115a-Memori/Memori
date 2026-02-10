@@ -5,10 +5,13 @@ use memori_tcp::{
 };
 use memori_ui::{
     layout::MemoriLayout,
-    widgets::{MemoriWidget, Name, WidgetId, WidgetKind},
+    widgets::{MemoriWidget, Name, UpdateFrequency, Weather, WidgetId, WidgetKind},
     MemoriState,
 };
+use reqwest::Client;
+use serde::Deserialize;
 use specta_typescript::Typescript;
+use std::{env, fmt::format};
 use tauri::State;
 use tauri_specta::{collect_commands, Builder};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
@@ -105,7 +108,7 @@ async fn send_string(state: State<'_, AppState>, string: String) -> Result<(), S
         vec![MemoriWidget::new(
             WidgetId(0),
             WidgetKind::Name(Name::new(string)),
-            UpdateFrequency::Never,
+            Some(UpdateFrequency::Seconds(1)),
         )],
         vec![MemoriLayout::Fourths {
             top_right: WidgetId(0),
@@ -125,6 +128,209 @@ async fn send_string(state: State<'_, AppState>, string: String) -> Result<(), S
     Err("Device is not connected".to_string())
 }
 
+#[tauri::command]
+#[specta::specta]
+async fn send_temp(state: State<'_, AppState>, city: String) -> Result<(), String> {
+    let mut state_guard = state.tcp_conn.lock().await;
+    #[derive(Deserialize, Debug)]
+    struct WeatherResponse {
+        main: Main,
+        weather: Vec<WeatherDetail>,
+    }
+    #[derive(Deserialize, Debug)]
+    struct WeatherDetail {
+        main: String,
+    }
+    #[derive(Deserialize, Debug)]
+    struct Main {
+        temp: f32,
+    }
+    // add to .bashrc -> $ export ~/.bashrc
+    // export API_KEY='api key goes here'
+    let api_key = env::var("API_KEY_W").map_err(|e| format!("API_KEY not set: {e}"))?;
+    let url = format!(
+        "https://api.openweathermap.org/data/2.5/weather?q={}&appid={}&units=metric",
+        city, api_key
+    );
+    let client = Client::new();
+    let response: WeatherResponse = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("request err: {e}"))?
+        .json()
+        .await
+        .map_err(|e| format!("deserialize err: {e}"))?;
+    let memori_state = MemoriState::new(
+        0,
+        vec![MemoriWidget::new(
+            WidgetId(0),
+            WidgetKind::Weather(Weather::new(response.main.temp.to_string())),
+            Some(UpdateFrequency::Seconds(1)),
+        )],
+        vec![MemoriLayout::Fourths {
+            top_right: WidgetId(0),
+            bottom_left: WidgetId(0),
+            bottom_right: WidgetId(0),
+            top_left: WidgetId(0),
+        }],
+        5,
+    );
+    if let TCPConnection::Connected(conn) = &mut *state_guard {
+        return conn
+            .set_state(memori_state)
+            .await
+            .map_err(|e| format!("Failed to set state: {e}"));
+    }
+    Err("Device is not connected".to_string())
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn send_bustime(location: String) -> Result<String, String> {
+    // let mut state_guard = state.tcp_conn.lock().await;
+    #[derive(Debug, Deserialize)]
+    struct BustimeResponse<T> {
+        #[serde(rename = "bustime-response")]
+        bustime_response: T,
+    }
+    #[derive(Debug, Deserialize)]
+    struct Routes {
+        routes: Vec<Route>,
+    }
+    #[derive(Debug, Deserialize)]
+    struct Route {
+        rt: String,
+        rtnm: String,
+    }
+    #[derive(Debug, Deserialize)]
+    struct Directions {
+        directions: Vec<Direction>,
+    }
+    #[derive(Debug, Deserialize)]
+    struct Direction {
+        id: String,
+    }
+    #[derive(Debug, Deserialize)]
+    struct Stops {
+        stops: Vec<Stop>,
+    }
+
+    #[derive(Debug, Deserialize)]
+    struct Stop {
+        stpid: String,
+        stpnm: String,
+        lat: f64,
+        lon: f64,
+    }
+    #[derive(Debug, Deserialize)]
+    struct Predictions {
+        prd: Prediction,
+    }
+    #[derive(Debug, Deserialize)]
+    struct Prediction {
+        prdctdn: String,
+    }
+    let api_key = env::var("API_KEY").map_err(|e| format!("API_KEY not set: {e}"))?;
+    let client = Client::new();
+    let url = format!(
+        "https://rt.scmetro.org/bustime/api/v3/getroutes?key={}&format=json",
+        api_key
+    );
+    let response: BustimeResponse<Routes> = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("request err: {e}"))?
+        .json()
+        .await
+        .map_err(|e| format!("deserialize err: {e}"))?;
+    let routes: Vec<&Route> = response
+        .bustime_response
+        .routes
+        .iter()
+        .filter(|route| route.rtnm.contains("UCSC"))
+        .collect();
+    let mut stops = Vec::new();
+    for route in routes {
+        let url = format!(
+            "https://rt.scmetro.org/bustime/api/v3/getdirections?key={}&rt={}&format=json",
+            api_key, route.rt
+        );
+        let response: BustimeResponse<Directions> = client
+            .get(&url)
+            .send()
+            .await
+            .map_err(|e| format!("request err: {e}"))?
+            .json()
+            .await
+            .map_err(|e| format!("deserialize err: {e}"))?;
+        for direction in response.bustime_response.directions {
+            let url = format!(
+                "https://rt.scmetro.org/bustime/api/v3/getstops?key={}&rt={}&dir={}&format=json",
+                api_key, route.rt, direction.id
+            );
+            let response: BustimeResponse<Stops> = client
+                .get(&url)
+                .send()
+                .await
+                .map_err(|e| format!("request err: {e}"))?
+                .json()
+                .await
+                .map_err(|e| format!("deserialize err: {e}"))?;
+
+            stops.extend(response.bustime_response.stops);
+        }
+    }
+    let (lat, lon): (f64, f64) = match location.as_str() {
+        "1" => (36.999934, -122.062213),
+        "2" => (36.977296, -122.053627),
+        "3" => (36.974099, -122.024405),
+        _ => return Err("Invalid location".into()),
+    };
+    let mut closest_stop: Option<&Stop> = None;
+    let mut min_distance = f64::MAX;
+    fn hsine(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
+        let r = 6371.0;
+        let dlat = (lat2 - lat1).to_radians();
+        let dlon = (lon2 - lon1).to_radians();
+        let a = (dlat / 2.0).sin().powi(2)
+            + lat1.to_radians().cos() * lat2.to_radians().cos() * (dlon / 2.0).sin().powi(2);
+        let c = 2.0 * a.sqrt().asin();
+        r * c
+    }
+    for stop in &stops {
+        let distance = hsine(lat, lon, stop.lat, stop.lon);
+        if distance < min_distance {
+            min_distance = distance;
+            closest_stop = Some(stop);
+        }
+    }
+    let closest_stop_id: String;
+    if let Some(stop) = closest_stop {
+        closest_stop_id = stop.stpid.clone();
+        println!("closest_stop: {}", closest_stop_id);
+    } else {
+        return Err("1111".into());
+    }
+    let url = format!(
+        "https://rt.scmetro.org/bustime/api/v3/getpredictions?key={}&stpid={}&format=json",
+        api_key, closest_stop_id
+    );
+    let response: BustimeResponse<Predictions> = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("request err: {e}"))?
+        .json()
+        .await
+        .map_err(|e| format!("deserialize err: {e}"))?;
+    Ok(format!(
+        "num min until arrival: {}",
+        response.bustime_response.prd.prdctdn
+    ))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = Builder::<tauri::Wry>::new().commands(collect_commands![
@@ -132,7 +338,9 @@ pub fn run() {
         tcp_connect,
         ble_connect,
         get_battery,
-        send_string
+        send_string,
+        send_temp,
+        send_bustime
     ]);
     // hi
     #[cfg(debug_assertions)]
