@@ -3,7 +3,7 @@ use embedded_graphics::{pixelcolor::BinaryColor, prelude::*};
 use embedded_graphics_simulator::{OutputSettings, SimulatorDisplay, SimulatorEvent, Window};
 use memori_tcp::{DeviceResponse, DeviceTcpTransport, HostRequest, Sequenced};
 use memori_ui::layout::MemoriLayout;
-use memori_ui::widgets::{MemoriWidget, Name, UpdateFrequency, WidgetId, WidgetKind};
+use memori_ui::widgets::{MemoriWidget, Name, UpdateFrequency, WidgetId, WidgetKind, Github};
 use memori_ui::{Memori, MemoriState};
 use mousefood::{EmbeddedBackend, EmbeddedBackendConfig};
 use std::{sync::Arc, time::Duration};
@@ -65,6 +65,10 @@ async fn main() -> Result<()> {
                 WidgetId(0),
                 WidgetKind::Name(Name::new("surendra")),
                 None,
+            ), MemoriWidget::new(
+                WidgetId(1),
+                WidgetKind::Github(Github::new(String::from("CaiNann"), Some(String::from("memori")))),
+                None,
             )],
             vec![
                 MemoriLayout::Fourths {
@@ -75,7 +79,7 @@ async fn main() -> Result<()> {
                 },
                 MemoriLayout::VSplit {
                     left: WidgetId(0),
-                    right: WidgetId(0),
+                    right: WidgetId(1),
                 },
             ],
             5,

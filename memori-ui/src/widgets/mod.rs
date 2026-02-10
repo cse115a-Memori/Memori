@@ -1,7 +1,9 @@
 mod clock;
 mod name;
+mod github;
 pub use clock::*;
 pub use name::*;
+pub use github::*;
 
 use ratatui::widgets::Widget;
 use serde::{Deserialize, Serialize};
@@ -47,6 +49,7 @@ impl MemoriWidget {
 pub enum WidgetKind {
     Name(Name),
     Clock(Clock),
+    Github(Github),
 }
 
 impl Widget for &MemoriWidget {
@@ -57,6 +60,7 @@ impl Widget for &MemoriWidget {
         match &self.kind {
             WidgetKind::Name(n) => n.render(area, buf),
             WidgetKind::Clock(c) => c.render(area, buf),
+            WidgetKind::Github(g) => g.render(area, buf),
         }
     }
 }
