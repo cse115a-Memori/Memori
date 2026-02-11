@@ -1,2 +1,2 @@
-export * from './bindings.ts'
+export * from './bindings'
 // export * from './geolocation.ts'

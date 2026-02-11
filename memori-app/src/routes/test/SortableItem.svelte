@@ -1,7 +1,7 @@
 <script lang="ts">
   import {
-    useSortable,
     type UseSortableInput,
+    useSortable,
   } from '@dnd-kit-svelte/svelte/sortable'
   import type { Snippet } from 'svelte'
   import {
@@ -52,10 +52,10 @@
   {#if !isOverlay && isDragging.current}
     <div class="absolute inset-0 flex items-center justify-center">
       <!-- You can put any content here for the dragging state -->
-      <div
-        class={sortableCardPlaceholderClasses}
-      >
-        <span class={sortableCardPlaceholderTextClasses}>Moving: {widget.name}</span>
+      <div class={sortableCardPlaceholderClasses}>
+        <span class={sortableCardPlaceholderTextClasses}
+          >Moving: {widget.name}</span
+        >
       </div>
     </div>
   {/if}

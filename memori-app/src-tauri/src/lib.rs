@@ -8,7 +8,7 @@ use memori_tcp::{
 use memori_tcp::{host::DeviceConnected, DeviceRequest, HostResponse, HostTcpTransport, Sequenced};
 use memori_ui::{
     layout::MemoriLayout,
-    widgets::{Bus, MemoriWidget, Name, UpdateFrequency, Weather, WidgetId, WidgetKind},
+    widgets::{MemoriWidget, Name, WidgetId, WidgetKind},
     MemoriState,
 };
 use reqwest::Client;
@@ -164,6 +164,25 @@ async fn send_twitch(_state: State<'_, AppState>, token: String) -> Result<Strin
     println!("token: {}", token);
     Ok(format!("access token: {}", token))
 }
+async fn get_widget_kinds() -> Result<[MemoriWidget; 2], String> {
+    Ok([
+        MemoriWidget::new(
+            WidgetId(0),
+            WidgetKind::Name(Name::new("John Doe")),
+            UpdateFrequency::Never,
+        ),
+        MemoriWidget::new(
+            WidgetId(1),
+            WidgetKind::Clock(Clock::new()),
+            UpdateFrequency::Never,
+        ),
+    ])
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn send_string(state: State<'_, AppState>, string: String) -> Result<(), String> {
+    let mut state_guard = state.conn.lock().await;
 
 #[tauri::command]
 #[specta::specta]
@@ -424,9 +443,13 @@ pub fn run() {
             get_device_mode,
             is_connected,
             get_battery,
+            get_widget_kinds,
             send_string
         ])
-        .typ::<MemoriLayout>();
+        .typ::<MemoriLayout>()
+        // .typ::<WidgetKind>()
+        // .typ::<MemoriState>()
+        .typ::<MemoriWidget>();
 
     #[cfg(all(debug_assertions, not(any(target_os = "ios", target_os = "android"))))]
     builder
