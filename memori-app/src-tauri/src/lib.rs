@@ -5,6 +5,7 @@ use memori_tcp::{
     host::DeviceConnected, host::DeviceDisconnected, DeviceRequest, HostResponse, HostTcpTransport,
     Sequenced,
 };
+use memori_tcp::{host::DeviceConnected, DeviceRequest, HostResponse, HostTcpTransport, Sequenced};
 use memori_ui::{
     layout::MemoriLayout,
     widgets::{Bus, MemoriWidget, Name, UpdateFrequency, Weather, WidgetId, WidgetKind},
@@ -28,6 +29,7 @@ enum TCPConnection {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, specta::Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, specta::Type)]
 pub enum DeviceMode {
     RealDevice,
     Simulator,
@@ -50,6 +52,7 @@ impl AppState {
         Self {
             tcp_conn: Mutex::new(TCPConnection::Disconnected(HostTcpTransport::default())),
             // ble_conn: Mutex::new(BLEConnection::Disconnected(HostBLETransport::default())),
+            conn: Mutex::new(DeviceConnection::Disconnected),
             conn: Mutex::new(DeviceConnection::Disconnected),
         }
     }
@@ -413,6 +416,18 @@ pub fn run() {
         start_oauth_server,
         login_with_provider
     ]);
+    let builder = Builder::<tauri::Wry>::new()
+        .commands(collect_commands![
+            hello,
+            connect_device,
+            disconnect_device,
+            get_device_mode,
+            is_connected,
+            get_battery,
+            send_string
+        ])
+        .typ::<MemoriLayout>();
+
     #[cfg(all(debug_assertions, not(any(target_os = "ios", target_os = "android"))))]
     builder
         .export(Typescript::default(), "../src/lib/tauri/bindings.ts")

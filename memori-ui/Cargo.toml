@@ -11,4 +11,4 @@ log = "0.4.29"
 profont = "0.7.0"
 ratatui = { version = "0.30.0" ,default-features = false }
 serde = {version = "1.0.228", default-features = false, features = ["derive", "alloc"]}
-
+specta = { version = "=2.0.0-rc.22", features = ["derive"] }

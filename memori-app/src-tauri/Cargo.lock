@@ -2851,6 +2851,7 @@ dependencies = [
  "profont",
  "ratatui",
  "serde",
+ "specta",
 ]
 
 [[package]]
