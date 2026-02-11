@@ -18,6 +18,7 @@ use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tokio::sync::Mutex;
 use transport::HostTransport as _;
 
+#[derive(Debug)]
 enum TCPConnection {
     Connected(HostTcpTransport<DeviceConnected>),
     Disconnected(HostTcpTransport<DeviceDisconnected>),
@@ -90,24 +91,15 @@ async fn get_battery(state: State<'_, AppState>) -> Result<u8, String> {
 
 #[tauri::command]
 #[specta::specta] // hi
-async fn send_string(state: State<'_, AppState>, string: String) -> Result<(), String> {
+async fn send_name(state: State<'_, AppState>, name: String) -> Result<(), String> {
     let mut state_guard = state.tcp_conn.lock().await;
 
-    // let memori_state = MemoriState::new(
-    //     0,
-    //     vec![MemoriWidget::new(
-    //         WidgetId(0),
-    //         WidgetKind::Name(Name::new(string)),
-    //     )],
-    //     vec![MemoriLayout::Full(WidgetId(0))],
-    //     5,
-    // );
 
     let memori_state = MemoriState::new(
         0,
         vec![MemoriWidget::new(
             WidgetId(0),
-            WidgetKind::Name(Name::new(string)),
+            WidgetKind::Name(Name::new(name)),
             Some(UpdateFrequency::Seconds(1)),
         )],
         vec![MemoriLayout::Fourths {
@@ -118,6 +110,7 @@ async fn send_string(state: State<'_, AppState>, string: String) -> Result<(), S
         }],
         5,
     );
+
     if let TCPConnection::Connected(conn) = &mut *state_guard {
         return conn
             .set_state(memori_state)
@@ -338,7 +331,7 @@ pub fn run() {
         tcp_connect,
         ble_connect,
         get_battery,
-        send_string,
+        send_name,
         send_temp,
         send_bustime
     ]);
