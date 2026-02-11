@@ -1,6 +1,6 @@
 use ble_host::HostBLETransport;
 use memori_tcp::{
-    host::{DeviceConnected, DeviceDisconnected},
+    host::{DeviceConnected},
     DeviceRequest, HostResponse, HostTcpTransport, Sequenced,
 };
 use memori_ui::{
@@ -14,28 +14,29 @@ use tauri_specta::{collect_commands, Builder};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tokio::sync::Mutex;
 use transport::HostTransport as _;
-use anyhow::Context;
 
-enum TCPConnection {
-    Connected(HostTcpTransport<DeviceConnected>),
-    Disconnected(HostTcpTransport<DeviceDisconnected>),
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(specta::Type)]
+pub enum DeviceMode {
+    RealDevice,
+    Simulator,
 }
 
-enum BLEConnection {
-    Connected(HostBLETransport),
+enum DeviceConnection {
+    RealDevice(HostBLETransport),
+    Simulator(HostTcpTransport<DeviceConnected>),
     Disconnected,
 }
 
 struct AppState {
-    tcp_conn: Mutex<TCPConnection>,
-    ble_conn: Mutex<BLEConnection>,
+    conn: Mutex<DeviceConnection>
 }
 
 impl AppState {
     fn new() -> Self {
         Self {
-            tcp_conn: Mutex::new(TCPConnection::Disconnected(HostTcpTransport::default())),
-            ble_conn: Mutex::new(BLEConnection::Disconnected),
+            conn: Mutex::new(DeviceConnection::Disconnected)
         }
     }
 }
@@ -48,65 +49,105 @@ async fn hello(name: String) -> Result<String, String> {
 
 #[tauri::command]
 #[specta::specta]
-async fn tcp_connect(state: State<'_, AppState>) -> Result<(), String> {
-    let mut guard = state.tcp_conn.lock().await;
+async fn connect_device(
+    state: State<'_, AppState>,
+    mode: DeviceMode,
+) -> Result<(), String> {
+    let mut guard = state.conn.lock().await;
 
-    if let TCPConnection::Disconnected(transport) = &*guard {
-        let (conn, (dev_req_rx, host_resp_tx)) =
-            transport.connect().await.map_err(|e| e.to_string())?;
-        *guard = TCPConnection::Connected(conn);
-
-        tokio::spawn(async move {
-            request_handler(dev_req_rx, host_resp_tx).await;
-        });
-
-        return Ok(());
+    if !matches!(*guard, DeviceConnection::Disconnected) {
+        return Err("Already connected. Disconnect first.".to_string());
     }
 
-    Err("Already connected or in invalid state".to_string())
+    match mode {
+        DeviceMode::RealDevice => {
+            let conn = HostBLETransport::connect()
+                .await
+                .map_err(|e| format!("Failed to connect to device: {e}"))?;
+
+            *guard = DeviceConnection::RealDevice(conn);
+            println!("Connected to real device over Bluetooth");
+            Ok(())
+        }
+        DeviceMode::Simulator => {
+            let transport = HostTcpTransport::default();
+            let (conn, (dev_req_rx, host_resp_tx)) = transport
+                .connect()
+                .await
+                .map_err(|e| format!("Failed to connect to simulator: {e}"))?;
+
+            *guard = DeviceConnection::Simulator(conn);
+
+            tokio::spawn(async move {
+                request_handler(dev_req_rx, host_resp_tx).await;
+            });
+
+            println!("Connected to simulator over TCP");
+            Ok(())
+        }
+    }
 }
 
 #[tauri::command]
 #[specta::specta]
-async fn ble_connect(state: State<'_, AppState>) -> Result<(), String> {
-    let mut guard = state.ble_conn.lock().await;
+async fn disconnect_device(state: State<'_, AppState>) -> Result<(), String> {
+    let mut guard = state.conn.lock().await;
 
-    if let BLEConnection::Disconnected = &*guard {
-        let conn = HostBLETransport::connect()
-            .await
-            .map_err(|e| {
-                let err_msg = format!("failed to connect over bluetooth: {e}");
-                eprintln!("{}", err_msg);
-                err_msg
-            })?;
+    let old_connection = std::mem::replace(&mut *guard, DeviceConnection::Disconnected);
 
-        *guard = BLEConnection::Connected(conn);
-        println!("hi");
-        return Ok(());
+    match old_connection {
+        DeviceConnection::RealDevice(transport) => {
+            transport.disconnect().await;
+        },
+        DeviceConnection::Simulator(transport) => {
+            transport.disconnect();
+        },
+        DeviceConnection::Disconnected => {}
     }
 
-    Err("Already connected or in invalid state".to_string())
+    Ok(())
+}
 
+#[tauri::command]
+#[specta::specta]
+async fn get_device_mode(state: State<'_, AppState>) -> Result<Option<DeviceMode>, String> {
+    let guard = state.conn.lock().await;
+    Ok(match *guard {
+        DeviceConnection::RealDevice(_) => Some(DeviceMode::RealDevice),
+        DeviceConnection::Simulator(_) => Some(DeviceMode::Simulator),
+        DeviceConnection::Disconnected => None,
+    })
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn is_connected(state: State<'_, AppState>) -> Result<bool, String> {
+    let guard = state.conn.lock().await;
+    Ok(!matches!(*guard, DeviceConnection::Disconnected))
 }
 
 #[tauri::command]
 #[specta::specta] // < You must annotate your commands
 async fn get_battery(state: State<'_, AppState>) -> Result<u8, String> {
-    let mut guard = state.ble_conn.lock().await;
+    let mut guard = state.conn.lock().await;
 
     match &mut *guard {
-        BLEConnection::Connected(conn) => conn
+        DeviceConnection::RealDevice(transport) => transport
             .get_battery_level()
             .await
             .map_err(|e| format!("Failed to get battery: {e}")),
-        BLEConnection::Disconnected => Err("Device is not connected".to_string()),
+        DeviceConnection::Simulator(transport) => transport
+            .get_battery_level()
+            .await
+            .map_err(|e| format!("Failed to get battery: {e}")),
+        DeviceConnection::Disconnected => Err("Device is not connected".to_string()),
     }
 }
 
 #[tauri::command]
 #[specta::specta] // hi
 async fn send_string(state: State<'_, AppState>, string: String) -> Result<(), String> {
-    let mut state_guard = state.tcp_conn.lock().await;
+    let mut state_guard = state.conn.lock().await;
 
     // let memori_state = MemoriState::new(
     //     0,
@@ -133,7 +174,7 @@ async fn send_string(state: State<'_, AppState>, string: String) -> Result<(), S
         }],
         5,
     );
-    if let TCPConnection::Connected(conn) = &mut *state_guard {
+    if let DeviceConnection::Simulator(conn) = &mut *state_guard {
         return conn
             .set_state(memori_state)
             .await
@@ -147,8 +188,10 @@ async fn send_string(state: State<'_, AppState>, string: String) -> Result<(), S
 pub fn run() {
     let builder = Builder::<tauri::Wry>::new().commands(collect_commands![
         hello,
-        tcp_connect,
-        ble_connect,
+        connect_device,
+        disconnect_device,
+        get_device_mode,
+        is_connected,
         get_battery,
         send_string
     ]);
