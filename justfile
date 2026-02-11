@@ -46,6 +46,7 @@ check:
     # bunx dprint fmt "**/*.{svelte,astro}"
     bun run prettier --write "**/*.{svelte,astro}"
     bunx sv check --compiler-warnings "state_referenced_locally:ignore"
+    cd ./src-tauri && cargo check
 
 [working-directory('memori-app')]
 shad *ARGS="":

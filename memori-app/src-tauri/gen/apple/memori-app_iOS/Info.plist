@@ -4,6 +4,8 @@
 <dict>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>The App uses Bluetooth to communicate with BLE devices</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Required for weather and bus stop APIs.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleExecutable</key>
