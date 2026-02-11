@@ -134,17 +134,16 @@ pub fn run() {
         get_battery,
         send_string
     ]);
-    // hi
-    #[cfg(debug_assertions)]
+    #[cfg(all(debug_assertions, not(any(target_os = "ios", target_os = "android"))))]
     builder
         .export(Typescript::default(), "../src/lib/tauri/bindings.ts")
         .expect("Failed to export typescript bindings");
 
     tauri::Builder::default()
         .manage(AppState::new())
-        // .plugin(tauri_plugin_geolocation::init())
+        .plugin(tauri_plugin_geolocation::init())
         .plugin(tauri_plugin_svelte::init())
-        .plugin(tauri_plugin_store::Builder::new().build())
+        // .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_blec::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(
