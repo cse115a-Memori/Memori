@@ -1,10 +1,12 @@
 use alloc::format;
 use alloc::string::String;
+use alloc::vec;
 use ratatui::{text::Text, widgets::Widget};
 use serde::{Deserialize, Serialize};
+use specta::Type;
 
 /// Define a widget by its data
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Type)]
 pub struct Name {
     pub name: String,
 }

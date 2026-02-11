@@ -1,12 +1,14 @@
 #![allow(unused)]
 
-use alloc::boxed::Box;
-use ratatui::widgets::Widget;
+use alloc::vec;
+use alloc::vec::Vec;
+use core as std;
 use serde::{Deserialize, Serialize};
+use specta::Type;
 
 use crate::widgets::WidgetId;
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Type)]
 pub enum MemoriLayout {
     /// ┌─────────────────┐
     /// │                 │

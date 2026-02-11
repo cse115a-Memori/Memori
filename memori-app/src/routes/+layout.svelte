@@ -21,7 +21,7 @@
 {@render navLinks('/', 'Home')}
 {@render navLinks('/ble', 'ble')}
 {@render navLinks('/location', 'coord')}
-{@render navLinks('/layout', 'layout')}
+{@render navLinks('/frames', 'frames')}
 {@render navLinks('/test', 'test')}
 
 {#snippet navLinks(route: string, name: string)}

@@ -127,13 +127,16 @@ async fn send_string(state: State<'_, AppState>, string: String) -> Result<(), S
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder = Builder::<tauri::Wry>::new().commands(collect_commands![
-        hello,
-        tcp_connect,
-        ble_connect,
-        get_battery,
-        send_string
-    ]);
+    let builder = Builder::<tauri::Wry>::new()
+        .commands(collect_commands![
+            hello,
+            tcp_connect,
+            ble_connect,
+            get_battery,
+            send_string
+        ])
+        .typ::<MemoriLayout>();
+
     #[cfg(all(debug_assertions, not(any(target_os = "ios", target_os = "android"))))]
     builder
         .export(Typescript::default(), "../src/lib/tauri/bindings.ts")

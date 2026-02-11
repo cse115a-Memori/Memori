@@ -3,20 +3,24 @@ mod name;
 pub use clock::*;
 pub use name::*;
 
+use alloc::vec;
 use ratatui::widgets::Widget;
 use serde::{Deserialize, Serialize};
+use specta::Type;
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Copy, Clone, Hash)]
+#[derive(
+    Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Hash, Type,
+)]
 pub struct WidgetId(pub u32);
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Type)]
 pub struct MemoriWidget {
     pub(crate) id: WidgetId,
     pub(crate) kind: WidgetKind,
     update_frequency: UpdateFrequency,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy, Type)]
 pub enum UpdateFrequency {
     Never,
     Seconds(u32),
@@ -45,7 +49,7 @@ impl MemoriWidget {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Type)]
 pub enum WidgetKind {
     Name(Name),
     Clock(Clock),

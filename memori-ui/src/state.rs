@@ -1,21 +1,25 @@
+use alloc::collections::BTreeMap;
+use alloc::vec;
 use alloc::vec::Vec;
-use hashbrown::HashMap;
+#[allow(unused_imports)]
+use core as std;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
     widgets::Widget,
 };
 use serde::{Deserialize, Serialize};
+use specta::Type;
 
 use crate::{
     layout::MemoriLayout,
     widgets::{MemoriWidget, Name, UpdateFrequency, WidgetId, WidgetKind},
 };
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Type)]
 pub struct MemoriState {
     active_frame_idx: usize,
-    widgets: HashMap<WidgetId, MemoriWidget>,
+    widgets: BTreeMap<WidgetId, MemoriWidget>,
     frames: Vec<MemoriLayout>,
     #[allow(dead_code)]
     frame_time: u32,
@@ -23,7 +27,7 @@ pub struct MemoriState {
 
 impl Default for MemoriState {
     fn default() -> Self {
-        let mut widgets = HashMap::new();
+        let mut widgets = BTreeMap::new();
 
         let widget_id = WidgetId(0);
 
