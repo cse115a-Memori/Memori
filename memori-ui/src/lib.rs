@@ -1,6 +1,7 @@
 #![no_std]
 
 use embedded_graphics::mono_font::MonoFont;
+use embedded_graphics_unicodefonts::MONO_6X10;
 use profont::PROFONT_18_POINT;
 use ratatui::prelude::*;
 
@@ -13,7 +14,7 @@ mod state;
 pub use state::*;
 
 /// Regular font.
-pub const FONT_REGULAR: MonoFont<'static> = PROFONT_18_POINT;
+pub const FONT_REGULAR: MonoFont<'static> = MONO_6X10;
 /// Bold font.
 pub const FONT_BOLD: Option<MonoFont<'static>> = None;
 /// Italic font.

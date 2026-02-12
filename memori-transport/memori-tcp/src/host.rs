@@ -28,10 +28,12 @@ use crate::{
     MessageKind, Sequenced, TCP_ADDR, TcpTransportResult,
 };
 
+#[derive(Debug)]
 pub struct DeviceDisconnected {}
 
 type Responses = Arc<Mutex<HashMap<u32, oneshot::Sender<DeviceResponse>>>>;
 
+#[derive(Debug)]
 pub struct DeviceConnected {
     host_response_task: JoinHandle<()>,
     msg_sender: UnboundedSender<Message>,

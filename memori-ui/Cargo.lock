@@ -134,6 +134,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "embedded-graphics-unicodefonts"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a82ef1580d1bff3e89bd3e68069acb24910b66001aaab1738ce9de8d03d2ab1e"
+dependencies = [
+ "embedded-graphics",
+]
+
+[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -255,6 +264,7 @@ name = "memori-ui"
 version = "0.1.0"
 dependencies = [
  "embedded-graphics",
+ "embedded-graphics-unicodefonts",
  "hashbrown",
  "log",
  "profont",

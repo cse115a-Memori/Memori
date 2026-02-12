@@ -5,11 +5,20 @@
   import * as Field from '$lib/components/ui/field/index.js'
   import { Input } from '$lib/components/ui/input/index.js'
   import { commands } from '@/tauri'
+  import { goto } from '$app/navigation'
+  import { load } from '@tauri-apps/plugin-store';
+  import {login} from '$lib/services/auth'; 
 
+  let errorMessage = $state('');
+  let isTwitchLoading = $state(false);
+  let isLoading = $derived(isGoogleLoading || isGithubLoading || isTwitchLoading);
+  let error: string | null = null;
   let name = $state('')
   let string = $state('')
   let res: number | string | null = $state('')
   let unlisten: UnlistenFn[] = $state([])
+  let location: string = $state('')
+  let city: string = $state('')
 
   const get_battery = async (e: Event) => {
     e.preventDefault()
@@ -35,19 +44,50 @@
       console.error(error)
     }
   }
-  const send_string = async (e: Event) => {
+  const send_name = async (e: Event) => {
     e.preventDefault()
     try {
-      res = await invoke('hello', { name })
+      res = await invoke('send_name', { name })
       console.log(res)
     } catch (error) {
       console.error(error)
     }
   }
+  const send_temp = async (e: Event) => {
+    e.preventDefault()
+    try {
+      res = await invoke('send_temp', { city })
+      console.log(res)
+    } catch (error) {
+      console.error(error)
+    }
+  }
+  const send_bustime = async (e: Event) => {
+    e.preventDefault()
+    try {
+      res = await invoke('send_bustime', { location })
+      console.log(res)
+    } catch (error) {
+      console.error(error)
+    }
+  }
+  const login_twitch = async () => {
+    try {
+      errorMessage = '';
+      isTwitchLoading = true;
+      await login('twitch');
+      goto('/home');
+    } catch (error) {
+      console.error('Twitch login failed:', error);
+      errorMessage = 'Twitch log failed, please retry';
+    } finally {
+      isTwitchLoading = false;
+    }
+  }
 </script>
 
 <main>
-  <form class="mt-4" onsubmit={send_string}>
+  <form class="mt-4" onsubmit={send_name}>
     <Field.Field
       orientation="horizontal"
       class="justify-center mx-auto max-w-xs"
@@ -60,22 +100,16 @@
     </Field.Field>
   </form>
 
-  <form class="mt-4" onsubmit={send_string}>
+  <form class="mt-4" onsubmit={send_temp}>
     <Field.Field
       orientation="horizontal"
       class="justify-center mx-auto max-w-xs"
     >
-      <Field.Label for="greet-input" class="sr-only"
-        >show on display</Field.Label
-      >
+      <Field.Label for="greet-input" class="sr-only">Name</Field.Label>
 
-      <Input
-        id="greet-input"
-        placeholder="Enter a string!"
-        bind:value={string}
-      />
+      <Input id="greet-input" placeholder="Enter a city..." bind:value={city} />
 
-      <Button type="submit" variant="outline">display!</Button>
+      <Button type="submit" variant="outline">Send</Button>
     </Field.Field>
   </form>
 
@@ -87,6 +121,34 @@
   <form class="mt-4" onsubmit={connect}>
     <Field.Field>
       <Button type="submit" variant="outline">Connect to device</Button>
+    </Field.Field>
+  </form>
+  <form class="mt-4" onsubmit={login_twitch}>
+    <Field.Field>
+      <Button type="submit" variant="outline">Connect to twitch</Button>
+    </Field.Field>
+  </form>
+  <form class="mt-4" onsubmit={send_bustime}>
+    <Field.Field
+      orientation="horizontal"
+      class="justify-center mx-auto max-w-xs"
+    >
+      <Field.Label for="dropdown-select" class="sr-only"
+        >Select Option</Field.Label
+      >
+
+      <select
+        id="dropdown-select"
+        bind:value={location}
+        class="border rounded p-2"
+      >
+        <option value="" disabled selected>Select an option</option>
+        <option value="1">Science Hill</option>
+        <option value="2">Base of Campus (Barn)</option>
+        <option value="3">Downtown Santa Cruz Metro Center</option>
+      </select>
+
+      <Button type="submit" variant="outline">Save Selection</Button>
     </Field.Field>
   </form>
   {res}
