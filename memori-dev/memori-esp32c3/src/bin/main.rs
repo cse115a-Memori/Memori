@@ -112,26 +112,6 @@ async fn main(spawner: Spawner) -> () {
         Mutex::new(mem_state)
     }); 
     
-    // Iterate through each widget and spawn update tasks
-    let widgets_to_update = {
-        let locked_state = mem_state.lock().await;
-        locked_state.widgets.iter()
-            .filter_map(|(widget_id, widget)| {
-                match widget.get_local_update_frequency() {
-                    UpdateFrequency::Never => None,
-                    UpdateFrequency::Seconds(s) if s < 60 => Some((*widget_id, s)),
-                    _ => None,
-                }
-            })
-            .collect::<Vec<_>>()
-    };
-    
-    for (widget_id, seconds) in widgets_to_update {
-        spawner
-            .spawn(widget_update_task(mem_state, widget_id, seconds as u64))
-            .expect("Failed to spawn widget update task");
-    }
-    
     spawner
       .spawn(hello_task())
       .expect("Failed to begin hello_task");

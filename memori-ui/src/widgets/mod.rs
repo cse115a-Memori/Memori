@@ -13,7 +13,7 @@ pub struct WidgetId(pub u32);
 pub struct MemoriWidget {
     pub(crate) id: WidgetId,
     pub(crate) kind: WidgetKind,
-    update_frequency: UpdateFrequency,
+    remote_update_frequency: UpdateFrequency,
     local_update_frequency: UpdateFrequency,
 }
 
@@ -37,11 +37,11 @@ impl UpdateFrequency {
 }
 
 impl MemoriWidget {
-    pub fn new(id: WidgetId, kind: WidgetKind, update_frequency: UpdateFrequency, local_update_frequency: UpdateFrequency) -> Self {
+    pub fn new(id: WidgetId, kind: WidgetKind, remote_update_frequency: UpdateFrequency, local_update_frequency: UpdateFrequency) -> Self {
         Self {
             id,
             kind,
-            update_frequency,
+            remote_update_frequency,
             local_update_frequency,
         }
     }
@@ -54,8 +54,8 @@ impl MemoriWidget {
 }
 
 impl MemoriWidget {
-    pub fn get_update_frequency(&self) -> UpdateFrequency {
-        self.update_frequency
+    pub fn get_remote_update_frequency(&self) -> UpdateFrequency {
+        self.remote_update_frequency
     }
     
     pub fn get_local_update_frequency(&self) -> UpdateFrequency {
