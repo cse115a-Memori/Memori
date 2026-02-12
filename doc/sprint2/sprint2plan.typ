@@ -79,7 +79,7 @@ and canvas assignments.
     - github widget data logic (3 hour) (Cainan)
     - github widget ui (1 hour) (Cainan)
   - Total Time: 9 Hours
-+ *User Story 2.3* - As a student, I would want to see my canvas assignments on the Memori device.
++ *User Story 2.3* - As a student, I would want to see bus information on the Memori device.
   - Estimated Points: 13
   - Tasks
     - santa cruz metro real time logic (5 hour) (Julian)
