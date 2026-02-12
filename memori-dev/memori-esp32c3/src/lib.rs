@@ -2,6 +2,7 @@
 extern crate alloc;
 
 pub mod ble;
+pub mod local_widget_update;
 
 use alloc::boxed::Box;
 use display_interface_spi::SPIInterface;
