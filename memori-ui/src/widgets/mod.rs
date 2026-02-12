@@ -22,6 +22,7 @@ pub enum UpdateFrequency {
     Seconds(u32),
     Minutes(u32),
     Hours(u32),
+    Never,
 }
 
 impl UpdateFrequency {
@@ -30,6 +31,7 @@ impl UpdateFrequency {
             Self::Seconds(s) => Some(*s),
             Self::Minutes(m) => Some(m * 60),
             Self::Hours(h) => Some(h * 3600),
+            Self::Never => None,
         }
     }
 }
@@ -72,7 +74,6 @@ impl WidgetKind {
         match self {
             Self::Clock(c) => c.update(),
             Self::Name(n) => n.update(),
-            _ => {}
         }
     }
 }

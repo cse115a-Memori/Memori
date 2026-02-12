@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     layout::MemoriLayout,
-    widgets::{MemoriWidget, Name, WidgetId, WidgetKind},
+    widgets::{MemoriWidget, Name, WidgetId, WidgetKind, UpdateFrequency},
 };
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
