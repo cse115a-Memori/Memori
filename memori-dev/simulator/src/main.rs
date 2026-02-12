@@ -3,7 +3,7 @@ use embedded_graphics::{pixelcolor::BinaryColor, prelude::*};
 use embedded_graphics_simulator::{OutputSettings, SimulatorDisplay, SimulatorEvent, Window};
 use memori_tcp::{DeviceResponse, DeviceTcpTransport, HostRequest, Sequenced};
 use memori_ui::layout::MemoriLayout;
-use memori_ui::widgets::{MemoriWidget, Name, UpdateFrequency, WidgetId, WidgetKind, Github};
+use memori_ui::widgets::{MemoriWidget, Name, UpdateFrequency, WidgetId, WidgetKind, Github, Clock};
 use memori_ui::{Memori, MemoriState};
 use mousefood::{EmbeddedBackend, EmbeddedBackendConfig};
 use std::{sync::Arc, time::Duration};
@@ -60,10 +60,10 @@ async fn main() -> Result<()> {
 
     let mem_state = {
         let state = MemoriState::new(
-            2,
+            1,
             vec![MemoriWidget::new(
                 WidgetId(0),
-                WidgetKind::Name(Name::new("surendra")),
+                WidgetKind::Clock(Clock::new(11, 59, 45)),
                 None,
             ), MemoriWidget::new(
                 WidgetId(1),
@@ -77,7 +77,7 @@ async fn main() -> Result<()> {
                     bottom_left: WidgetId(1),
                     bottom_right: WidgetId(0),
                 },
-                MemoriLayout::Full(WidgetId(1)),
+                MemoriLayout::Full(WidgetId(0)),
                 MemoriLayout::VSplit {
                     left: WidgetId(0),
                     right: WidgetId(1),

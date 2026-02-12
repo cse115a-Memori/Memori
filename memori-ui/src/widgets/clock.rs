@@ -16,16 +16,16 @@ pub struct Clock {
 
 impl Default for Clock {
     fn default() -> Self {
-        Self::new()
+        Self::new(0, 0, 0)
     }
 }
 
 impl Clock {
-    pub fn new() -> Self {
+    pub fn new(hours: u32, minutes: u32, seconds: u32) -> Self {
         Clock {
-            seconds: 0,
-            minutes: 0,
-            hours: 0,
+            seconds: seconds,
+            minutes: minutes,
+            hours: hours,
         }
     }
 
@@ -63,28 +63,21 @@ impl Widget for &Clock {
 
         let string = format!("{}:{}:{}", hours_string, minutes_string, seconds_string);
 
-        let border_set = border::Set {
-            top_left: "+",
-            top_right: "+",
-            bottom_left: "+",
-            bottom_right: "+",
-            vertical_left: "|",
-            vertical_right: "|",
-            horizontal_top: "=",
-            horizontal_bottom: "=",
-        };
-
-        // Render the block with borders
-        let block = Block::default()
+        let border_set = border::PLAIN;
+                
+        // Outer "Github" box
+        let outer_block = Block::default()
             .borders(Borders::ALL)
-            .border_set(border_set);
-        let inner_area = block.inner(area);
-        block.render(area, buf);
-
+            .border_set(border_set)
+            .border_style(Style::default().fg(ratatui::style::Color::White));
+        
+        let outer_inner = outer_block.inner(area);
+        outer_block.render(area, buf);
+        
         // Calculate center position
         let text_len = string.len() as u16;
-        let center_x = inner_area.x + (inner_area.width.saturating_sub(text_len)) / 2;
-        let center_y = inner_area.y + inner_area.height / 2;
+        let center_x = outer_inner.x + (outer_inner.width.saturating_sub(text_len)) / 2;
+        let center_y = outer_inner.y + outer_inner.height / 2;
 
         // Render the centered text
         buf.set_string(center_x, center_y, string, Style::default());
