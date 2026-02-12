@@ -60,7 +60,7 @@ async fn main() -> Result<()> {
 
     let mem_state = {
         let state = MemoriState::new(
-            4,
+            2,
             vec![MemoriWidget::new(
                 WidgetId(0),
                 WidgetKind::Name(Name::new("surendra")),
