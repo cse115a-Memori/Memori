@@ -1,3 +1,5 @@
+mod oauth;
+use crate::oauth::*;
 use ble_host::HostBLETransport;
 use memori_tcp::{
     host::{DeviceConnected, DeviceDisconnected},
@@ -5,7 +7,7 @@ use memori_tcp::{
 };
 use memori_ui::{
     layout::MemoriLayout,
-    widgets::{MemoriWidget, Name, UpdateFrequency, Weather, WidgetId, WidgetKind},
+    widgets::{Bus, MemoriWidget, Name, UpdateFrequency, Weather, WidgetId, WidgetKind},
     MemoriState,
 };
 use reqwest::Client;
@@ -94,7 +96,6 @@ async fn get_battery(state: State<'_, AppState>) -> Result<u8, String> {
 async fn send_name(state: State<'_, AppState>, name: String) -> Result<(), String> {
     let mut state_guard = state.tcp_conn.lock().await;
 
-
     let memori_state = MemoriState::new(
         0,
         vec![MemoriWidget::new(
@@ -141,6 +142,7 @@ async fn send_temp(state: State<'_, AppState>, city: String) -> Result<(), Strin
     // add to .bashrc -> $ export ~/.bashrc
     // export API_KEY='api key goes here'
     let api_key = env::var("API_KEY_W").map_err(|e| format!("API_KEY not set: {e}"))?;
+    println!("city: {}", city);
     let url = format!(
         "https://api.openweathermap.org/data/2.5/weather?q={}&appid={}&units=metric",
         city, api_key
@@ -159,14 +161,9 @@ async fn send_temp(state: State<'_, AppState>, city: String) -> Result<(), Strin
         vec![MemoriWidget::new(
             WidgetId(0),
             WidgetKind::Weather(Weather::new(response.main.temp.to_string())),
-            Some(UpdateFrequency::Seconds(1)),
+            Some(UpdateFrequency::Seconds(60)),
         )],
-        vec![MemoriLayout::Fourths {
-            top_right: WidgetId(0),
-            bottom_left: WidgetId(0),
-            bottom_right: WidgetId(0),
-            top_left: WidgetId(0),
-        }],
+        vec![MemoriLayout::Full(WidgetId(0))],
         5,
     );
     if let TCPConnection::Connected(conn) = &mut *state_guard {
@@ -180,8 +177,8 @@ async fn send_temp(state: State<'_, AppState>, city: String) -> Result<(), Strin
 
 #[tauri::command]
 #[specta::specta]
-async fn send_bustime(location: String) -> Result<String, String> {
-    // let mut state_guard = state.tcp_conn.lock().await;
+async fn send_bustime(state: State<'_, AppState>, location: String) -> Result<(), String> {
+    let mut state_guard = state.tcp_conn.lock().await;
     #[derive(Debug, Deserialize)]
     struct BustimeResponse<T> {
         #[serde(rename = "bustime-response")]
@@ -212,16 +209,17 @@ async fn send_bustime(location: String) -> Result<String, String> {
     #[derive(Debug, Deserialize)]
     struct Stop {
         stpid: String,
-        stpnm: String,
+        // stpnm: String,
         lat: f64,
         lon: f64,
     }
     #[derive(Debug, Deserialize)]
     struct Predictions {
-        prd: Prediction,
+        prd: Vec<Prediction>,
     }
     #[derive(Debug, Deserialize)]
     struct Prediction {
+        rt: String,
         prdctdn: String,
     }
     let api_key = env::var("API_KEY").map_err(|e| format!("API_KEY not set: {e}"))?;
@@ -302,7 +300,6 @@ async fn send_bustime(location: String) -> Result<String, String> {
     let closest_stop_id: String;
     if let Some(stop) = closest_stop {
         closest_stop_id = stop.stpid.clone();
-        println!("closest_stop: {}", closest_stop_id);
     } else {
         return Err("1111".into());
     }
@@ -318,10 +315,31 @@ async fn send_bustime(location: String) -> Result<String, String> {
         .json()
         .await
         .map_err(|e| format!("deserialize err: {e}"))?;
-    Ok(format!(
-        "num min until arrival: {}",
-        response.bustime_response.prd.prdctdn
-    ))
+    let closest_bus: String;
+    let busstop_name: String;
+    if let Some(first_prediction) = response.bustime_response.prd.first() {
+        closest_bus = first_prediction.prdctdn.clone();
+        busstop_name = first_prediction.rt.clone();
+    } else {
+        return Err("prediction err".into());
+    }
+    let memori_state = MemoriState::new(
+        0,
+        vec![MemoriWidget::new(
+            WidgetId(0),
+            WidgetKind::Bus(Bus::new(closest_bus, busstop_name)), //response.bustime_response.prd)),
+            Some(UpdateFrequency::Seconds(60)),
+        )],
+        vec![MemoriLayout::Full(WidgetId(0))],
+        5,
+    );
+    if let TCPConnection::Connected(conn) = &mut *state_guard {
+        return conn
+            .set_state(memori_state)
+            .await
+            .map_err(|e| format!("Failed to set state: {e}"));
+    }
+    Err("Device is not connected".to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -333,7 +351,9 @@ pub fn run() {
         get_battery,
         send_name,
         send_temp,
-        send_bustime
+        send_bustime,
+        start_oauth_server,
+        login_with_provider
     ]);
     // hi
     #[cfg(debug_assertions)]
@@ -348,6 +368,7 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_blec::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_oauth::init())
         .plugin(
             tauri_plugin_log::Builder::new()
                 .level(tauri_plugin_log::log::LevelFilter::Info)

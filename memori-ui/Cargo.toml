@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 embedded-graphics = "0.8.1"
+embedded-graphics-unicodefonts = "0.2.0"
 hashbrown = {version = "0.16.1", features = ["serde"]}
 log = "0.4.29"
 profont = "0.7.0"

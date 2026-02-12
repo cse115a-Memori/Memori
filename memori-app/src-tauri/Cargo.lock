@@ -1248,6 +1248,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "embedded-graphics-unicodefonts"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a82ef1580d1bff3e89bd3e68069acb24910b66001aaab1738ce9de8d03d2ab1e"
+dependencies = [
+ "embedded-graphics",
+]
+
+[[package]]
 name = "embedded-io"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2740,6 +2749,7 @@ dependencies = [
  "ble-host",
  "memori-tcp",
  "memori-ui",
+ "rand 0.9.2",
  "reqwest 0.11.27",
  "serde",
  "serde_json",
@@ -2750,6 +2760,7 @@ dependencies = [
  "tauri-plugin-blec",
  "tauri-plugin-geolocation",
  "tauri-plugin-log",
+ "tauri-plugin-oauth",
  "tauri-plugin-opener",
  "tauri-plugin-store",
  "tauri-plugin-svelte",
@@ -2757,6 +2768,7 @@ dependencies = [
  "tauri-specta",
  "tokio",
  "transport",
+ "url",
 ]
 
 [[package]]
@@ -2781,6 +2793,7 @@ name = "memori-ui"
 version = "0.1.0"
 dependencies = [
  "embedded-graphics",
+ "embedded-graphics-unicodefonts",
  "hashbrown 0.16.1",
  "log",
  "profont",
@@ -5094,6 +5107,21 @@ dependencies = [
  "tauri-plugin",
  "thiserror 2.0.18",
  "time",
+]
+
+[[package]]
+name = "tauri-plugin-oauth"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eda564acdb23185caf700f89dd6e5d4540225d6a991516b2cad0cbcf27e4dcd3"
+dependencies = [
+ "httparse",
+ "log",
+ "serde",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 1.0.69",
+ "url",
 ]
 
 [[package]]

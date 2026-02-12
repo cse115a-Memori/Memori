@@ -5,7 +5,14 @@
   import * as Field from '$lib/components/ui/field/index.js'
   import { Input } from '$lib/components/ui/input/index.js'
   import { commands } from '@/tauri'
+  import { goto } from '$app/navigation'
+  import { load } from '@tauri-apps/plugin-store';
+  import {login} from '$lib/services/auth'; 
 
+  let errorMessage = $state('');
+  let isTwitchLoading = $state(false);
+  let isLoading = $derived(isGoogleLoading || isGithubLoading || isTwitchLoading);
+  let error: string | null = null;
   let name = $state('')
   let string = $state('')
   let res: number | string | null = $state('')
@@ -64,6 +71,19 @@
       console.error(error)
     }
   }
+  const login_twitch = async () => {
+    try {
+      errorMessage = '';
+      isTwitchLoading = true;
+      await login('twitch');
+      goto('/home');
+    } catch (error) {
+      console.error('Twitch login failed:', error);
+      errorMessage = 'Twitch log failed, please retry';
+    } finally {
+      isTwitchLoading = false;
+    }
+  }
 </script>
 
 <main>
@@ -101,6 +121,11 @@
   <form class="mt-4" onsubmit={connect}>
     <Field.Field>
       <Button type="submit" variant="outline">Connect to device</Button>
+    </Field.Field>
+  </form>
+  <form class="mt-4" onsubmit={login_twitch}>
+    <Field.Field>
+      <Button type="submit" variant="outline">Connect to twitch</Button>
     </Field.Field>
   </form>
   <form class="mt-4" onsubmit={send_bustime}>

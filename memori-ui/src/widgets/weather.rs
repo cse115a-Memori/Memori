@@ -19,7 +19,7 @@ pub struct Weather {
 impl Weather {
     pub fn new(temp: impl Into<String>) -> Self {
         Self {
-            temp: "0.0".into(),
+            temp: temp.into(),
             icon: "placeholder text".into(),
         }
     }

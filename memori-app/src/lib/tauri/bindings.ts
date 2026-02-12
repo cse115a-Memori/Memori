@@ -53,9 +53,25 @@ async sendTemp(city: string) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async sendBustime(location: string) : Promise<Result<string, string>> {
+async sendBustime(location: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("send_bustime", { location }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async startOauthServer() : Promise<Result<number, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("start_oauth_server") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async loginWithProvider(provider: string) : Promise<Result<UserInfo, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("login_with_provider", { provider }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -73,7 +89,7 @@ async sendBustime(location: string) : Promise<Result<string, string>> {
 
 /** user-defined types **/
 
-
+export type UserInfo = { id: string; name: string; email: string; avatar: string | null; provider: string; access_token: string }
 
 /** tauri-specta globals **/
 
