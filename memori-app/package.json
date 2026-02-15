@@ -17,6 +17,7 @@
   "dependencies": {
     "@dnd-kit-svelte/svelte": "^0.1.6",
     "@dnd-kit/helpers": "^0.2.4",
+    "@dnd-kit/svelte": "^0.3.1",
     "@mnlphlp/plugin-blec": "^0.8.0",
     "@sveltejs/adapter-auto": "^7.0.0",
     "@tauri-apps/api": "^2.10.1",

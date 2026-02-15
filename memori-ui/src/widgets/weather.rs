@@ -9,9 +9,10 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph, Widget, Wrap},
 };
 use serde::{Deserialize, Serialize};
+use specta::Type;
 
 /// Define a widget by its data
-#[derive(Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, Clone, Debug, Type)]
 pub struct Weather {
     pub temp: String,
     pub icon: String,
@@ -41,13 +42,8 @@ impl Widget for &Weather {
 
         let icon_lines = WeatherIcon::Sun.to_ascii();
 
-        let text = Text::from(
-            icon_lines
-                .into_iter()
-                .map(|line| Line::from(line))
-                .collect::<Vec<_>>(),
-        )
-        .centered();
+        let text =
+            Text::from(icon_lines.into_iter().map(Line::from).collect::<Vec<_>>()).centered();
 
         let icon_paragraph = Paragraph::new(text)
             .alignment(Alignment::Center)

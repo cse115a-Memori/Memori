@@ -149,14 +149,7 @@
   <DragOverlay>
     {#snippet children(source)}
       {#if activeWidget}
-        {@const width = source.shape?.boundingRectangle.width}
-        {@const height = source.shape?.boundingRectangle.height}
-        <div
-          class="relative select-none"
-          style={width && height
-            ? `width:${width}px;height:${height}px`
-            : undefined}
-        >
+        <div class="relative select-none">
           <div
             class={[
               sortableCardBaseClasses,

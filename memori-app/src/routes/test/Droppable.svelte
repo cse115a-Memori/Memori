@@ -13,7 +13,6 @@
   const { ref } = useDroppable(rest)
 </script>
 
-<!-- <div class={className} {@attach ref}> -->
 <div class={className} {@attach ref}>
   {@render children()}
 </div>

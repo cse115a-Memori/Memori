@@ -5,14 +5,15 @@ use memori_tcp::{
     host::DeviceConnected, host::DeviceDisconnected, DeviceRequest, HostResponse, HostTcpTransport,
     Sequenced,
 };
-use memori_tcp::{host::DeviceConnected, DeviceRequest, HostResponse, HostTcpTransport, Sequenced};
+
 use memori_ui::{
     layout::MemoriLayout,
-    widgets::{MemoriWidget, Name, WidgetId, WidgetKind},
+    widgets::{Bus, Clock, MemoriWidget, Name, UpdateFrequency, Weather, WidgetId, WidgetKind},
     MemoriState,
 };
 use reqwest::Client;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use specta::Type;
 use specta_typescript::Typescript;
 use std::{env, fmt::format};
 use tauri::{AppHandle, State};
@@ -28,8 +29,7 @@ enum TCPConnection {
     Disconnected(HostTcpTransport<DeviceDisconnected>),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, specta::Type)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, specta::Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
 pub enum DeviceMode {
     RealDevice,
     Simulator,
@@ -52,7 +52,6 @@ impl AppState {
         Self {
             tcp_conn: Mutex::new(TCPConnection::Disconnected(HostTcpTransport::default())),
             // ble_conn: Mutex::new(BLEConnection::Disconnected(HostBLETransport::default())),
-            conn: Mutex::new(DeviceConnection::Disconnected),
             conn: Mutex::new(DeviceConnection::Disconnected),
         }
     }
@@ -164,25 +163,25 @@ async fn send_twitch(_state: State<'_, AppState>, token: String) -> Result<Strin
     println!("token: {}", token);
     Ok(format!("access token: {}", token))
 }
+
+#[tauri::command]
+#[specta::specta]
 async fn get_widget_kinds() -> Result<[MemoriWidget; 2], String> {
     Ok([
         MemoriWidget::new(
             WidgetId(0),
             WidgetKind::Name(Name::new("John Doe")),
             UpdateFrequency::Never,
+            UpdateFrequency::Never,
         ),
         MemoriWidget::new(
             WidgetId(1),
-            WidgetKind::Clock(Clock::new()),
+            WidgetKind::Clock(Clock::new(1, 0, 0)),
+            UpdateFrequency::Never,
             UpdateFrequency::Never,
         ),
     ])
 }
-
-#[tauri::command]
-#[specta::specta]
-async fn send_string(state: State<'_, AppState>, string: String) -> Result<(), String> {
-    let mut state_guard = state.conn.lock().await;
 
 #[tauri::command]
 #[specta::specta]
@@ -421,20 +420,6 @@ async fn send_bustime(state: State<'_, AppState>, lat: f64, lon: f64) -> Result<
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder = Builder::<tauri::Wry>::new().commands(collect_commands![
-        hello,
-        connect_device,
-        disconnect_device,
-        get_device_mode,
-        is_connected,
-        get_battery,
-        send_twitch,
-        send_name,
-        send_temp,
-        send_bustime,
-        start_oauth_server,
-        login_with_provider
-    ]);
     let builder = Builder::<tauri::Wry>::new()
         .commands(collect_commands![
             hello,
@@ -444,7 +429,12 @@ pub fn run() {
             is_connected,
             get_battery,
             get_widget_kinds,
-            send_string
+            send_twitch,
+            send_name,
+            send_temp,
+            send_bustime,
+            start_oauth_server,
+            login_with_provider,
         ])
         .typ::<MemoriLayout>()
         // .typ::<WidgetKind>()

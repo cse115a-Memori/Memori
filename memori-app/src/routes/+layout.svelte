@@ -17,19 +17,11 @@
       })
     })
   })
-
-  onMount(() => {
-    goto('/edit')
-  })
 </script>
 
 <div class="min-h-dvh">
   <div class="mx-auto w-full max-w-screen-sm px-4 py-6">
     {@render navLinks('/', 'Home')}
-    {@render navLinks('/ble', 'ble')}
-    {@render navLinks('/location', 'coord')}
-    {@render navLinks('/edit', 'edit')}
-    {@render navLinks('/edit-example', 'example')}
     {@render navLinks('/test', 'test')}
 
     {@render children?.()}

@@ -14,7 +14,7 @@ import {
 	subscribeString,
 	unsubscribe,
 } from '@mnlphlp/plugin-blec'
-import { saveAll } from '@tauri-store/svelte'
+// import { saveAll } from '@tauri-store/svelte'
 import { onMount } from 'svelte'
 
 import { store as bleStore } from './store.svelte'
@@ -73,7 +73,7 @@ export function createBlePageModel() {
 		if (state.resolvingNames || state.connected || state.scanning) return
 		state.resolvingNames = true
 
-		let didUpdate = false
+		// let didUpdate = false
 
 		for (const device of state.devices) {
 			if (device.name || bleStore.state.resolvedNames[device.address]) continue
@@ -83,7 +83,7 @@ export function createBlePageModel() {
 				const name = await readString(DEVICE_NAME_UUID, GAP_SERVICE_UUID)
 				if (name) {
 					bleStore.state.resolvedNames[device.address] = name
-					didUpdate = true
+					// didUpdate = true
 				}
 			} catch (error) {
 				console.warn('Failed to resolve device name', device.address, error)
