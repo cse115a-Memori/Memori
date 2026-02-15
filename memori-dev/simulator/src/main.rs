@@ -60,13 +60,25 @@ async fn main() -> Result<()> {
 
     let mem_state = {
         let state = MemoriState::new(
-            0,
+            1,
             vec![MemoriWidget::new(
                 WidgetId(0),
                 WidgetKind::Name(Name::new("surendra")),
                 UpdateFrequency::Never,
+                UpdateFrequency::Never,
             )],
-            vec![MemoriLayout::Full(WidgetId(0))],
+            vec![
+                MemoriLayout::Fourths {
+                    top_left: WidgetId(0),
+                    top_right: WidgetId(0),
+                    bottom_left: WidgetId(0),
+                    bottom_right: WidgetId(0),
+                },
+                MemoriLayout::VSplit {
+                    left: WidgetId(0),
+                    right: WidgetId(0),
+                },
+            ],
             5,
         );
         Arc::new(Mutex::new(state))

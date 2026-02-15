@@ -29,7 +29,7 @@ Names: Surendra Jammishetti, Julian Montano, Preston Clayton, Kenric Tee, Cainan
 + {High} User Story 1.1 [21]: As a application user, I want to be able to connect to my Memori device using bluetooth via simulator / desktop.
 + {High} User Story 1.2 [8]: As a user, I want a clear and intuitive interface to interact with the Memori device through my phone.
 + {Medium} User Story 1.3 [8]: As a device owner, I want to be able to display simple widgets, such as time or weather on my Memori device.
-+ {Low} User Story 2.4 [5]: As a user, I want to have a dark mode for the display.
++ {Low} User Story 1.4 [5]: As a user, I want to have a dark mode for the display.
 
 === Sprint 2, 34 pts
 

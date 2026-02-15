@@ -5,7 +5,7 @@ use memori_tcp::{
 };
 use memori_ui::{
     layout::MemoriLayout,
-    widgets::{MemoriWidget, Name, UpdateFrequency, WidgetId, WidgetKind},
+    widgets::{MemoriWidget, Name, WidgetId, WidgetKind},
     MemoriState,
 };
 use specta_typescript::Typescript;
