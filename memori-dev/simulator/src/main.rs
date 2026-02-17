@@ -60,14 +60,16 @@ async fn main() -> Result<()> {
 
     let mem_state = {
         let state = MemoriState::new(
-            1,
+            4,
             vec![MemoriWidget::new(
                 WidgetId(0),
                 WidgetKind::Clock(Clock::new(11, 59, 45)),
                 None,
             ), MemoriWidget::new(
                 WidgetId(1),
-                WidgetKind::Github(Github::new(String::from("CaiNann"), Some(String::from("memori")))),
+                WidgetKind::Github(Github::new(
+                    String::from("CaiNann"), 
+                    Some(String::from("memori")))),
                 None,
             )],
             vec![
@@ -77,7 +79,7 @@ async fn main() -> Result<()> {
                     bottom_left: WidgetId(1),
                     bottom_right: WidgetId(0),
                 },
-                MemoriLayout::Full(WidgetId(0)),
+                MemoriLayout::Full(WidgetId(1)),
                 MemoriLayout::VSplit {
                     left: WidgetId(0),
                     right: WidgetId(1),
