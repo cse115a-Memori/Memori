@@ -1,7 +1,11 @@
+mod bus;
 mod clock;
 mod name;
+mod weather;
+pub use bus::*;
 pub use clock::*;
 pub use name::*;
+pub use weather::*;
 
 use ratatui::widgets::Widget;
 use serde::{Deserialize, Serialize};
@@ -67,6 +71,8 @@ impl MemoriWidget {
 pub enum WidgetKind {
     Name(Name),
     Clock(Clock),
+    Weather(Weather),
+    Bus(Bus),
 }
 
 impl WidgetKind {
@@ -86,6 +92,8 @@ impl Widget for &MemoriWidget {
         match &self.kind {
             WidgetKind::Name(n) => n.render(area, buf),
             WidgetKind::Clock(c) => c.render(area, buf),
+            WidgetKind::Weather(w) => w.render(area, buf),
+            WidgetKind::Bus(b) => b.render(area, buf),
         }
     }
 }

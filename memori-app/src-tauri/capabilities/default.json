@@ -18,6 +18,8 @@
     "core:tray:default",
     "store:default",
     "log:default",
-    "blec:default"
+    "blec:default",
+    "deep-link:default",
+    "geolocation:default"
   ]
 }
