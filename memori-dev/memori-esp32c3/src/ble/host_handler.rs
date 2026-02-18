@@ -64,6 +64,26 @@ pub(super) async fn handle_host_cmd<P: PacketPool>(
                     .spawn(refresh_widget_task(widget.clone(), transport, state,new_gen))
                     .inspect_err(|e| error!("Error with spawning refresh task: {e:#?}, aborting spawning refresh for this task, may not work as intended."));
             }
+          
+            let widgets_to_update = {
+                  mem_state
+                  .widgets
+                  .iter()
+                      .filter_map(|(widget_id, widget)| {
+                          match widget.get_local_update_frequency() {
+                              UpdateFrequency::Never => None,
+                              UpdateFrequency::Seconds(s) if s < 60 => Some((*widget_id, s)),
+                              _ => None,
+                          }
+                      })
+                      .collect::<Vec<_>>()
+              };
+
+              for (widget_id, seconds) in widgets_to_update {
+                  spawner
+                      .spawn(widget_update_task(mem_state, widget_id, seconds as u64))
+                      .expect("Failed to spawn widget update task");
+              }
 
             DeviceBLEResponse::SetState { result: Ok(()) }
         }

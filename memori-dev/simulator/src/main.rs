@@ -64,7 +64,8 @@ async fn main() -> Result<()> {
             vec![MemoriWidget::new(
                 WidgetId(0),
                 WidgetKind::Name(Name::new("surendra")),
-                None,
+                UpdateFrequency::Never,
+                UpdateFrequency::Never,
             )],
             vec![
                 MemoriLayout::Fourths {

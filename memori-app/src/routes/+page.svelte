@@ -1,5 +1,6 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core'
+  import type { DeviceMode } from '$lib/tauri/bindings'
   import type { UnlistenFn } from '@tauri-apps/api/event'
   import { Button } from '$lib/components/ui/button/index.js'
   import * as Field from '$lib/components/ui/field/index.js'
@@ -31,6 +32,10 @@
 
   const startUrls = await getCurrent();
 
+  let isConnected = $state(false)
+  let connecting = $state(false)
+  let selectedMode: DeviceMode = $state('RealDevice')
+
   const get_battery = async (e: Event) => {
     e.preventDefault()
     try {
@@ -46,15 +51,41 @@
       res = 'Unexpected invoke error'
     }
   }
+
   const connect = async (e: Event) => {
     e.preventDefault()
+    connecting = true
+    res = ''
     try {
-      res = await invoke('tcp_connect')
+      await invoke('connect_device', { mode: selectedMode })
+      res = `connected to ${selectedMode}!`
+      isConnected = true
       console.log(res)
     } catch (error) {
       console.error(error)
+      res = `connection failed: ${error}`
+    } finally {
+      connecting = false
     }
   }
+
+  const disconnect = async (e: Event) => {
+    e.preventDefault()
+    connecting = true
+    res = ''
+    try {
+      await invoke('disconnect_device')
+      res = 'Disconnected'
+      isConnected = false
+      console.log(res)
+    } catch (error) {
+      console.error(error)
+      res = `disconnect failed: ${error}`
+    } finally {
+      connecting = false
+    }
+  }
+
   const send_name = async (e: Event) => {
     e.preventDefault()
     try {
@@ -64,6 +95,7 @@
       console.error(error)
     }
   }
+  
   const send_temp = async (e: Event) => {
     e.preventDefault()
     try {
@@ -155,9 +187,29 @@
       <Button type="submit" variant="outline">Device Battery</Button>
     </Field.Field>
   </form>
-  <form class="mt-4" onsubmit={connect}>
-    <Field.Field>
-      <Button type="submit" variant="outline">Connect to device</Button>
+
+  <form class="mt-4" onsubmit={isConnected ? disconnect : connect}>
+    <Field.Field
+      orientation="horizontal"
+      class="justify-center mx-auto max-w-xs"
+    >
+      <Field.Label for="device-mode" class="sr-only">Device Mode</Field.Label>
+      <select
+        id="device-mode"
+        bind:value={selectedMode}
+        disabled={connecting || isConnected}
+        class="border rounded px-3 py-2"
+      >
+        <option value="RealDevice">Real Device (Bluetooth)</option>
+        <option value="Simulator">Simulator (TCP)</option>
+      </select>
+      <Button type="submit" variant="outline" disabled={connecting}>
+        {#if connecting}
+          {isConnected ? 'Disconnecting...' : 'Connecting...'}
+        {:else}
+          {isConnected ? 'Disconnect' : 'Connect'}
+        {/if}
+      </Button>
     </Field.Field>
   </form>
   <form class="mt-4" onsubmit={login_twitch}>

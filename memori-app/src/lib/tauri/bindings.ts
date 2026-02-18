@@ -13,17 +13,33 @@ async hello(name: string) : Promise<Result<string, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async tcpConnect() : Promise<Result<null, string>> {
+async connectDevice(mode: DeviceMode) : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("tcp_connect") };
+    return { status: "ok", data: await TAURI_INVOKE("connect_device", { mode }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async bleConnect() : Promise<Result<null, string>> {
+async disconnectDevice() : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("ble_connect") };
+    return { status: "ok", data: await TAURI_INVOKE("disconnect_device") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getDeviceMode() : Promise<Result<DeviceMode | null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_device_mode") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async isConnected() : Promise<Result<boolean, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("is_connected") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -97,7 +113,10 @@ async loginWithProvider(provider: string) : Promise<Result<UserInfo, string>> {
 
 /** user-defined types **/
 
+
 export type UserInfo = { id: string; name: string; email: string; avatar: string | null; provider: string; access_token: string }
+
+export type DeviceMode = "RealDevice" | "Simulator"
 
 /** tauri-specta globals **/
 

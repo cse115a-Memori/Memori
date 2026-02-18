@@ -17,7 +17,8 @@ pub struct WidgetId(pub u32);
 pub struct MemoriWidget {
     pub id: WidgetId,
     pub(crate) kind: WidgetKind,
-    pub update_frequency: Option<UpdateFrequency>,
+    remote_update_frequency: UpdateFrequency,
+    local_update_frequency: UpdateFrequency,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
@@ -25,6 +26,7 @@ pub enum UpdateFrequency {
     Seconds(u32),
     Minutes(u32),
     Hours(u32),
+    Never,
 }
 
 impl UpdateFrequency {
@@ -33,17 +35,35 @@ impl UpdateFrequency {
             Self::Seconds(s) => Some(*s),
             Self::Minutes(m) => Some(m * 60),
             Self::Hours(h) => Some(h * 3600),
+            Self::Never => None,
         }
     }
 }
 
 impl MemoriWidget {
-    pub fn new(id: WidgetId, kind: WidgetKind, update_frequency: Option<UpdateFrequency>) -> Self {
+    pub fn new(id: WidgetId, kind: WidgetKind, remote_update_frequency: UpdateFrequency, local_update_frequency: UpdateFrequency) -> Self {
         Self {
             id,
             kind,
-            update_frequency,
+            remote_update_frequency,
+            local_update_frequency,
         }
+    }
+}
+
+impl MemoriWidget {
+    pub fn update(&mut self) {
+        self.kind.update();
+    }
+}
+
+impl MemoriWidget {
+    pub fn get_remote_update_frequency(&self) -> UpdateFrequency {
+        self.remote_update_frequency
+    }
+    
+    pub fn get_local_update_frequency(&self) -> UpdateFrequency {
+        self.local_update_frequency
     }
 }
 
@@ -53,6 +73,15 @@ pub enum WidgetKind {
     Clock(Clock),
     Weather(Weather),
     Bus(Bus),
+}
+
+impl WidgetKind {
+    pub fn update(&mut self) {
+        match self {
+            Self::Clock(c) => c.update(),
+            Self::Name(n) => n.update(),
+        }
+    }
 }
 
 impl Widget for &MemoriWidget {
