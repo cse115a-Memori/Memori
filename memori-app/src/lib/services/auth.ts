@@ -41,7 +41,10 @@ export async function login(provider: 'google' | 'github' | 'twitch'): Promise<U
             avatar: string | null;
             provider: string;
             access_token: string;
-        }>('login_with_provider', {provider});
+        }>('login_with_provider', {provider}).catch(e => {
+          console.error('Error during invoke:', e);
+          throw e;
+        });
         console.log('called login_with_provider', currentUser);
 
         currentUser = {

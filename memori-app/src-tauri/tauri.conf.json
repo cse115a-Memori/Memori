@@ -42,7 +42,8 @@
         "https://api.github.com/user",
         "https://oauth2.googleapis.com/token",
         "https://www.googleapis.com/oauth2/v3/userinfo",
-        "https://id.twitch.tv/oauth2/token"
+        "https://id.twitch.tv/oauth2/token",
+        "https://api.twitch.tv/helix/users"
       ],
       "permissions": ["default"]
     },

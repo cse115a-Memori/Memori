@@ -75,12 +75,28 @@
   }
   const send_bustime = async (e: Event) => {
     e.preventDefault()
-    try {
-      res = await invoke('send_bustime', { location })
-      console.log(res)
-    } catch (error) {
-      console.error(error)
-    }
+    let permissions = await checkPermissions();  
+    if (  
+      permissions.location === 'prompt' ||  
+      permissions.location === 'prompt-with-rationale'  
+    ) {  
+      permissions = await requestPermissions(['location']);  
+    }  
+    if (permissions.location === 'granted') {  
+      const pos = await getCurrentPosition();  
+      
+      // Send position to device  
+      try {  
+        res = await invoke('send_bustime', { 
+          lat: pos.coords.latitude, 
+          lon: pos.coords.longitude })  
+        console.log('Bustime sent with position:', pos);
+        console.log(res)
+      } catch (error) {  
+        console.error('Failed to send bustime:', error);  
+      }  
+  
+    } 
   }
   const login_twitch = async (e: Event) => {
     e.preventDefault()
@@ -88,7 +104,7 @@
       errorMessage = '';
       isTwitchLoading = true;
       await login('twitch');
-      goto('/home');
+      
     } catch (error) {
       console.error('Twitch login failed:', error);
       errorMessage = 'Twitch log failed, please retry';

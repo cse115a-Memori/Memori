@@ -63,6 +63,7 @@ pub async fn login_with_provider(
         "twitch" => configs.twitch,
         _ => return Err(format!("Unsupported provider: {}", provider)),
     };
+    let client_id = config.client_id.clone();
     // OAuth configuration for the server
     let oauth_config = tauri_plugin_oauth::OauthConfig {
         ports: Some(vec![8000, 8001, 8002]),
@@ -93,7 +94,7 @@ pub async fn login_with_provider(
     println!("redirect_uri: {:?}", &format!("http://localhost:{}", port));
     auth_url_obj
         .query_pairs_mut()
-        .append_pair("client_id", &config.client_id)
+        .append_pair("client_id", &client_id)
         .append_pair("redirect_uri", &format!("http://localhost:{}", port))
         .append_pair("scope", &config.scope)
         .append_pair("response_type", "code");
@@ -167,6 +168,7 @@ pub async fn login_with_provider(
             client
                 .get(&config.user_info_url)
                 .header("Authorization", format!("Bearer {}", access_token))
+                .header("Client-ID", client_id)
                 .header("Accept", "application/json")
                 .header("User-Agent", "tauri-app")
                 .send()

@@ -151,7 +151,7 @@ async fn send_temp(state: State<'_, AppState>, city: String) -> Result<(), Strin
     }
     // add to .bashrc -> $ export ~/.bashrc
     // export API_KEY='api key goes here'
-    let api_key = env::var("API_KEY_W").map_err(|e| format!("API_KEY not set: {e}"))?;
+    let api_key = env!("API_KEY_W");
     println!("city: {}", city);
     let url = format!(
         "https://api.openweathermap.org/data/2.5/weather?q={}&appid={}&units=metric",
@@ -187,7 +187,9 @@ async fn send_temp(state: State<'_, AppState>, city: String) -> Result<(), Strin
 
 #[tauri::command]
 #[specta::specta]
-async fn send_bustime(state: State<'_, AppState>, location: String) -> Result<(), String> {
+async fn send_bustime(state: State<'_, AppState>, lat: f64, lon: f64) -> Result<String, String> {
+    // Ok(format!("location: {}, {}", lat, lon))
+
     let mut state_guard = state.tcp_conn.lock().await;
     #[derive(Debug, Deserialize)]
     struct BustimeResponse<T> {
@@ -232,7 +234,7 @@ async fn send_bustime(state: State<'_, AppState>, location: String) -> Result<()
         rt: String,
         prdctdn: String,
     }
-    let api_key = env::var("API_KEY").map_err(|e| format!("API_KEY not set: {e}"))?;
+    let api_key = env!("API_KEY");
     let client = Client::new();
     let url = format!(
         "https://rt.scmetro.org/bustime/api/v3/getroutes?key={}&format=json",
@@ -283,12 +285,12 @@ async fn send_bustime(state: State<'_, AppState>, location: String) -> Result<()
             stops.extend(response.bustime_response.stops);
         }
     }
-    let (lat, lon): (f64, f64) = match location.as_str() {
-        "1" => (36.999934, -122.062213),
-        "2" => (36.977296, -122.053627),
-        "3" => (36.974099, -122.024405),
-        _ => return Err("Invalid location".into()),
-    };
+    //let (lat, lon): (f64, f64) = match location.as_str() {
+    //     "1" => (36.999934, -122.062213),
+    //    "2" => (36.977296, -122.053627),
+    //     "3" => (36.974099, -122.024405),
+    //    _ => return Err("Invalid location".into()),
+    // };
     let mut closest_stop: Option<&Stop> = None;
     let mut min_distance = f64::MAX;
     fn hsine(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
@@ -313,6 +315,8 @@ async fn send_bustime(state: State<'_, AppState>, location: String) -> Result<()
     } else {
         return Err("1111".into());
     }
+    Ok(format!("closest stop: {}", closest_stop_id))
+    /*
     let url = format!(
         "https://rt.scmetro.org/bustime/api/v3/getpredictions?key={}&stpid={}&format=json",
         api_key, closest_stop_id
@@ -333,6 +337,7 @@ async fn send_bustime(state: State<'_, AppState>, location: String) -> Result<()
     } else {
         return Err("prediction err".into());
     }
+
     let memori_state = MemoriState::new(
         0,
         vec![MemoriWidget::new(
@@ -350,6 +355,7 @@ async fn send_bustime(state: State<'_, AppState>, location: String) -> Result<()
             .map_err(|e| format!("Failed to set state: {e}"));
     }
     Err("Device is not connected".to_string())
+    */
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -375,7 +381,7 @@ pub fn run() {
         .manage(AppState::new())
         // .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwd| {}))
         .plugin(tauri_plugin_deep_link::init())
-        // .plugin(tauri_plugin_geolocation::init())
+        .plugin(tauri_plugin_geolocation::init())
         .plugin(tauri_plugin_svelte::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_blec::init())
