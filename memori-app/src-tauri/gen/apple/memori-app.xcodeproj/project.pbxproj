@@ -236,7 +236,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/zsh;
-			shellScript = "source ~/.zshrc\nbun tauri ios xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --framework-search-paths \"${FRAMEWORK_SEARCH_PATHS:?}\" --header-search-paths \"${HEADER_SEARCH_PATHS:?}\" --gcc-preprocessor-definitions \"${GCC_PREPROCESSOR_DEFINITIONS:-}\" --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?}\n";
+			shellScript = "source ~/.config/zsh/.zshrc\nexport PATH=\"/etc/profiles/per-user/kenrictee/bin:$PATH\"\n# export RUSTUP_HOME=\"$HOME/.rustup\"\n# export CARGO_HOME=\"$HOME/.cargo\"\nexport RUSTUP_TOOLCHAIN=\"nightly-aarch64-apple-darwin\"\nexport CARGO=\"/etc/profiles/per-user/kenrictee/bin/cargo\"\nexport RUSTC=\"/etc/profiles/per-user/kenrictee/bin/rustc\"\nunset LIBRARY_PATH\n\nbun tauri ios xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --framework-search-paths \"${FRAMEWORK_SEARCH_PATHS:?}\" --header-search-paths \"${HEADER_SEARCH_PATHS:?}\" --gcc-preprocessor-definitions \"${GCC_PREPROCESSOR_DEFINITIONS:-}\" --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?}\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -284,7 +284,7 @@
 					"$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)",
 					"$(TOOLCHAIN_DIR)/usr/lib/swift-5.0/$(PLATFORM_NAME)",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.suri.memori-app";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.kt.memori-app";
 				PRODUCT_NAME = "memori-app";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -324,7 +324,7 @@
 					"$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)",
 					"$(TOOLCHAIN_DIR)/usr/lib/swift-5.0/$(PLATFORM_NAME)",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.suri.memori-app";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.kt.memori-app";
 				PRODUCT_NAME = "memori-app";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";

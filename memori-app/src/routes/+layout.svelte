@@ -23,6 +23,7 @@
   <div class="mx-auto w-full max-w-screen-sm px-4 py-6">
     {@render navLinks('/', 'Home')}
     {@render navLinks('/test', 'test')}
+    {@render navLinks('/location', 'location')}
 
     {@render children?.()}
   </div>

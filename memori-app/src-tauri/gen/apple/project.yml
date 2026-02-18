@@ -52,7 +52,7 @@ targets:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         CFBundleShortVersionString: 0.1.0
-        CFBundleVersion: "0.1.0"
+        CFBundleVersion: '0.1.0'
     entitlements:
       path: memori-app_iOS/memori-app_iOS.entitlements
     scheme:
@@ -82,7 +82,20 @@ targets:
     preBuildScripts:
       - shell: /bin/zsh
         script: |
-          source ~/.zshrc
+          source ~/.config/zsh/.zshrc
+          export PATH="/etc/profiles/per-user/kenrictee/bin:$PATH"
+          export RUSTUP_HOME="$HOME/.rustup"
+          export CARGO_HOME="$HOME/.cargo"
+          export RUSTUP_TOOLCHAIN="nightly-aarch64-apple-darwin"
+          export CARGO="/etc/profiles/per-user/kenrictee/bin/cargo"
+          export RUSTC="/etc/profiles/per-user/kenrictee/bin/rustc"
+          unset LIBRARY_PATH
+          unset LD_LIBRARY_PATH
+          unset DYLD_LIBRARY_PATH
+          unset PKG_CONFIG_PATH
+          unset NIX_CFLAGS_COMPILE
+          unset NIX_CFLAGS_LINK
+          unset NIX_LDFLAGS
           bun tauri ios xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --framework-search-paths "${FRAMEWORK_SEARCH_PATHS:?}" --header-search-paths "${HEADER_SEARCH_PATHS:?}" --gcc-preprocessor-definitions "${GCC_PREPROCESSOR_DEFINITIONS:-}" --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?}
         name: Build Rust Code
         basedOnDependencyAnalysis: false
