@@ -25,9 +25,9 @@ impl Default for Clock {
 impl Clock {
     pub fn new(hours: u32, minutes: u32, seconds: u32) -> Self {
         Clock {
-            seconds: seconds,
-            minutes: minutes,
-            hours: hours,
+            seconds,
+            minutes,
+            hours,
         }
     }
 
