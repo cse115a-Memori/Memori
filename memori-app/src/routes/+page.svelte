@@ -7,7 +7,14 @@
   import { commands } from '@/tauri'
   import { goto } from '$app/navigation'
   import { load } from '@tauri-apps/plugin-store';
-  import {login} from '$lib/services/auth'; 
+  import {login, getCurrentUser} from '$lib/services/auth'; 
+  import { getCurrent, onOpenUrl } from '@tauri-apps/plugin-deep-link';
+  import {
+    checkPermissions,
+    requestPermissions,
+    getCurrentPosition,
+    watchPosition,
+  } from '@tauri-apps/plugin-geolocation';
 
   let errorMessage = $state('');
   let isTwitchLoading = $state(false);
@@ -19,6 +26,10 @@
   let unlisten: UnlistenFn[] = $state([])
   let location: string = $state('')
   let city: string = $state('')
+  let currentUser = $state(await getCurrentUser())
+  let token = $derived(currentUser?.accessToken)
+
+  const startUrls = await getCurrent();
 
   const get_battery = async (e: Event) => {
     e.preventDefault()
@@ -71,7 +82,8 @@
       console.error(error)
     }
   }
-  const login_twitch = async () => {
+  const login_twitch = async (e: Event) => {
+    e.preventDefault()
     try {
       errorMessage = '';
       isTwitchLoading = true;
@@ -82,6 +94,15 @@
       errorMessage = 'Twitch log failed, please retry';
     } finally {
       isTwitchLoading = false;
+    }
+  }
+  const send_twitch = async (e: Event) => {
+    e.preventDefault()
+    try {
+      res = await invoke('send_twitch', {token})
+      console.log(res)
+    } catch (error) {
+      console.error(error) 
     }
   }
 </script>
@@ -126,6 +147,11 @@
   <form class="mt-4" onsubmit={login_twitch}>
     <Field.Field>
       <Button type="submit" variant="outline">Connect to twitch</Button>
+    </Field.Field>
+  </form>
+  <form class="mt-4" onsubmit={send_twitch}>
+    <Field.Field>
+      <Button type="submit" variant="outline">Send twitch</Button>
     </Field.Field>
   </form>
   <form class="mt-4" onsubmit={send_bustime}>

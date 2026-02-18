@@ -28,12 +28,14 @@ tauri-plugin-blec = "0.8.1"
 tauri-plugin-svelte = "3.1.0"
 tauri-plugin-log = "2"
 tauri-plugin-oauth = "2"
+tauri-plugin-shell = "2"
+tauri-plugin-deep-link = "2"
 
 tauri-specta = { version = "=2.0.0-rc.21", features = ["derive", "typescript"] }
 specta = { version = "=2.0.0-rc.22", features = ["derive"] }
 specta-typescript = "0.0.9"
 
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
@@ -44,3 +46,6 @@ memori-tcp = { path = "../../memori-transport/memori-tcp" }
 ble-host = { path = "../../memori-transport/ble-host" }
 url = "2.5.8"
 rand = "0.9.1"
+
+[target."cfg(any(target_os = \"linux\"))".dependencies]
+tauri-plugin-single-instance = { version = "2.0.0", features = ["deep-link"] }

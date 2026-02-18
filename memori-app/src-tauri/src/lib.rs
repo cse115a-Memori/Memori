@@ -14,7 +14,8 @@ use reqwest::Client;
 use serde::Deserialize;
 use specta_typescript::Typescript;
 use std::{env, fmt::format};
-use tauri::State;
+use tauri::{AppHandle, State};
+use tauri_plugin_svelte::ManagerExt;
 use tauri_specta::{collect_commands, Builder};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tokio::sync::Mutex;
@@ -34,6 +35,7 @@ enum BLEConnection {
 struct AppState {
     tcp_conn: Mutex<TCPConnection>,
     // ble_conn: Mutex<BLEConnection>,
+    current_user: Mutex<Option<UserInfo>>,
 }
 
 impl AppState {
@@ -41,6 +43,7 @@ impl AppState {
         Self {
             tcp_conn: Mutex::new(TCPConnection::Disconnected(HostTcpTransport::default())),
             // ble_conn: Mutex::new(BLEConnection::Disconnected(HostBLETransport::default())),
+            current_user: Mutex::new(Option::None),
         }
     }
 }
@@ -89,6 +92,13 @@ async fn get_battery(state: State<'_, AppState>) -> Result<u8, String> {
             .map_err(|e| format!("Failed to get battery: {e}")),
         TCPConnection::Disconnected(_) => Err("Device is not connected".to_string()),
     }
+}
+
+#[tauri::command]
+#[specta::specta]
+async fn send_twitch(_state: State<'_, AppState>, token: String) -> Result<String, String> {
+    println!("token: {}", token);
+    Ok(format!("access token: {}", token))
 }
 
 #[tauri::command]
@@ -349,20 +359,22 @@ pub fn run() {
         tcp_connect,
         ble_connect,
         get_battery,
+        send_twitch,
         send_name,
         send_temp,
         send_bustime,
         start_oauth_server,
         login_with_provider
     ]);
-    // hi
-    #[cfg(debug_assertions)]
+    #[cfg(all(debug_assertions, not(any(target_os = "ios", target_os = "android"))))]
     builder
         .export(Typescript::default(), "../src/lib/tauri/bindings.ts")
         .expect("Failed to export typescript bindings");
 
     tauri::Builder::default()
         .manage(AppState::new())
+        // .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwd| {}))
+        .plugin(tauri_plugin_deep_link::init())
         // .plugin(tauri_plugin_geolocation::init())
         .plugin(tauri_plugin_svelte::init())
         .plugin(tauri_plugin_store::Builder::new().build())

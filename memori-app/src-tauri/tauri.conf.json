@@ -31,5 +31,33 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "oauth": {
+      "permissions": ["default"]
+    },
+    "http": {
+      "scope": [
+        "https://github.com/login/oauth/access_token",
+        "https://api.github.com/user",
+        "https://oauth2.googleapis.com/token",
+        "https://www.googleapis.com/oauth2/v3/userinfo",
+        "https://id.twitch.tv/oauth2/token"
+      ],
+      "permissions": ["default"]
+    },
+    "deep-link": {
+      "mobile": [
+        {
+          "scheme": ["https"],
+          "host": "memori",
+          "pathPrefix": ["/callback"],
+          "appLink": false
+        }
+      ],
+      "desktop": {
+        "schemes": ["https://memori/callback", "http://localhost:8000"]
+      }
+    }
   }
 }

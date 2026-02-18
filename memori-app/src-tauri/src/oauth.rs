@@ -242,17 +242,33 @@ fn generate_random_string(length: usize) -> String {
 }
 
 fn load_oauth_configs() -> Result<OAuthConfigs, String> {
-    let config_path = std::path::Path::new("oauth_config.json");
+    // println!("configs");
+    static OAUTH_CONFIG: &[u8] = include_bytes!("../oauth_config.json");
+    // let config_path = std::path::Path::new("oauth_config.json");
+    /*
+    let config_content = obfstr::obfstr!(dotenvy_macro::dotenv!("OAUTH_CONFIG")).to_string();
+    let configs: OAuthConfigs = serde_json::from_str(&config_content)
+        .map_err(|e| format!("Failed to parse config file: {}", e))?;
 
-    if config_path.exists() {
-        let config_content = std::fs::read_to_string(config_path)
-            .map_err(|e| format!("Failed to read config file: {}", e))?;
+    return Ok(configs);
+    */
+    // if config_path.exists() {
+    /*
+    let config_content = std::fs::read_to_string(config_path).map_err(|e| {
+        format!(
+            "Failed to read config file: {} config  path {:?}",
+            e, config_path
+        )
+    })?;
+    */
+    let config_content = std::str::from_utf8(OAUTH_CONFIG)
+        .map_err(|e| format!("Failed to convert OAUTH_CONFIG bytes to string: {}", e))?;
 
-        let configs: OAuthConfigs = serde_json::from_str(&config_content)
-            .map_err(|e| format!("Failed to parse config file: {}", e))?;
+    let configs: OAuthConfigs = serde_json::from_str(&config_content)
+        .map_err(|e| format!("Failed to parse config file: {}", e))?;
 
-        return Ok(configs);
-    }
+    return Ok(configs);
+    // }
 
     Err("cannot find config".to_string())
 }
