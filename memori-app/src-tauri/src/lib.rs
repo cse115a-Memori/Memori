@@ -1,11 +1,12 @@
 use ble_host::HostBLETransport;
+use transport::ble_types::{HostBLEResponse, DeviceBLECommand};
 use memori_tcp::{
     host::{DeviceConnected},
     DeviceRequest, HostResponse, HostTcpTransport, Sequenced,
 };
 use memori_ui::{
     layout::MemoriLayout,
-    widgets::{MemoriWidget, Name, WidgetId, WidgetKind},
+    widgets::{MemoriWidget, Name, UpdateFrequency, WidgetId, WidgetKind},
     MemoriState,
 };
 use specta_typescript::Typescript;
@@ -61,9 +62,13 @@ async fn connect_device(
 
     match mode {
         DeviceMode::RealDevice => {
-            let conn = HostBLETransport::connect()
+            let (conn, (dev_req_rx, host_resp_tx)) = HostBLETransport::connect()
                 .await
                 .map_err(|e| format!("Failed to connect to device: {e}"))?;
+
+            tokio::spawn(async move {
+                ble_request_handler(dev_req_rx, host_resp_tx).await;
+            });
 
             *guard = DeviceConnection::RealDevice(conn);
             println!("Connected to real device over Bluetooth");
@@ -159,27 +164,27 @@ async fn send_string(state: State<'_, AppState>, string: String) -> Result<(), S
     //     5,
     // );
 
-    let memori_state = MemoriState::new(
-        0,
-        vec![MemoriWidget::new(
-            WidgetId(0),
-            WidgetKind::Name(Name::new(string)),
-            UpdateFrequency::Never,
-        )],
-        vec![MemoriLayout::Fourths {
-            top_right: WidgetId(0),
-            bottom_left: WidgetId(0),
-            bottom_right: WidgetId(0),
-            top_left: WidgetId(0),
-        }],
-        5,
-    );
-    if let DeviceConnection::Simulator(conn) = &mut *state_guard {
-        return conn
-            .set_state(memori_state)
-            .await
-            .map_err(|e| format!("Failed to set state: {e}"));
-    }
+    // let memori_state = MemoriState::new(
+    //     0,
+    //     // vec![MemoriWidget::new(
+    //     //     WidgetId(0),
+    //     //     WidgetKind::Name(Name::new(string)),
+    //     //     UpdateFrequency::Never,
+    //     // )],
+    //     // vec![MemoriLayout::Fourths {
+    //     //     top_right: WidgetId(0),
+    //     //     bottom_left: WidgetId(0),
+    //     //     bottom_right: WidgetId(0),
+    //     //     top_left: WidgetId(0),
+    //     // }],
+    //     5,
+    // );
+    // if let DeviceConnection::Simulator(conn) = &mut *state_guard {
+    //     return conn
+    //         .set_state(memori_state)
+    //         .await
+    //         .map_err(|e| format!("Failed to set state: {e}"));
+    // }
 
     Err("Device is not connected on tcp".to_string())
 }
@@ -200,6 +205,11 @@ pub fn run() {
     builder
         .export(Typescript::default(), "../src/lib/tauri/bindings.ts")
         .expect("Failed to export typescript bindings");
+
+    // #[cfg(all(debug_assertions, not(any(target_os = "ios", target_os = "android"))))]
+    // builder
+    //     .export(Typescript::default(), "../src/lib/tauri/bindings.ts")
+    //     .expect("Failed to export typescript bindings");
 
     tauri::Builder::default()
         .manage(AppState::new())
@@ -239,5 +249,21 @@ pub async fn request_handler(
         host_resp_tx
             .send(Sequenced::new(req.seq_num, resp))
             .unwrap();
+    }
+}
+
+pub async fn ble_request_handler(
+    mut dev_cmd_rx: UnboundedReceiver<DeviceBLECommand>,
+    host_resp_tx: UnboundedSender<HostBLEResponse>,
+) {
+    while let Some(cmd) = dev_cmd_rx.recv().await {
+        println!("received command from device! {cmd:#?}");
+        let resp = match cmd {
+            DeviceBLECommand::RefreshData { widget_id } => {
+                todo!()
+            }
+            DeviceBLECommand::Ping => HostBLEResponse::Ping { result: Ok(()) },
+        };
+        host_resp_tx.send(resp).unwrap();
     }
 }
