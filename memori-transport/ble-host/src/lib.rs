@@ -14,12 +14,12 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{Mutex, mpsc, oneshot};
 use tokio::time::sleep;
-use transport::ByteArray;
 use transport::ble_types::*;
 use transport::ble_types::{
     BATTERY_LEVEL_CHAR_UUID as BATTERY_CHAR_STR, NUS_RX_CHAR_UUID as NUS_RX_STR,
     NUS_TX_CHAR_UUID as NUS_TX_STR,
 };
+
 use transport::*;
 use uuid::Uuid;
 
