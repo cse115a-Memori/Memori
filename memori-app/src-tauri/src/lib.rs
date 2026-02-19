@@ -2,8 +2,8 @@ mod oauth;
 use crate::oauth::*;
 use ble_host::HostBLETransport;
 use memori_tcp::{
-    host::{DeviceConnected},
-    DeviceRequest, HostResponse, HostTcpTransport, Sequenced,
+    host::DeviceConnected, host::DeviceDisconnected, DeviceRequest, HostResponse, HostTcpTransport,
+    Sequenced,
 };
 use memori_ui::{
     layout::MemoriLayout,
@@ -27,9 +27,7 @@ enum TCPConnection {
     Disconnected(HostTcpTransport<DeviceDisconnected>),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(serde::Serialize, serde::Deserialize)]
-#[derive(specta::Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, specta::Type)]
 pub enum DeviceMode {
     RealDevice,
     Simulator,
@@ -44,7 +42,7 @@ enum DeviceConnection {
 struct AppState {
     tcp_conn: Mutex<TCPConnection>,
     // ble_conn: Mutex<BLEConnection>,
-    conn: Mutex<DeviceConnection>
+    conn: Mutex<DeviceConnection>,
 }
 
 impl AppState {
@@ -52,7 +50,7 @@ impl AppState {
         Self {
             tcp_conn: Mutex::new(TCPConnection::Disconnected(HostTcpTransport::default())),
             // ble_conn: Mutex::new(BLEConnection::Disconnected(HostBLETransport::default())),
-            conn: Mutex::new(DeviceConnection::Disconnected)
+            conn: Mutex::new(DeviceConnection::Disconnected),
         }
     }
 }
@@ -65,10 +63,7 @@ async fn hello(name: String) -> Result<String, String> {
 
 #[tauri::command]
 #[specta::specta]
-async fn connect_device(
-    state: State<'_, AppState>,
-    mode: DeviceMode,
-) -> Result<(), String> {
+async fn connect_device(state: State<'_, AppState>, mode: DeviceMode) -> Result<(), String> {
     let mut guard = state.conn.lock().await;
 
     if !matches!(*guard, DeviceConnection::Disconnected) {
@@ -114,10 +109,10 @@ async fn disconnect_device(state: State<'_, AppState>) -> Result<(), String> {
     match old_connection {
         DeviceConnection::RealDevice(transport) => {
             transport.disconnect().await;
-        },
+        }
         DeviceConnection::Simulator(transport) => {
             transport.disconnect();
-        },
+        }
         DeviceConnection::Disconnected => {}
     }
 
@@ -177,7 +172,8 @@ async fn send_name(state: State<'_, AppState>, name: String) -> Result<(), Strin
         vec![MemoriWidget::new(
             WidgetId(0),
             WidgetKind::Name(Name::new(name)),
-            Some(UpdateFrequency::Seconds(1)),
+            UpdateFrequency::Seconds(1),
+            UpdateFrequency::Seconds(1),
         )],
         vec![MemoriLayout::Fourths {
             top_right: WidgetId(0),
@@ -237,14 +233,14 @@ async fn send_temp(state: State<'_, AppState>, city: String) -> Result<(), Strin
         vec![MemoriWidget::new(
             WidgetId(0),
             WidgetKind::Weather(Weather::new(response.main.temp.to_string())),
-            Some(UpdateFrequency::Seconds(60)),
+            UpdateFrequency::Seconds(60),
+            UpdateFrequency::Seconds(60),
         )],
         vec![MemoriLayout::Full(WidgetId(0))],
         5,
     );
     if let TCPConnection::Connected(conn) = &mut *state_guard {
-
-    // if let DeviceConnection::Simulator(conn) = &mut *state_guard {
+        // if let DeviceConnection::Simulator(conn) = &mut *state_guard {
 
         return conn
             .set_state(memori_state)

@@ -41,7 +41,12 @@ impl UpdateFrequency {
 }
 
 impl MemoriWidget {
-    pub fn new(id: WidgetId, kind: WidgetKind, remote_update_frequency: UpdateFrequency, local_update_frequency: UpdateFrequency) -> Self {
+    pub fn new(
+        id: WidgetId,
+        kind: WidgetKind,
+        remote_update_frequency: UpdateFrequency,
+        local_update_frequency: UpdateFrequency,
+    ) -> Self {
         Self {
             id,
             kind,
@@ -61,7 +66,7 @@ impl MemoriWidget {
     pub fn get_remote_update_frequency(&self) -> UpdateFrequency {
         self.remote_update_frequency
     }
-    
+
     pub fn get_local_update_frequency(&self) -> UpdateFrequency {
         self.local_update_frequency
     }
@@ -80,6 +85,8 @@ impl WidgetKind {
         match self {
             Self::Clock(c) => c.update(),
             Self::Name(n) => n.update(),
+            Self::Weather(w) => w.update(),
+            Self::Bus(b) => b.update(),
         }
     }
 }

@@ -1,5 +1,6 @@
 use alloc::format;
 use alloc::string::String;
+use log::info;
 use ratatui::{text::Text, widgets::Widget};
 use serde::{Deserialize, Serialize};
 
@@ -16,6 +17,9 @@ impl Bus {
             route: route.into(),
             prediction: prediction.into(),
         }
+    }
+    pub fn update(&mut self) {
+        info!("Updated name");
     }
 }
 

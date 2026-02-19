@@ -1,4 +1,5 @@
 use alloc::{format, string::String, vec, vec::Vec};
+use log::info;
 use ratatui::{
     layout::{Alignment, Rect},
     prelude::Buffer,
@@ -22,6 +23,9 @@ impl Weather {
             temp: temp.into(),
             icon: "placeholder text".into(),
         }
+    }
+    pub fn update(&mut self) {
+        info!("Updated name");
     }
 }
 

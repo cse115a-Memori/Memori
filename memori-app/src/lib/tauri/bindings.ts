@@ -113,10 +113,8 @@ async loginWithProvider(provider: string) : Promise<Result<UserInfo, string>> {
 
 /** user-defined types **/
 
-
-export type UserInfo = { id: string; name: string; email: string; avatar: string | null; provider: string; access_token: string }
-
 export type DeviceMode = "RealDevice" | "Simulator"
+export type UserInfo = { id: string; name: string; email: string; avatar: string | null; provider: string; access_token: string }
 
 /** tauri-specta globals **/
 
