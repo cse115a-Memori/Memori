@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use std::sync::mpsc;
 use tauri::{path::BaseDirectory, Emitter, Manager, Window};
 use tauri_plugin_oauth::OauthConfig;
@@ -22,7 +23,9 @@ pub struct OAuthConfigs {
     pub twitch: OAuthConfig,
 }
 
-#[derive(Serialize, specta::Type)]
+#[derive(Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+#[specta(rename_all = "camelCase")]
 pub struct UserInfo {
     pub id: String,
     pub name: String,

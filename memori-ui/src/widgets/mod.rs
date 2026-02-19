@@ -18,6 +18,8 @@ use specta::Type;
 pub struct WidgetId(pub u32);
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Type)]
+#[serde(rename_all = "camelCase")]
+#[specta(rename_all = "camelCase")]
 pub struct MemoriWidget {
     pub id: WidgetId,
     pub(crate) kind: WidgetKind,

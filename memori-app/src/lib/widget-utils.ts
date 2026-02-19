@@ -17,7 +17,7 @@ type WidgetPayload<V extends LayoutVariant> = Extract<
 
 type SlotName<V extends LayoutVariant> = Extract<keyof WidgetPayload<V>, string>
 
-// layout slot (e.g. HSplit.top valid, HSplit.bottom_right invalid)
+// layout slot (e.g. HSplit.top valid, HSplit.bottomRight invalid)
 export type SlotPosition = {
 	[V in LayoutVariant]: `${V}.${SlotName<V>}`
 }[LayoutVariant]
@@ -73,23 +73,23 @@ export const LAYOUT_TEMPLATES: LayoutTemplate = {
 		container: 'grid-cols-2 grid-rows-2',
 		slots: {
 			left: { classes: 'col-start-1 row-start-1 row-end-3' },
-			right_top: { classes: 'col-start-2 row-start-1' },
-			right_bottom: { classes: 'col-start-2 row-start-2' },
+			rightTop: { classes: 'col-start-2 row-start-1' },
+			rightBottom: { classes: 'col-start-2 row-start-2' },
 		},
 	},
 	HSplitWithTopVSplit: {
 		container: 'grid-cols-2 grid-rows-2',
 		slots: {
-			top_left: { classes: 'col-start-1 row-start-1' },
-			top_right: { classes: 'col-start-2 row-start-1' },
+			topLeft: { classes: 'col-start-1 row-start-1' },
+			topRight: { classes: 'col-start-2 row-start-1' },
 			bottom: { classes: 'col-start-1 col-end-3 row-start-2' },
 		},
 	},
 	VSplitWithLeftHSplit: {
 		container: 'grid-cols-2 grid-rows-2',
 		slots: {
-			left_top: { classes: 'col-start-1 row-start-1' },
-			left_bottom: { classes: 'col-start-1 row-start-2' },
+			leftTop: { classes: 'col-start-1 row-start-1' },
+			leftBottom: { classes: 'col-start-1 row-start-2' },
 			right: { classes: 'col-start-2 row-start-1 row-end-3' },
 		},
 	},
@@ -97,17 +97,17 @@ export const LAYOUT_TEMPLATES: LayoutTemplate = {
 		container: 'grid-cols-2 grid-rows-2',
 		slots: {
 			top: { classes: 'col-start-1 col-end-3 row-start-1' },
-			bottom_left: { classes: 'col-start-1 row-start-2' },
-			bottom_right: { classes: 'col-start-2 row-start-2' },
+			bottomLeft: { classes: 'col-start-1 row-start-2' },
+			bottomRight: { classes: 'col-start-2 row-start-2' },
 		},
 	},
 	Fourths: {
 		container: 'grid-cols-2 grid-rows-2',
 		slots: {
-			top_left: { classes: 'col-start-1 row-start-1' },
-			top_right: { classes: 'col-start-2 row-start-1' },
-			bottom_left: { classes: 'col-start-1 row-start-2' },
-			bottom_right: { classes: 'col-start-2 row-start-2' },
+			topLeft: { classes: 'col-start-1 row-start-1' },
+			topRight: { classes: 'col-start-2 row-start-1' },
+			bottomLeft: { classes: 'col-start-1 row-start-2' },
+			bottomRight: { classes: 'col-start-2 row-start-2' },
 		},
 	},
 }

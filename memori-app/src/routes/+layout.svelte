@@ -1,9 +1,8 @@
 <script lang="ts">
   import { Button } from '@/components/ui/button'
-  import { goto, onNavigate } from '$app/navigation'
+  import { onNavigate } from '$app/navigation'
   import { page } from '$app/state'
   import '../app.css'
-  import { onMount } from 'svelte'
 
   const { children } = $props()
 
@@ -22,8 +21,10 @@
 <div class="min-h-dvh">
   <div class="mx-auto w-full max-w-screen-sm px-4 py-6">
     {@render navLinks('/', 'Home')}
-    {@render navLinks('/test', 'test')}
-    {@render navLinks('/location', 'location')}
+    {@render navLinks('/login', 'Login')}
+    {@render navLinks('/device', 'Device')}
+    {@render navLinks('/test', 'Test')}
+    {@render navLinks('/location', 'Location')}
 
     {@render children?.()}
   </div>

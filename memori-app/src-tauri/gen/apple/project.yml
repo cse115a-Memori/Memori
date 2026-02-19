@@ -1,6 +1,6 @@
 name: memori-app
 options:
-  bundleIdPrefix: com.suri.memori-app
+  bundleIdPrefix: com.kt.memori-app
   deploymentTarget:
     iOS: 14.0
 fileGroups: [../../src]
@@ -11,7 +11,7 @@ settingGroups:
   app:
     base:
       PRODUCT_NAME: memori-app
-      PRODUCT_BUNDLE_IDENTIFIER: com.suri.memori-app
+      PRODUCT_BUNDLE_IDENTIFIER: com.kt.memori-app
 targetTemplates:
   app:
     type: application

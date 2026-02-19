@@ -1,4 +1,4 @@
-package com.suri.memori_app
+package com.kt.memori_app
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge

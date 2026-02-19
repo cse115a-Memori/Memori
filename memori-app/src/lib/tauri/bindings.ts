@@ -7,8 +7,8 @@ export const commands = {
     try {
       return { status: 'ok', data: await TAURI_INVOKE('hello', { name }) }
     } catch (e) {
-      if (e instanceof Error) throw e
-      else return { status: 'error', error: e as any }
+      const message = e instanceof Error ? e.message : String(e)
+      return { status: 'error', error: message as any }
     }
   },
   async connectDevice(mode: DeviceMode): Promise<Result<null, string>> {
@@ -18,40 +18,40 @@ export const commands = {
         data: await TAURI_INVOKE('connect_device', { mode }),
       }
     } catch (e) {
-      if (e instanceof Error) throw e
-      else return { status: 'error', error: e as any }
+      const message = e instanceof Error ? e.message : String(e)
+      return { status: 'error', error: message as any }
     }
   },
   async disconnectDevice(): Promise<Result<null, string>> {
     try {
       return { status: 'ok', data: await TAURI_INVOKE('disconnect_device') }
     } catch (e) {
-      if (e instanceof Error) throw e
-      else return { status: 'error', error: e as any }
+      const message = e instanceof Error ? e.message : String(e)
+      return { status: 'error', error: message as any }
     }
   },
   async getDeviceMode(): Promise<Result<DeviceMode | null, string>> {
     try {
       return { status: 'ok', data: await TAURI_INVOKE('get_device_mode') }
     } catch (e) {
-      if (e instanceof Error) throw e
-      else return { status: 'error', error: e as any }
+      const message = e instanceof Error ? e.message : String(e)
+      return { status: 'error', error: message as any }
     }
   },
   async isConnected(): Promise<Result<boolean, string>> {
     try {
       return { status: 'ok', data: await TAURI_INVOKE('is_connected') }
     } catch (e) {
-      if (e instanceof Error) throw e
-      else return { status: 'error', error: e as any }
+      const message = e instanceof Error ? e.message : String(e)
+      return { status: 'error', error: message as any }
     }
   },
   async getBattery(): Promise<Result<number, string>> {
     try {
       return { status: 'ok', data: await TAURI_INVOKE('get_battery') }
     } catch (e) {
-      if (e instanceof Error) throw e
-      else return { status: 'error', error: e as any }
+      const message = e instanceof Error ? e.message : String(e)
+      return { status: 'error', error: message as any }
     }
   },
   async getWidgetKinds(): Promise<
@@ -60,8 +60,8 @@ export const commands = {
     try {
       return { status: 'ok', data: await TAURI_INVOKE('get_widget_kinds') }
     } catch (e) {
-      if (e instanceof Error) throw e
-      else return { status: 'error', error: e as any }
+      const message = e instanceof Error ? e.message : String(e)
+      return { status: 'error', error: message as any }
     }
   },
   async sendTwitch(token: string): Promise<Result<string, string>> {
@@ -71,24 +71,24 @@ export const commands = {
         data: await TAURI_INVOKE('send_twitch', { token }),
       }
     } catch (e) {
-      if (e instanceof Error) throw e
-      else return { status: 'error', error: e as any }
+      const message = e instanceof Error ? e.message : String(e)
+      return { status: 'error', error: message as any }
     }
   },
   async sendName(name: string): Promise<Result<null, string>> {
     try {
       return { status: 'ok', data: await TAURI_INVOKE('send_name', { name }) }
     } catch (e) {
-      if (e instanceof Error) throw e
-      else return { status: 'error', error: e as any }
+      const message = e instanceof Error ? e.message : String(e)
+      return { status: 'error', error: message as any }
     }
   },
   async sendTemp(city: string): Promise<Result<null, string>> {
     try {
       return { status: 'ok', data: await TAURI_INVOKE('send_temp', { city }) }
     } catch (e) {
-      if (e instanceof Error) throw e
-      else return { status: 'error', error: e as any }
+      const message = e instanceof Error ? e.message : String(e)
+      return { status: 'error', error: message as any }
     }
   },
   async sendBustime(lat: number, lon: number): Promise<Result<string, string>> {
@@ -98,16 +98,16 @@ export const commands = {
         data: await TAURI_INVOKE('send_bustime', { lat, lon }),
       }
     } catch (e) {
-      if (e instanceof Error) throw e
-      else return { status: 'error', error: e as any }
+      const message = e instanceof Error ? e.message : String(e)
+      return { status: 'error', error: message as any }
     }
   },
   async startOauthServer(): Promise<Result<number, string>> {
     try {
       return { status: 'ok', data: await TAURI_INVOKE('start_oauth_server') }
     } catch (e) {
-      if (e instanceof Error) throw e
-      else return { status: 'error', error: e as any }
+      const message = e instanceof Error ? e.message : String(e)
+      return { status: 'error', error: message as any }
     }
   },
   async loginWithProvider(provider: string): Promise<Result<UserInfo, string>> {
@@ -117,8 +117,8 @@ export const commands = {
         data: await TAURI_INVOKE('login_with_provider', { provider }),
       }
     } catch (e) {
-      if (e instanceof Error) throw e
-      else return { status: 'error', error: e as any }
+      const message = e instanceof Error ? e.message : String(e)
+      return { status: 'error', error: message as any }
     }
   },
 }
@@ -182,8 +182,8 @@ export type MemoriLayout =
   | {
       VSplitWithRightHSplit: {
         left: WidgetId
-        right_top: WidgetId
-        right_bottom: WidgetId
+        rightTop: WidgetId
+        rightBottom: WidgetId
       }
     }
   /**
@@ -200,8 +200,8 @@ export type MemoriLayout =
   | {
       HSplitWithTopVSplit: {
         bottom: WidgetId
-        top_right: WidgetId
-        top_left: WidgetId
+        topRight: WidgetId
+        topLeft: WidgetId
       }
     }
   /**
@@ -217,8 +217,8 @@ export type MemoriLayout =
    */
   | {
       VSplitWithLeftHSplit: {
-        left_top: WidgetId
-        left_bottom: WidgetId
+        leftTop: WidgetId
+        leftBottom: WidgetId
         right: WidgetId
       }
     }
@@ -237,8 +237,8 @@ export type MemoriLayout =
   | {
       HSplitWithBottomVSplit: {
         top: WidgetId
-        bottom_left: WidgetId
-        bottom_right: WidgetId
+        bottomLeft: WidgetId
+        bottomRight: WidgetId
       }
     }
   /**
@@ -254,17 +254,17 @@ export type MemoriLayout =
    */
   | {
       Fourths: {
-        top_left: WidgetId
-        top_right: WidgetId
-        bottom_left: WidgetId
-        bottom_right: WidgetId
+        topLeft: WidgetId
+        topRight: WidgetId
+        bottomLeft: WidgetId
+        bottomRight: WidgetId
       }
     }
 export type MemoriWidget = {
   id: WidgetId
   kind: WidgetKind
-  remote_update_frequency: UpdateFrequency
-  local_update_frequency: UpdateFrequency
+  remoteUpdateFrequency: UpdateFrequency
+  localUpdateFrequency: UpdateFrequency
 }
 /**
  * Define a widget by its data
@@ -281,7 +281,7 @@ export type UserInfo = {
   email: string
   avatar: string | null
   provider: string
-  access_token: string
+  accessToken: string
 }
 /**
  * Define a widget by its data
