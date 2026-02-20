@@ -6,6 +6,9 @@ target
 ./memori-hw/memori-hw-backups/*
 ./memori-hw/fp-info-cache
 
+*.step
+*.png
+
 .direnv
 .DS_Store
 
