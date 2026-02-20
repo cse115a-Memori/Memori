@@ -3,7 +3,7 @@ use embedded_graphics::{pixelcolor::BinaryColor, prelude::*};
 use embedded_graphics_simulator::{OutputSettings, SimulatorDisplay, SimulatorEvent, Window};
 use memori_tcp::{DeviceResponse, DeviceTcpTransport, HostRequest, Sequenced};
 use memori_ui::layout::MemoriLayout;
-use memori_ui::widgets::{MemoriWidget, Name, UpdateFrequency, WidgetId, WidgetKind};
+use memori_ui::widgets::{MemoriWidget, Name, UpdateFrequency, WidgetId, WidgetKind, Github, Clock};
 use memori_ui::{Memori, MemoriState};
 use mousefood::{EmbeddedBackend, EmbeddedBackendConfig};
 use std::{sync::Arc, time::Duration};
@@ -60,7 +60,7 @@ async fn main() -> Result<()> {
 
     let mem_state = {
         let state = MemoriState::new(
-            1,
+            4,
             vec![MemoriWidget::new(
                 WidgetId(0),
                 WidgetKind::Name(Name::new("surendra")),
@@ -70,14 +70,39 @@ async fn main() -> Result<()> {
             vec![
                 MemoriLayout::Fourths {
                     top_left: WidgetId(0),
-                    top_right: WidgetId(0),
-                    bottom_left: WidgetId(0),
+                    top_right: WidgetId(1),
+                    bottom_left: WidgetId(1),
                     bottom_right: WidgetId(0),
                 },
+                MemoriLayout::Full(WidgetId(1)),
                 MemoriLayout::VSplit {
                     left: WidgetId(0),
-                    right: WidgetId(0),
+                    right: WidgetId(1),
                 },
+                MemoriLayout::HSplit {
+                    top: WidgetId(0),
+                    bottom: WidgetId(1),
+                },
+                MemoriLayout::VSplitWithLeftHSplit { 
+                    left_top: WidgetId(0),
+                    left_bottom: WidgetId(1),
+                    right: WidgetId(1)
+                },
+                MemoriLayout::VSplitWithRightHSplit { 
+                    right_top: WidgetId(0),
+                    right_bottom: WidgetId(1),
+                    left: WidgetId(1)
+                },
+                MemoriLayout::HSplitWithTopVSplit { 
+                    top_left: WidgetId(0),
+                    top_right: WidgetId(1),
+                    bottom: WidgetId(1)
+                },
+                MemoriLayout::HSplitWithBottomVSplit { 
+                    top: WidgetId(0),
+                    bottom_left: WidgetId(1),
+                    bottom_right: WidgetId(1)
+                }
             ],
             5,
         );
