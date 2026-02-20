@@ -6,10 +6,11 @@ use embassy_executor::Spawner;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex};
 use embassy_time::{Duration, Timer};
 use log::{error, info};
-use memori_ui::{MemoriState, widgets::MemoriWidget};
+use memori_ui::{MemoriState, widgets::MemoriWidget, widgets::UpdateFrequency};
 use transport::{DeviceTransport, TransError, ble_types::*};
 use trouble_host::prelude::*;
 
+use crate::local_widget_update::widget_update_task;
 use crate::ble::{Server, send_packet};
 
 /// Keeps track of the generation of refresh tasks, basically
@@ -51,7 +52,7 @@ pub(super) async fn handle_host_cmd<P: PacketPool>(
                 .iter()
                 // Filter for widgets that have an update frequency
                 .filter_map(|(_, w)| {
-                    if w.update_frequency.is_some() {
+                    if w.get_remote_update_frequency() != UpdateFrequency::Never {
                         Some(w)
                     } else {
                         None
@@ -65,6 +66,7 @@ pub(super) async fn handle_host_cmd<P: PacketPool>(
                     .inspect_err(|e| error!("Error with spawning refresh task: {e:#?}, aborting spawning refresh for this task, may not work as intended."));
             }
           
+            //Identify widgets that need local update
             let widgets_to_update = {
                   mem_state
                   .widgets
@@ -81,7 +83,7 @@ pub(super) async fn handle_host_cmd<P: PacketPool>(
 
               for (widget_id, seconds) in widgets_to_update {
                   spawner
-                      .spawn(widget_update_task(mem_state, widget_id, seconds as u64))
+                      .spawn(widget_update_task(state, widget_id, seconds as u64))
                       .expect("Failed to spawn widget update task");
               }
 
@@ -110,8 +112,8 @@ async fn refresh_widget_task(
 ) {
     // Watches for the cancellation watch to be updated, and returns when it does so.
     let Some(wait_period) = widget
-        .update_frequency
-        .map(|f| f.to_seconds().expect("Should convert to seconds"))
+        .get_remote_update_frequency()
+        .to_seconds()
     else {
         // Called this function on a widget that doesn't have an update frequency, just return.
         return;
