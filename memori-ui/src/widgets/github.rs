@@ -212,6 +212,30 @@ impl Widget for &Github {
                 
                 buf.set_string(chunks[0].x, chunks[0].y, &self.username, Style::default());
                 
+                // Split main content area into left (graph) and right (repo box)
+                let horizontal_chunks = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints([
+                        Constraint::Percentage(50),  // Left: graph
+                        Constraint::Percentage(50),  // Right: repo box
+                    ])
+                    .split(chunks[1]);
+                
+                let graph_area = horizontal_chunks[0];
+                let repo_area = horizontal_chunks[1];
+                
+                let graph_block = Block::default()
+                    .title(" Commits ")
+                    .borders(Borders::ALL)
+                    .border_set(border_set)
+                    .border_style(Style::default().fg(ratatui::style::Color::White));
+                
+                let graph_inner = graph_block.inner(graph_area);
+                graph_block.render(graph_area, buf);
+                
+                let chart = build_commit_graph(&self.commits, self.weekday);
+                chart.render(graph_inner, buf);
+                
                 if let Some(ref repo) = self.repo {
                     let repo_block = Block::default()
                         .title(Line::from(format!(" {} ", repo)))
@@ -219,8 +243,8 @@ impl Widget for &Github {
                         .border_set(border_set)
                         .border_style(Style::default().fg(ratatui::style::Color::White));
                     
-                    let repo_inner = repo_block.inner(chunks[1]);
-                    repo_block.render(chunks[1], buf);
+                    let repo_inner = repo_block.inner(repo_area);
+                    repo_block.render(repo_area, buf);
                     
                     let stats = format!(
                         "Issues: {}\nPRs: {}\nStars: {}\nNotifs: {}",
