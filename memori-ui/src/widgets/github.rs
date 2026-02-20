@@ -22,7 +22,7 @@ pub struct Github {
     pub open_prs: u32,
     pub stars: u32,                 
     pub notifications: u32,         
-    pub commits: [i32; 7],
+    pub commits: [u32; 7],
     weekday: usize,
 }
 
@@ -47,7 +47,7 @@ impl Github {
     }
 }
 
-fn build_commit_graph(commits: &[i32; 7], today_weekday: usize) -> BarChart<'static> {
+fn build_commit_graph(commits: &[u32; 7], today_weekday: usize) -> BarChart<'static> {
     let days = ["M", "T", "W", "T", "F", "S", "S"];
     let bars: Vec<Bar> = commits
         .iter()
