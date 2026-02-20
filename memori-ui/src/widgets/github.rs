@@ -45,6 +45,10 @@ impl Github {
             weekday: 3,
         }
     }
+    
+    pub fn update(&mut self) {
+        // Update stats here
+    }
 }
 
 fn build_commit_graph(commits: &[u32; 7], today_weekday: usize) -> BarChart<'static> {

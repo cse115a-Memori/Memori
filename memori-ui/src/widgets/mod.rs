@@ -2,6 +2,7 @@ mod bus;
 mod clock;
 mod name;
 mod weather;
+mod github;
 pub use bus::*;
 pub use clock::*;
 pub use name::*;
@@ -89,6 +90,7 @@ impl WidgetKind {
             Self::Name(n) => n.update(),
             Self::Weather(w) => w.update(),
             Self::Bus(b) => b.update(),
+            Self::Github(g) => g.update(),
         }
     }
 }
