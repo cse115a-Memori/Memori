@@ -918,7 +918,7 @@ name = "memori-ui"
 version = "0.1.0"
 dependencies = [
  "embedded-graphics",
- "embedded-graphics-unicodefonts 0.1.0",
+ "embedded-graphics-unicodefonts",
  "hashbrown",
  "log",
  "profont",

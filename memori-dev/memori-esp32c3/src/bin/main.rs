@@ -7,6 +7,8 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
+use alloc::vec;
+use alloc::vec::Vec;
 use ble_device::DeviceBLETransport;
 use embassy_executor::Spawner;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
@@ -22,6 +24,9 @@ use esp_hal::{Blocking, clock::CpuClock};
 use log::{debug, info};
 use memori_esp32c3::ble::ble_task;
 use memori_esp32c3::{MemTermInitPins, setup_term};
+use memori_esp32c3::local_widget_update::widget_update_task;
+use memori_ui::layout::MemoriLayout;
+use memori_ui::widgets::{MemoriWidget, Name, UpdateFrequency, WidgetId, WidgetKind, Clock};
 use memori_ui::{Memori, MemoriState};
 use static_cell::StaticCell;
 use weact_studio_epd::graphics::Display290BlackWhite;
@@ -100,12 +105,12 @@ async fn main(spawner: Spawner) -> () {
     ));
 
     spawner
-        .spawn(hello_task())
-        .expect("Failed to begin hello_task");
+      .spawn(hello_task())
+      .expect("Failed to begin hello_task");
 
     spawner
-        .spawn(ui_task(spi_bus, term_init_pins, mem_state))
-        .expect("Failed to begin ui_task");
+      .spawn(ui_task(spi_bus, term_init_pins, mem_state))
+      .expect("Failed to begin ui_task");
 
     spawner
         .spawn(ble_task(

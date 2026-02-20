@@ -13,17 +13,33 @@ async hello(name: string) : Promise<Result<string, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async tcpConnect() : Promise<Result<null, string>> {
+async connectDevice(mode: DeviceMode) : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("tcp_connect") };
+    return { status: "ok", data: await TAURI_INVOKE("connect_device", { mode }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async bleConnect() : Promise<Result<null, string>> {
+async disconnectDevice() : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("ble_connect") };
+    return { status: "ok", data: await TAURI_INVOKE("disconnect_device") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getDeviceMode() : Promise<Result<DeviceMode | null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_device_mode") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async isConnected() : Promise<Result<boolean, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("is_connected") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -37,9 +53,49 @@ async getBattery() : Promise<Result<number, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async sendString(string: string) : Promise<Result<null, string>> {
+async sendTwitch(token: string) : Promise<Result<string, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("send_string", { string }) };
+    return { status: "ok", data: await TAURI_INVOKE("send_twitch", { token }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async sendName(name: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("send_name", { name }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async sendTemp(city: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("send_temp", { city }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async sendBustime(lat: number, lon: number) : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("send_bustime", { lat, lon }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async startOauthServer() : Promise<Result<number, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("start_oauth_server") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async loginWithProvider(provider: string) : Promise<Result<UserInfo, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("login_with_provider", { provider }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -57,7 +113,8 @@ async sendString(string: string) : Promise<Result<null, string>> {
 
 /** user-defined types **/
 
-
+export type DeviceMode = "RealDevice" | "Simulator"
+export type UserInfo = { id: string; name: string; email: string; avatar: string | null; provider: string; access_token: string }
 
 /** tauri-specta globals **/
 

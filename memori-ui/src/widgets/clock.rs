@@ -29,7 +29,7 @@ impl Clock {
         }
     }
 
-    pub fn tick(&mut self) {
+    pub fn update(&mut self) {
         self.seconds += 1;
         if self.seconds == 60 {
             self.seconds = 0;
@@ -39,8 +39,8 @@ impl Clock {
             self.minutes = 0;
             self.hours += 1;
         }
-        if self.hours == 24 {
-            self.hours = 0;
+        if self.hours == 13 {
+            self.hours = 1;
         }
     }
 }

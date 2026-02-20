@@ -103,7 +103,7 @@ async fn logic_task() {
     let mut transport = DeviceBLETransport::new();
 
     loop {
-        Timer::after(Duration::from_secs(1)).await;
+        Timer::after(Duration::from_secs(5)).await;
 
         match transport.ping().await {
             Ok(_) => info!("[logic] ping success"),

@@ -8,6 +8,7 @@ use futures::stream::StreamExt;
 use memori_ui::MemoriState;
 use memori_ui::widgets::{MemoriWidget, WidgetId};
 use postcard::from_bytes;
+use tokio::task::JoinHandle;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
@@ -34,16 +35,8 @@ struct OutboundPacket {
     response_tx: Option<oneshot::Sender<DeviceBLEResponse>>,
 }
 
-// function to find the first currently advertising memori device
-//
-// eventually we want this to be a pairing process with some sort of bonded id
-// instead of something that just finds the nearest device
 async fn find_memori(central: &Adapter) -> Option<Peripheral> {
     for p in central.peripherals().await.ok()?.into_iter() {
-        // p.properties returns a future<result<option<deviceproperties>>>
-        //  therefore we await the future, .ok to convert result to option
-        //  then flatten the external option giving us opt<properties> which
-        //  we can run map on to reach inside and run the closure on
         let has_memori = p
             .properties()
             .await
@@ -79,11 +72,13 @@ pub struct HostBLETransport {
     outbound: mpsc::Sender<OutboundPacket>,
     battery_char: Characteristic,
     peripheral: Peripheral,
+    read_handle: JoinHandle<()>,
+    write_handle: JoinHandle<()>,
+    command_handle: JoinHandle<()>,
 }
 
 impl HostBLETransport {
     pub async fn connect() -> anyhow::Result<Self> {
-        println!("[connect] Creating BLE manager...");
         let manager = Manager::new().await?;
         let central = manager
             .adapters()
@@ -92,19 +87,15 @@ impl HostBLETransport {
             .next()
             .ok_or_else(|| anyhow::anyhow!("No BLE adapters found"))?;
 
-        println!("[connect] Found adapter, starting scan...");
         central.start_scan(ScanFilter::default()).await?;
-        sleep(Duration::from_secs(5)).await;
+        sleep(Duration::from_secs(3)).await;
 
-        println!("[connect] Looking for Memori device...");
         let peripheral = find_memori(&central)
             .await
             .ok_or_else(|| anyhow::anyhow!("Memori device not found"))?;
 
-        println!("[connect] Connecting to device...");
         peripheral.connect().await?;
         peripheral.discover_services().await?;
-        println!("[connect] Services discovered");
 
         let chars = peripheral.characteristics();
         let rx_char = chars
@@ -123,10 +114,7 @@ impl HostBLETransport {
             .ok_or_else(|| anyhow::anyhow!("Battery level characteristic not found"))?
             .clone();
 
-        println!("[connect] Found RX, TX, and battery characteristics");
-
         peripheral.subscribe(&tx_char).await?;
-        println!("[connect] Subscribed to TX characteristic");
 
         let (out_tx, out_rx) = mpsc::channel::<OutboundPacket>(16);
         let (cmd_tx, cmd_rx) = mpsc::channel::<(DeviceBLECommand, u32)>(16);
@@ -134,28 +122,28 @@ impl HostBLETransport {
         let pending_responses: ResponseMap = Arc::new(Mutex::new(HashMap::new()));
         let notif_stream = peripheral.notifications().await?;
 
-        tokio::spawn(Self::notification_reader(
+        let read_handle = tokio::spawn(Self::notification_reader(
             notif_stream,
             cmd_tx,
             pending_responses.clone(),
         ));
-        println!("[connect] Notification reader spawned");
 
-        tokio::spawn(Self::ble_writer(
+        let write_handle = tokio::spawn(Self::ble_writer(
             out_rx,
             peripheral.clone(),
             rx_char.clone(),
             pending_responses.clone(),
         ));
-        println!("[connect] BLE writer spawned");
 
-        tokio::spawn(Self::server_command_handler(cmd_rx, out_tx.clone()));
-        println!("[connect] Server command handler spawned");
+        let command_handle = tokio::spawn(Self::server_command_handler(cmd_rx, out_tx.clone()));
 
         Ok(Self {
             outbound: out_tx,
             battery_char,
             peripheral,
+            read_handle,
+            write_handle,
+            command_handle
         })
     }
 
@@ -186,52 +174,42 @@ impl HostBLETransport {
         cmd_tx: mpsc::Sender<(DeviceBLECommand, MessageID)>,
         pending_responses: ResponseMap,
     ) {
-        println!("[notif_reader] Started");
         while let Some(notification) = notif_stream.next().await {
-            println!(
-                "[notif_reader] received notification: {:?}",
-                notification.uuid
-            );
-
             if notification.uuid != NUS_TX_CHAR_UUID {
                 continue;
             }
 
             let Ok(packet) = from_bytes::<BLEPacket>(&notification.value) else {
-                eprintln!("[notif_reader] failed to parse BLEPacket");
+                eprintln!("[ble-host] notif-reader: failed to parse BLEPacket");
                 continue;
             };
 
             let BLEPacketPayload::DevicePacket(device_packet) = packet.payload else {
-                eprintln!("[notif_reader] received unexpected HostPacket from device");
+                eprintln!("[ble-host] notif-reader: received unexpected HostPacket from device");
                 continue;
             };
 
             match device_packet {
                 DeviceBLEPacket::Command(cmd) => {
-                    println!(
-                        "[notif_reader] Forwarding command: {:?} (id: {})",
-                        cmd, packet.id
-                    );
                     if let Err(e) = cmd_tx.send((cmd, packet.id)).await {
-                        eprintln!("[notif_reader] Failed to send command: {:?}", e);
+                        eprintln!("[ble-host] notif-reader: Failed to send command: {:?}", e);
                     }
                 }
                 DeviceBLEPacket::Response(resp) => {
                     println!(
-                        "[notif_reader] Received response: {:?} (id: {})",
+                        "[ble-host] notif-reader: Received response: {:?} (id: {})",
                         resp, packet.id
                     );
                     let mut map = pending_responses.lock().await;
                     if let Some(tx) = map.remove(&packet.id) {
                         if tx.send(resp).is_err() {
                             eprintln!(
-                                "[notif_reader] Failed to send response to waiting task (id: {})",
+                                "[ble-host] notif-reader: Failed to send response to waiting task (id: {})",
                                 packet.id
                             );
                         }
                     } else {
-                        eprintln!("[notif_reader] No pending request for id: {}", packet.id);
+                        eprintln!("[ble-host] notif-reader: No pending request for id: {}", packet.id);
                     }
                 }
             }
@@ -263,7 +241,7 @@ impl HostBLETransport {
             };
 
             if let Err(e) = send_packet(packet, &peripheral, &rx_char).await {
-                eprintln!("[ble_writer] BLE write failed: {:?}", e);
+                eprintln!("[ble-host] BLE write failed: {:?}", e);
                 // error handling
                 pending_responses.lock().await.remove(&id);
             }
@@ -274,14 +252,9 @@ impl HostBLETransport {
         mut cmd_rx: mpsc::Receiver<(DeviceBLECommand, MessageID)>,
         outbound_tx: mpsc::Sender<OutboundPacket>,
     ) {
-        println!("[cmd_handler] Started");
-
         while let Some((cmd, id)) = cmd_rx.recv().await {
-            println!("[cmd_handler] Handling command: {:?} (id: {})", cmd, id);
-
             let response = match cmd {
                 DeviceBLECommand::Ping => {
-                    println!("[cmd_handler] Sending ping response");
                     HostBLEResponse::Ping { result: Ok(()) }
                 }
                 DeviceBLECommand::RefreshData { widget_id } => {
@@ -292,13 +265,9 @@ impl HostBLETransport {
                     bytes
                         .extend_from_slice(widget_id.0.to_string().as_bytes())
                         .unwrap();
-                    println!(
-                        "[cmd_handler] Sending refresh response for widget {:?}",
-                        widget_id
-                    );
 
                     let Ok(widget) = from_bytes::<MemoriWidget>(&bytes) else {
-                        eprintln!("Failed to deserialize widget");
+                        eprintln!("[ble-host] command: Failed to deserialize widget");
                         continue;
                     };
 
@@ -313,10 +282,22 @@ impl HostBLETransport {
             };
 
             if let Err(e) = outbound_tx.send(packet).await {
-                eprintln!("[cmd_handler] Failed to send response: {:?}", e);
+                eprintln!("[ble-host] command: Failed to send response: {:?}", e);
             }
         }
     }
+
+    pub async fn disconnect(self) {
+        tokio::spawn(async move {
+            if let Err(e) = self.peripheral.disconnect().await {
+                eprintln!("[ble-host] disconnect: failed to disconnect: {}", e);
+        }});
+
+        self.read_handle.abort();
+        self.write_handle.abort();
+        self.command_handle.abort();
+    }
+
 }
 
 impl HostTransport for HostBLETransport {
@@ -332,13 +313,11 @@ impl HostTransport for HostBLETransport {
     }
 
     async fn get_widget(&mut self, id: WidgetId) -> TransResult<MemoriWidget> {
-        println!("[host_transport] Sending GetWidget command for {:?}", id);
         let command = HostBLECommand::GetWidget { widget_id: id };
         let response = self.send_command(command).await?;
 
         match response {
             DeviceBLEResponse::WidgetGet { result } => {
-                println!("[host_transport] Widget received");
                 result
             }
             _ => {
@@ -349,30 +328,26 @@ impl HostTransport for HostBLETransport {
     }
 
     async fn get_battery_level(&mut self) -> TransResult<u8> {
-        println!("[host_transport] Reading battery level...");
         let data = self
             .peripheral
             .read(&self.battery_char)
             .await
             .map_err(|_| {
-                eprintln!("[host_transport] Failed to read battery characteristic");
+                eprintln!("[ble-host] Failed to read battery characteristic");
                 TransError::ProtocolIssue
             })?;
 
         match data.as_slice() {
             [level] => {
-                println!("[host_transport] Battery level: {}", level);
                 Ok(*level)
             }
             _ => {
-                eprintln!("[host_transport] Invalid battery response");
                 Err(TransError::InvalidMessage)
             }
         }
     }
 
     async fn set_device_config(&mut self, config: DeviceConfig) -> TransResult<()> {
-        println!("[host_transport] set_device_config called");
         let command = HostBLECommand::SetConfig { config };
         let response = self.send_command(command).await?;
 

@@ -132,5 +132,5 @@ Work hours / day : 1.0384615384615385
 
 
 = Burnup Chart
-#image("Story Points Burn.png")
+#image("BurnupChart-1.png")
 // Get a burnup chart from github

@@ -1,7 +1,8 @@
 #![no_std]
 
 use embedded_graphics::mono_font::MonoFont;
-use embedded_graphics_unicodefonts::*;
+use embedded_graphics_unicodefonts::MONO_6X10;
+use profont::PROFONT_18_POINT;
 use ratatui::prelude::*;
 
 extern crate alloc;
