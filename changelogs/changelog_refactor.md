@@ -1,5 +1,36 @@
 # Changelog
 
+## 2026-02-20
+
+### `memori-app` location route platform guard
+
+- Updated `memori/memori-app/src/routes/location/+page.svelte` to gate geolocation behavior to mobile platforms only.
+- Added a derived status value that reports `not-available` when the app is not running on mobile.
+- Skips permission checks and `watchPosition` startup on non-mobile platforms.
+- Added explicit UI feedback message: `Location status is not available on this platform.`
+- Kept watch cleanup via the `onMount` teardown return (`stopWatching`) for active mobile sessions.
+
+### `memori-app` location state/service cleanup
+
+- Extracted location permission + position sync into `memori/memori-app/src/lib/services/location-service.ts`.
+- Consolidated ownership so `memori/memori-app/src/routes/device/+page.svelte` requests/refreshes location and updates shared `appState`.
+- Added initialization behavior that uses `lastKnownLocation` as fallback, then updates it when a fresh position is available.
+- Simplified `device/+page.svelte` handlers by removing extra wrappers and small helper indirections for clearer action-by-action flow.
+- Restored location test UI in `memori/memori-app/src/routes/location/+page.svelte`:
+  - status display
+  - lat/long display
+  - explicit `Enable Location` button (hidden when status is `not-available`)
+- Removed the redirect button to `/device` so the location route remains a standalone testing page.
+
+### `memori-app` route simplification and permission UX polish
+
+- Updated `memori/memori-app/src/routes/location/+page.svelte` to check permission state before showing the enable action.
+- Button visibility is now gated to prompt states only (`prompt` / `prompt-with-rationale`), and hidden for `granted`, `denied`, and `not-available`.
+- Restored denied-state guidance text directing users to Settings > Privacy > Location.
+- Added explicit fallback messaging when rendering last-known coordinates without live permission.
+- Simplified route state logic by inlining one-off values and restoring derived wrappers only where reused multiple times.
+- Updated home navigation in `memori/memori-app/src/routes/+page.svelte` from `/test` to `/widgets`.
+
 ## 2026-02-19
 
 ### Monorepo tooling
@@ -55,17 +86,17 @@
 ### Route extraction and page cleanup
 
 - Kept root page minimal:
-  - `memori-app/src/routes/+page.svelte` now acts as a simple navigation hub.
+  - `memori/memori-app/src/routes/+page.svelte` now acts as a simple navigation hub.
 - Moved feature flows out of root page:
-  - login flow to `memori-app/src/routes/login/+page.svelte`
-  - device flow to `memori-app/src/routes/device/+page.svelte`
-- Updated `memori-app/src/routes/+layout.svelte` nav links to include `Login` and `Device`.
+  - login flow to `memori/memori-app/src/routes/login/+page.svelte`
+  - device flow to `memori/memori-app/src/routes/device/+page.svelte`
+- Updated `memori/memori-app/src/routes/+layout.svelte` nav links to include `Login` and `Device`.
 
 ### Command handling cleanup in Svelte routes
 
 - Standardized frontend command calls on `tryCmd(...)` and typed `commands.*` usage.
-- Added shared command handling helper in `memori-app/src/routes/device/+page.svelte` to reduce duplicated success/error logic.
-- `memori-app/src/routes/login/+page.svelte` now uses explicit state for hydration + action status (`pendingAction`, `statusMessage`, `errorMessage`).
+- Added shared command handling helper in `memori/memori-app/src/routes/device/+page.svelte` to reduce duplicated success/error logic.
+- `memori/memori-app/src/routes/login/+page.svelte` now uses explicit state for hydration + action status (`pendingAction`, `statusMessage`, `errorMessage`).
 
 ### Widget/layout client mapping updates
 

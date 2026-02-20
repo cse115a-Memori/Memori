@@ -3,7 +3,6 @@
   import type { UserInfo } from '@/tauri'
   import { commands, tryCmd } from '@/tauri'
   import { Button } from '$lib/components/ui/button/index.js'
-  import * as Field from '$lib/components/ui/field/index.js'
   import { getUser, login, logout } from '$lib/services/auth-service'
 
   type PendingAction = 'hydrating' | 'login' | 'send' | 'logout'
@@ -11,10 +10,10 @@
   let errorMessage = $state('')
   let statusMessage = $state('')
   let pendingAction = $state<PendingAction | null>('hydrating')
-  let isLoading = $derived(pendingAction !== null)
 
   let currentUser = $state<UserInfo | null>(null)
-  let token = $derived(currentUser?.accessToken)
+  const isBusy = $derived(pendingAction !== null)
+  const accessToken = $derived(currentUser?.accessToken ?? null)
 
   onMount(() => {
     void hydrateCurrentUser()
@@ -32,8 +31,7 @@
     pendingAction = null
   }
 
-  const loginTwitch = async (e: Event) => {
-    e.preventDefault()
+  async function loginTwitch() {
     errorMessage = ''
     statusMessage = ''
     pendingAction = 'login'
@@ -49,15 +47,14 @@
     pendingAction = null
   }
 
-  const sendTwitch = async (e: Event) => {
-    e.preventDefault()
-    if (!token) {
+  async function sendTwitch() {
+    if (!accessToken) {
       statusMessage = 'Missing OAuth access token'
       return
     }
 
     pendingAction = 'send'
-    await tryCmd(commands.sendTwitch(token)).match(
+    await tryCmd(commands.sendTwitch(accessToken)).match(
       (data) => {
         statusMessage = data
       },
@@ -68,8 +65,7 @@
     pendingAction = null
   }
 
-  const logoutTwitch = async (e: Event) => {
-    e.preventDefault()
+  async function logoutTwitch() {
     pendingAction = 'logout'
     statusMessage = ''
     errorMessage = ''
@@ -104,29 +100,31 @@
     </div>
   {/if}
 
-  <fieldset disabled={isLoading} class="contents">
-    <form class="mt-4" onsubmit={loginTwitch}>
-      <Field.Field>
-        <Button type="submit" variant="outline">Connect to twitch</Button>
-      </Field.Field>
-    </form>
+  <div class="mt-4">
+    <Button variant="outline" onclick={loginTwitch} disabled={isBusy}>
+      Connect to twitch
+    </Button>
+  </div>
 
-    <form class="mt-4" onsubmit={sendTwitch}>
-      <Field.Field>
-        <Button type="submit" variant="outline" disabled={!token}
-          >Send twitch</Button
-        >
-      </Field.Field>
-    </form>
+  <div class="mt-4">
+    <Button
+      variant="outline"
+      onclick={sendTwitch}
+      disabled={isBusy || !accessToken}
+    >
+      Send twitch
+    </Button>
+  </div>
 
-    <form class="mt-4" onsubmit={logoutTwitch}>
-      <Field.Field>
-        <Button type="submit" variant="outline" disabled={!currentUser}
-          >Logout</Button
-        >
-      </Field.Field>
-    </form>
-  </fieldset>
+  <div class="mt-4">
+    <Button
+      variant="outline"
+      onclick={logoutTwitch}
+      disabled={isBusy || !currentUser}
+    >
+      Logout
+    </Button>
+  </div>
 
   <p class="mt-4 text-center">
     <Button variant="link" href="/">Back Home</Button>

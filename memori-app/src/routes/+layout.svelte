@@ -1,10 +1,19 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
   import { Button } from '@/components/ui/button'
+  import { startAppStore } from '@/stores/app-store'
+  import { startAuthStore } from '@/stores/auth-store'
   import { onNavigate } from '$app/navigation'
   import { page } from '$app/state'
   import '../app.css'
 
   const { children } = $props()
+
+  onMount(() => {
+    void Promise.all([startAppStore(), startAuthStore()]).catch((error) => {
+      console.error('Failed to start stores:', error)
+    })
+  })
 
   onNavigate((navigation) => {
     if (!document.startViewTransition) return
@@ -23,7 +32,7 @@
     {@render navLinks('/', 'Home')}
     {@render navLinks('/login', 'Login')}
     {@render navLinks('/device', 'Device')}
-    {@render navLinks('/test', 'Test')}
+    {@render navLinks('/widgets', 'widgets')}
     {@render navLinks('/location', 'Location')}
 
     {@render children?.()}

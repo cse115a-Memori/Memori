@@ -1,74 +1,110 @@
 <script lang="ts">
-  import {
-    checkPermissions,
-    getCurrentPosition,
-    type PermissionStatus,
-    type Position,
-    requestPermissions,
-    watchPosition,
-  } from '@tauri-apps/plugin-geolocation'
+  import { onMount } from 'svelte'
   import { Button } from '@/components/ui/button'
+  import {
+    refreshLocationState,
+    requestLocationState,
+  } from '@/services/location-service'
+  import { appState, startAppStore } from '@/stores/app-store'
 
-  let position = $state<Position | null>()
-  let permission = $state<PermissionStatus['location']>('prompt')
+  let errorMessage = $state('')
+  let isRequesting = $state(false)
+  let hasCheckedPermission = $state(false)
+  const locationStatus = $derived(appState.locationStatus)
+  const lastKnownLocation = $derived(appState.lastKnownLocation)
+  const canEnableLocation = $derived(
+    hasCheckedPermission &&
+      (locationStatus === 'prompt' ||
+        locationStatus === 'prompt-with-rationale')
+  )
 
-  const getPos = async () => {
-    let permissions = await checkPermissions()
-    if (
-      permissions.location === 'prompt' ||
-      permissions.location === 'prompt-with-rationale'
-    ) {
-      permissions = await requestPermissions(['location'])
+  onMount(() => {
+    void (async () => {
+      try {
+        await startAppStore()
+        await refreshLocationState()
+      } catch (error) {
+        errorMessage =
+          typeof error === 'string'
+            ? error
+            : error instanceof Error
+              ? error.message
+              : String(error)
+      } finally {
+        hasCheckedPermission = true
+      }
+    })()
+  })
+
+  async function enableLocation() {
+    isRequesting = true
+    errorMessage = ''
+    try {
+      await requestLocationState()
+    } catch (error) {
+      errorMessage =
+        typeof error === 'string'
+          ? error
+          : error instanceof Error
+            ? error.message
+            : String(error)
+    } finally {
+      isRequesting = false
     }
-
-    if (permissions.location === 'granted') {
-      permission = 'granted'
-      const pos = await getCurrentPosition()
-
-      await watchPosition(
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
-        (pos) => {
-          position = pos
-        }
-      )
-    }
-  }
-
-  const checkPermission = async () => {
-    let permissions = await checkPermissions()
-    permission = permissions.location
-    if (permission === 'granted') {
-      await getPos()
-    }
-
-    return permissions
   }
 </script>
 
-<div>
-  {#await checkPermission()}
-    loading...
-  {:then permissionStatus}
-    {#if permission === 'prompt'}
-      status: {permissionStatus.location}
+<main class="space-y-4">
+  <h1 class="text-2xl font-semibold">Location</h1>
+  <p class="text-sm text-muted-foreground">
+    Location testing page for permission state and coordinate sampling.
+  </p>
+
+  <section class="space-y-1 rounded-md border p-4 text-sm">
+    <p>Status: {locationStatus}</p>
+
+    {#if locationStatus === 'not-available'}
+      <p class="text-muted-foreground">
+        Location is not available on this platform.
+      </p>
     {:else}
-      status: {permission}
-    {/if}
-    <div>
-      {#if permission === 'granted'}
-        <div>
-          lat: {position?.coords.latitude}
-        </div>
-        <div>
-          long: {position?.coords.longitude}
-        </div>
-      {:else if permission === 'denied'}
-        You have to enable manually in settings.
+      {#if locationStatus === 'granted' || lastKnownLocation}
+        <p>
+          Lat: {lastKnownLocation?.coords.latitude?.toFixed(6) ?? 'None'}
+        </p>
+        <p>
+          Long: {lastKnownLocation?.coords.longitude?.toFixed(6) ?? 'None'}
+        </p>
       {:else}
-        <Button onclick={getPos}>Enable Location</Button>
+        <p class="text-muted-foreground">No location sample available yet.</p>
       {/if}
-    </div>
-  {:catch err}
-    {err}
-  {/await}
-</div>
+
+      {#if locationStatus !== 'granted' && lastKnownLocation}
+        <p class="text-amber-600">
+          Showing last known location from a previous session. Enable location
+          for live updates.
+        </p>
+      {/if}
+
+      {#if locationStatus === 'denied'}
+        <p class="text-amber-600">
+          Location access is denied. Enable it in Settings > Privacy > Location.
+        </p>
+      {/if}
+
+      {#if canEnableLocation}
+        <Button
+          variant="outline"
+          onclick={enableLocation}
+          disabled={isRequesting}
+        >
+          {isRequesting ? 'Requesting...' : 'Enable Location'}
+        </Button>
+      {/if}
+    {/if}
+  </section>
+
+  {#if errorMessage}
+    <p class="text-red-500 text-sm">{errorMessage}</p>
+  {/if}
+</main>
