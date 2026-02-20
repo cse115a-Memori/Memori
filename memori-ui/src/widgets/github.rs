@@ -6,7 +6,7 @@ use ratatui::layout::{Rect, Alignment, Layout, Direction, Constraint};
 use ratatui::widgets::{BarGroup, Bar, BarChart};
 use ratatui::style::{Style, Color};
 use ratatui::symbols::border;
-use ratatui::text::{Line, Span};
+use ratatui::text::Line;
 use ratatui::prelude::Stylize;
 use alloc::string::String;
 use ratatui::widgets::{Block, Borders, Widget, Paragraph, Padding};
@@ -84,7 +84,6 @@ impl Widget for &Github {
         outer_block.render(area, buf);
         
         // Determine layout based on available space
-        // Full screen is ~296x128, half vertical is ~148x128, half horizontal is ~296x64
         match (outer_inner.width, outer_inner.height) {
             // Small height, fourths or horizontal splits 
             
