@@ -9,13 +9,19 @@ pub use name::*;
 pub use weather::*;
 pub use github::*;
 
+use alloc::vec;
 use ratatui::widgets::Widget;
 use serde::{Deserialize, Serialize};
+use specta::Type;
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Copy, Clone, Hash)]
+#[derive(
+    Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Hash, Type,
+)]
 pub struct WidgetId(pub u32);
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Type)]
+#[serde(rename_all = "camelCase")]
+#[specta(rename_all = "camelCase")]
 pub struct MemoriWidget {
     pub id: WidgetId,
     pub(crate) kind: WidgetKind,
@@ -23,7 +29,7 @@ pub struct MemoriWidget {
     local_update_frequency: UpdateFrequency,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy, Type)]
 pub enum UpdateFrequency {
     Seconds(u32),
     Minutes(u32),
@@ -74,7 +80,7 @@ impl MemoriWidget {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Type)]
 pub enum WidgetKind {
     Name(Name),
     Clock(Clock),

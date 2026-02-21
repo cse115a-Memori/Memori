@@ -1,13 +1,15 @@
 use crate::alloc::string::ToString;
 use alloc::format;
+use alloc::vec;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
 use ratatui::symbols::border;
 use ratatui::widgets::{Block, Borders, Widget};
 use serde::{Deserialize, Serialize};
+use specta::Type;
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Type)]
 pub struct Clock {
     pub seconds: u32,
     pub minutes: u32,
@@ -23,9 +25,9 @@ impl Default for Clock {
 impl Clock {
     pub fn new(hours: u32, minutes: u32, seconds: u32) -> Self {
         Clock {
-            seconds: seconds,
-            minutes: minutes,
-            hours: hours,
+            seconds,
+            minutes,
+            hours,
         }
     }
 

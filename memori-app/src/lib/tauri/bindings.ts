@@ -53,6 +53,14 @@ async getBattery() : Promise<Result<number, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async getWidgetKinds() : Promise<Result<[MemoriWidget, MemoriWidget], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_widget_kinds") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async sendTwitch(token: string) : Promise<Result<string, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("send_twitch", { token }) };
@@ -113,8 +121,119 @@ async loginWithProvider(provider: string) : Promise<Result<UserInfo, string>> {
 
 /** user-defined types **/
 
+/**
+ * Define a widget by its data
+ */
+export type Bus = { route: string; prediction: string }
+export type Clock = { seconds: number; minutes: number; hours: number }
 export type DeviceMode = "RealDevice" | "Simulator"
-export type UserInfo = { id: string; name: string; email: string; avatar: string | null; provider: string; access_token: string }
+export type MemoriLayout = 
+/**
+ * ┌─────────────────┐
+ * │                 │
+ * │                 │
+ * │      Full       │
+ * │                 │
+ * │                 │
+ * └─────────────────┘
+ */
+{ Full: WidgetId } | 
+/**
+ * ┌────────┬────────┐
+ * │        │        │
+ * │        │        │
+ * │  Left  │ Right  │
+ * │        │        │
+ * │        │        │
+ * └────────┴────────┘
+ */
+{ VSplit: { left: WidgetId; right: WidgetId } } | 
+/**
+ * ┌─────────────────┐
+ * │                 │
+ * │       Top       │
+ * │                 │
+ * ├─────────────────┤
+ * │                 │
+ * │     Bottom      │
+ * │                 │
+ * └─────────────────┘
+ */
+{ HSplit: { top: WidgetId; bottom: WidgetId } } | 
+/**
+ * ┌──────┬──────────┐
+ * │      │          │
+ * │      │   Right  │
+ * │      │    Top   │
+ * │ Left ├──────────┤
+ * │      │          │
+ * │      │  Right   │
+ * │      │  Bottom  │
+ * └──────┴──────────┘
+ */
+{ VSplitWithRightHSplit: { left: WidgetId; rightTop: WidgetId; rightBottom: WidgetId } } | 
+/**
+ * ┌────────┬────────┐
+ * │        │        │
+ * │  Top   │  Top   │
+ * │  Left  │ Right  │
+ * ├────────┴────────┤
+ * │                 │
+ * │                 │
+ * │     Bottom      │
+ * └─────────────────┘
+ */
+{ HSplitWithTopVSplit: { bottom: WidgetId; topRight: WidgetId; topLeft: WidgetId } } | 
+/**
+ * ┌──────────┬──────┐
+ * │          │      │
+ * │   Left   │      │
+ * │    Top   │      │
+ * ├──────────┤ Right│
+ * │          │      │
+ * │   Left   │      │
+ * │  Bottom  │      │
+ * └──────────┴──────┘
+ */
+{ VSplitWithLeftHSplit: { leftTop: WidgetId; leftBottom: WidgetId; right: WidgetId } } | 
+/**
+ * ┌─────────────────┐
+ * │                 │
+ * │                 │
+ * │       Top       │
+ * │                 │
+ * ├────────┬────────┤
+ * │        │        │
+ * │ Bottom │ Bottom │
+ * │  Left  │ Right  │
+ * └────────┴────────┘
+ */
+{ HSplitWithBottomVSplit: { top: WidgetId; bottomLeft: WidgetId; bottomRight: WidgetId } } | 
+/**
+ * ┌────────┬────────┐
+ * │        │        │
+ * │  Top   │  Top   │
+ * │  Left  │ Right  │
+ * ├────────┼────────┤
+ * │        │        │
+ * │ Bottom │ Bottom │
+ * │  Left  │ Right  │
+ * └────────┴────────┘
+ */
+{ Fourths: { topLeft: WidgetId; topRight: WidgetId; bottomLeft: WidgetId; bottomRight: WidgetId } }
+export type MemoriWidget = { id: WidgetId; kind: WidgetKind; remoteUpdateFrequency: UpdateFrequency; localUpdateFrequency: UpdateFrequency }
+/**
+ * Define a widget by its data
+ */
+export type Name = { name: string }
+export type UpdateFrequency = { Seconds: number } | { Minutes: number } | { Hours: number } | "Never"
+export type UserInfo = { id: string; name: string; email: string; avatar: string | null; provider: string; accessToken: string }
+/**
+ * Define a widget by its data
+ */
+export type Weather = { temp: string; icon: string }
+export type WidgetId = number
+export type WidgetKind = { Name: Name } | { Clock: Clock } | { Weather: Weather } | { Bus: Bus }
 
 /** tauri-specta globals **/
 

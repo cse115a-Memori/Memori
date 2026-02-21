@@ -2,7 +2,7 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "memori-app",
   "version": "0.1.0",
-  "identifier": "com.suri.memori-app",
+  "identifier": "com.kt.memori-app",
   "build": {
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:1420",
@@ -34,7 +34,9 @@
   },
   "plugins": {
     "oauth": {
-      "permissions": ["default"]
+      "permissions": [
+        "default"
+      ]
     },
     "http": {
       "scope": [
@@ -45,19 +47,28 @@
         "https://id.twitch.tv/oauth2/token",
         "https://api.twitch.tv/helix/users"
       ],
-      "permissions": ["default"]
+      "permissions": [
+        "default"
+      ]
     },
     "deep-link": {
       "mobile": [
         {
-          "scheme": ["https"],
+          "scheme": [
+            "https"
+          ],
           "host": "memori",
-          "pathPrefix": ["/callback"],
+          "pathPrefix": [
+            "/callback"
+          ],
           "appLink": false
         }
       ],
       "desktop": {
-        "schemes": ["https://memori/callback", "http://localhost:8000"]
+        "schemes": [
+          "https://memori/callback",
+          "http://localhost:8000"
+        ]
       }
     }
   }
