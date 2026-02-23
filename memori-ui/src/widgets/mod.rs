@@ -1,7 +1,13 @@
+mod bus;
 mod clock;
 mod name;
+mod weather;
+mod github;
+pub use bus::*;
 pub use clock::*;
 pub use name::*;
+pub use weather::*;
+pub use github::*;
 
 use ratatui::widgets::Widget;
 use serde::{Deserialize, Serialize};
@@ -37,7 +43,12 @@ impl UpdateFrequency {
 }
 
 impl MemoriWidget {
-    pub fn new(id: WidgetId, kind: WidgetKind, remote_update_frequency: UpdateFrequency, local_update_frequency: UpdateFrequency) -> Self {
+    pub fn new(
+        id: WidgetId,
+        kind: WidgetKind,
+        remote_update_frequency: UpdateFrequency,
+        local_update_frequency: UpdateFrequency,
+    ) -> Self {
         Self {
             id,
             kind,
@@ -57,7 +68,7 @@ impl MemoriWidget {
     pub fn get_remote_update_frequency(&self) -> UpdateFrequency {
         self.remote_update_frequency
     }
-    
+
     pub fn get_local_update_frequency(&self) -> UpdateFrequency {
         self.local_update_frequency
     }
@@ -67,6 +78,9 @@ impl MemoriWidget {
 pub enum WidgetKind {
     Name(Name),
     Clock(Clock),
+    Github(Github),
+    Weather(Weather),
+    Bus(Bus),
 }
 
 impl WidgetKind {
@@ -74,6 +88,9 @@ impl WidgetKind {
         match self {
             Self::Clock(c) => c.update(),
             Self::Name(n) => n.update(),
+            Self::Weather(w) => w.update(),
+            Self::Bus(b) => b.update(),
+            Self::Github(g) => g.update(),
         }
     }
 }
@@ -86,6 +103,9 @@ impl Widget for &MemoriWidget {
         match &self.kind {
             WidgetKind::Name(n) => n.render(area, buf),
             WidgetKind::Clock(c) => c.render(area, buf),
+            WidgetKind::Github(g) => g.render(area, buf),
+            WidgetKind::Weather(w) => w.render(area, buf),
+            WidgetKind::Bus(b) => b.render(area, buf),
         }
     }
 }

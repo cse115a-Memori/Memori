@@ -26,6 +26,7 @@
     "geolocation:allow-watch-position",
     "store:default",
     "log:default",
-    "blec:default"
+    "blec:default",
+    "deep-link:default"
   ]
 }

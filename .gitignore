@@ -9,6 +9,8 @@ target
 *.step
 *.png
 
+oauth_config.json
+
 .direnv
 .DS_Store
 
