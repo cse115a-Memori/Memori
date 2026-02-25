@@ -46,26 +46,22 @@ hardware-software product.
 + *User Story 3.1* As a user, I want to be able to choose the widgets that are displayed on my device.
 - Estimated Points: 8
   - Tasks
-    - Create widget selection screen on the app's frontend (5 Hours) (Kenric)
     - Implement send state button which sends the selected widgets to the device (2 Hours) (Kenric)
-    - Total Time: 3 Hours
+    - Total Time: 2 Hours
 
 + *User Story 2.4* {OVERFLOW} - As an efficiency seeking user, I want to be able to display multiple widgets on my device at once.
   - Estimated Points: 13
   - Tasks
     - Implement visuals for different widgets on the app (5 Hours) (Kenric)
       - per widget configuration
-    - Implement ui to configure different widgets in different layours (5 hours) (Kenric)
-      - layout configuration
-  - Total Time: 10 Hours
+  - Total Time: 5 Hours
 
 == Medium Priority Items
 + *User Story 3.3* - As a user, I want my widgets to display accurate updated information.
   - Estimated Points: 8
   - Tasks
-    - Move host request handler to be channel based. (expose state to host-ble command handling) (2 hours) (Preston)
     - Implement update function for each widget and put that in the app (2 hours) (Preston)
-  - Total Time: 4 Hours
+  - Total Time: 2 Hours
   
 + *User Story 4.1* - As a user, I want to be able to carry my device on a keychain, so I can easily access it.
   - Estimated Points: 34
@@ -79,10 +75,8 @@ hardware-software product.
 + *User Story 3.2* - As a device owner, I want my device to be portable.
   - Estimated Points: 34
   - Tasks
-    - Decide on what battery to get (2 hours) (Surendra, Preston)
-    - Design a PCB to utilize the battery (10 hours) (Surendra)
-    - Print and assemble PCB (8 hours) (Cainan)
-  - Total Time: 20 Hours
+    - Print and assemble PCB (8 hours) (Surrendra, Preston, Julian, Kenric, Cainan)
+  - Total Time: 8 Hours
 
 + *User Story 2.3* {OVERFLOW} - As a student, I would want to see SCMETRO bus information on my device
   - Estimated Points: 1
