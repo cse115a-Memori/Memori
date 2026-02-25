@@ -9,8 +9,8 @@
       rows: (auto, auto, auto),
       gutter: 3pt,
       [*Sprint 3 Plan*], [],
-      [Product / Team: Memori], [2/11/26],
-      [Revision 0.1.0], [Revision Date: 2/11/26],
+      [Product / Team: Memori], [2/24/26],
+      [Revision 0.1.0], [Revision Date: 2/25/26],
     )
     #line(length: 100%, stroke: 0.5pt)
   ],
@@ -20,7 +20,7 @@
 #set par(justify: true)
 
 #align(center)[
-  #text(size: 18pt, weight: "bold")[Sprint 3 Plan]
+  #text(size: 18pt, weight: "bold")[Sprint 4 Plan]
   #v(0.5em)
   #text(size: 14pt)[Memori]
   #v(1em)
@@ -30,12 +30,12 @@
 
 == Sprint Goal
 
-The main goal of this sprint is to tie up all the loose ends from last sprint and reevaluate how practical it is to
-create a finished hardware product.
+The main goal of this sprint is to tie up all the loose ends from last sprint and create a finished
+hardware-software product.
 
 == Duration
 *Start Date:* 2/25/26 \
-*End Date:* 3/9/26\
+*End Date:* 3/10/26\
 *Sprint Length:* 2 weeks
 
 = Sprint Tasks
@@ -59,24 +59,21 @@ create a finished hardware product.
       - layout configuration
   - Total Time: 10 Hours
 
-  + *User Story 3.3* - As a user, I want my widgets to display accurate updated information.
-    - Estimated Points: 8
-    - Tasks
-      - Move host request handler to be channel based. (expose state to host-ble command handling) (2 hours) (Preston)
-      - Implement update function for each widget and put that in the app (2 hours) (Preston)
-    - Total Time: 4 Hours
 == Medium Priority Items
-+ *User Story 2.2* {OVERFLOW} - As a developer, I would want to see my github statistics on the Memori device.
-  - Estimated Points: 5
++ *User Story 3.3* - As a user, I want my widgets to display accurate updated information.
+  - Estimated Points: 8
   - Tasks
-    - github widget data logic (3 hour) (Cainan)
-  - Total Time: 3 Hours
-
-+ *User Story 2.3* {OVERFLOW} - As a student, I would want to see SCMETRO bus information on my device
-- Estimated Points: 1
+    - Move host request handler to be channel based. (expose state to host-ble command handling) (2 hours) (Preston)
+    - Implement update function for each widget and put that in the app (2 hours) (Preston)
+  - Total Time: 4 Hours
+  
++ *User Story 4.1* - As a user, I want to be able to carry my device on a keychain, so I can easily access it.
+  - Estimated Points: 34
   - Tasks
-    - merge finished code (1 hour) (Julian)
-  - Total Time: 1 Hours
+    - Design a 3d model for a case with a keychain hole (8 hours) (Cainan)
+    - Print the 3d model (2 hours) (Cainan)
+    - Enclose the device in the case using screws (2 hours) (Cainan)
+  - Total Time: 12 Hours
 
 == Low Priority Items
 + *User Story 3.2* - As a device owner, I want my device to be portable.
@@ -87,6 +84,17 @@ create a finished hardware product.
     - Print and assemble PCB (8 hours) (Cainan)
   - Total Time: 20 Hours
 
++ *User Story 2.3* {OVERFLOW} - As a student, I would want to see SCMETRO bus information on my device
+  - Estimated Points: 1
+    - Tasks
+      - merge finished code (1 hour) (Julian)
+    - Total Time: 1 Hours
+
++ *User Story 2.2* {OVERFLOW} - As a developer, I would want to see my github statistics on the Memori device.
+    - Estimated Points: 5
+    - Tasks
+      - github widget data logic (3 hour) (Cainan)
+    - Total Time: 3 Hours
 
 = Team
 
@@ -95,9 +103,9 @@ create a finished hardware product.
   [*Team Member*], [*Roles*],
   [Surendra Jammishetti], [Developer, Project Lead],
   [Kenric Tee], [App Developer],
-  [Preston Clayton], [Scrum Master, Hardware Developer],
+  [Preston Clayton], [Hardware Developer],
   [Cainan Enneking], [Device UI Developer],
-  [Julian Montano], [Device UI Developer],
+  [Julian Montano], [Scrum Master, Device UI Developer],
 )
 
 
