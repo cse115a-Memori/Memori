@@ -16,6 +16,10 @@ ios-sim:
     bun tauri ios dev "iPhone 17 Pro"
 
 [working-directory('memori-app')]
+android-sim:
+    bun tauri android dev
+
+[working-directory('memori-app')]
 desktop:
     bun install
     bun tauri dev 

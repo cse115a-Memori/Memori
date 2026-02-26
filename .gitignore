@@ -2,7 +2,7 @@
 # will have compiled files and executables
 debug
 target
-
+oauth_config.json
 .direnv
 .DS_Store
 
