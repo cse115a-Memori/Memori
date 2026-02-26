@@ -5,12 +5,9 @@ use memori_ui::{
     widgets::{Clock, MemoriWidget, Name, Twitch, UpdateFrequency, Weather, WidgetId, WidgetKind},
     MemoriState,
 };
-use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE};
 use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
-use tauri::http::response;
-use tauri::utils::resources;
 use tauri::State;
 use transport::HostTransport as _;
 
@@ -32,30 +29,16 @@ pub async fn send_github(_state: State<'_, AppState>, token: String) -> Result<S
     println!("{}", token);
     let url = "https://api.github.com/user";
     let client = Client::new();
-    let mut headers = HeaderMap::new();
-    headers.insert(
-        "Authorization",
-        HeaderValue::from_str(&format!("Bearer {}", token)).map_err(|e| e.to_string())?,
-    );
-    headers.insert(
-        "Accept",
-        HeaderValue::from_static("application/vnd.github+json"),
-    );
     let response = client
         .get(url)
-        .headers(headers)
+        .header("Authorization", format!("Bearer {}", token))
+        .header("Accept", "application/vnd.github.v3+json")
+        .header("User-Agent", "tauri-app")
         .send()
         .await
         .map_err(|e| e.to_string())?;
-    if response.status().is_success() {
-        let body = response.text().await.map_err(|e| e.to_string())?;
-        println!("Response Body: {}", body);
-        let user: User = serde_json::from_str(&body).map_err(|e| e.to_string())?;
-        println!("User ID: {}, Login: {}", user.id, user.login);
-    } else {
-        println!("Error: {}", response.status());
-        return Err(format!("Error: {}", response.status()));
-    }
+    let user_info: serde_json::Value = response.json().await.map_err(|err| err.to_string())?;
+    println!("user info: {:?}", user_info);
     Ok("ok".to_string())
 }
 
