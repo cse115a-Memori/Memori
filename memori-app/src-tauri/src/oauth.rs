@@ -1,4 +1,6 @@
+use reqwest::{header::CONTENT_TYPE, Client};
 use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 use specta::Type;
 use std::sync::mpsc;
 use tauri::{path::BaseDirectory, Emitter, Manager, Window};
@@ -57,7 +59,7 @@ pub async fn login_with_provider(
     _window: Window,
     provider: String,
 ) -> Result<UserInfo, String> {
-    let configs = load_oauth_configs(&app)?;
+    let configs = load_oauth_configs(&app).await?;
     println!("configs: {:?}", &configs);
     // Get provider-specific configuration
     let config = match provider.as_str() {
@@ -118,6 +120,7 @@ pub async fn login_with_provider(
 
     // Exchange the code for an access token
     let client = reqwest::Client::new();
+    /*
     let token_response = client
         .post(&config.token_url)
         .form(&[
@@ -131,8 +134,19 @@ pub async fn login_with_provider(
         .send()
         .await
         .map_err(|err| err.to_string())?;
-
-    println!("token_response: {:?}", token_response);
+    */
+    println!("code: {}     provider: {}", code, provider.as_str());
+    let request_body = json!({
+        "provider": provider.as_str(),
+        "code": code,
+        "port": port,
+    });
+    let token_data = match cloudflare("get_access", request_body).await {
+        Ok(data) => data,
+        Err(_) => return Err("err".to_string()),
+    };
+    // println!("token_response: {:?}", token_response);
+    /*
     if !token_response.status().is_success() {
         return Err(format!(
             "Failed to exchange code for token: {}",
@@ -140,8 +154,10 @@ pub async fn login_with_provider(
         ));
     }
 
+
     let token_data: serde_json::Value =
         token_response.json().await.map_err(|err| err.to_string())?;
+    */
     let access_token = token_data["access_token"]
         .as_str()
         .ok_or("No access token found")?;
@@ -246,37 +262,59 @@ fn generate_random_string(length: usize) -> String {
         .collect()
 }
 
-fn load_oauth_configs(app: &tauri::AppHandle) -> Result<OAuthConfigs, String> {
-    if let Ok(config_content) = std::env::var("OAUTH_CONFIG_JSON") {
-        return serde_json::from_str(&config_content)
-            .map_err(|e| format!("Failed to parse OAUTH_CONFIG_JSON: {e}"));
-    }
-
-    if let Some(config_content) = option_env!("OAUTH_CONFIG_JSON") {
-        return serde_json::from_str(config_content)
-            .map_err(|e| format!("Failed to parse embedded OAUTH_CONFIG_JSON: {e}"));
-    }
-
-    let mut candidates = Vec::new();
-    if let Ok(resource_path) = app
-        .path()
-        .resolve("oauth_config.json", BaseDirectory::Resource)
-    {
-        candidates.push(resource_path);
-    }
-    candidates.push(std::path::PathBuf::from("oauth_config.json"));
-    candidates.push(std::path::PathBuf::from("src-tauri/oauth_config.json"));
-
-    for candidate in candidates {
-        if let Ok(config_content) = std::fs::read_to_string(&candidate) {
-            return serde_json::from_str(&config_content).map_err(|e| {
-                format!("Failed to parse config file `{}`: {e}", candidate.display())
-            });
+async fn load_oauth_configs(_app: &tauri::AppHandle) -> Result<OAuthConfigs, String> {
+    let additional_headers = json!({
+        "Accept": "application/json",
+    });
+    let request_body = json!({
+        "headers": additional_headers,
+    });
+    let response_data = match cloudflare("load_config", request_body).await {
+        Ok(data) => data,
+        Err(err) => {
+            eprintln!("Error: {}", err);
+            return Err("err".to_string());
         }
-    }
+    };
+    println!("API Response: {:?}", response_data);
+    let configs: OAuthConfigs = serde_json::from_value(response_data).map_err(|e| e.to_string())?;
+    println!("configs: {:?}", configs);
+    Ok(configs)
+}
 
-    Err(
-        "OAuth config not found. Set OAUTH_CONFIG_JSON or provide oauth_config.json as a resource"
-            .to_string(),
-    )
+pub async fn cloudflare(action: &str, mut request_body: Value) -> Result<Value, String> {
+    let worker_url = "https://auth.memori-app.workers.dev/";
+    // let worker_url = "http://localhost:8787/";
+    let client = Client::new();
+    let response = client
+        .post(worker_url)
+        .header("action", "get_token")
+        .header(CONTENT_TYPE, "application/json")
+        .json(&json!({}))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    if !response.status().is_success() {
+        eprintln!("Failed to get token: {}", response.status());
+        return Err("temp".to_string());
+    }
+    let token_response: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
+    let token = token_response["token"]
+        .as_str()
+        .ok_or("Failed to get token from response")?;
+    request_body["token"] = json!(token);
+    let response = reqwest::Client::new()
+        .post(worker_url)
+        .header("action", action)
+        .header(CONTENT_TYPE, "application/json")
+        .json(&request_body)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    if !response.status().is_success() {
+        eprintln!("Failed to call API: {}", response.status());
+        return Err("temp".to_string());
+    }
+    let response_data: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
+    Ok(response_data)
 }

@@ -61,7 +61,7 @@ async getWidgetKinds() : Promise<Result<[MemoriWidget, MemoriWidget], string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async sendTwitch(token: string) : Promise<Result<string, string>> {
+async sendTwitch(token: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("send_twitch", { token }) };
 } catch (e) {
@@ -77,9 +77,9 @@ async sendName(name: string) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async sendTemp(city: string) : Promise<Result<null, string>> {
+async sendTemp(lat: number, lon: number) : Promise<Result<string, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("send_temp", { city }) };
+    return { status: "ok", data: await TAURI_INVOKE("send_temp", { lat, lon }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -88,6 +88,14 @@ async sendTemp(city: string) : Promise<Result<null, string>> {
 async sendBustime(lat: number, lon: number) : Promise<Result<string, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("send_bustime", { lat, lon }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async sendGithub(token: string) : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("send_github", { token }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -226,6 +234,10 @@ export type MemoriWidget = { id: WidgetId; kind: WidgetKind; remoteUpdateFrequen
  * Define a widget by its data
  */
 export type Name = { name: string }
+/**
+ * Define a widget by its data
+ */
+export type Twitch = { user: string }
 export type UpdateFrequency = { Seconds: number } | { Minutes: number } | { Hours: number } | "Never"
 export type UserInfo = { id: string; name: string; email: string; avatar: string | null; provider: string; accessToken: string }
 /**
@@ -233,7 +245,7 @@ export type UserInfo = { id: string; name: string; email: string; avatar: string
  */
 export type Weather = { temp: string; icon: string }
 export type WidgetId = number
-export type WidgetKind = { Name: Name } | { Clock: Clock } | { Weather: Weather } | { Bus: Bus }
+export type WidgetKind = { Name: Name } | { Clock: Clock } | { Weather: Weather } | { Bus: Bus } | { Twitch: Twitch }
 
 /** tauri-specta globals **/
 

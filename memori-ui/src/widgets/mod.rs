@@ -1,10 +1,12 @@
 mod bus;
 mod clock;
 mod name;
+mod twitch;
 mod weather;
 pub use bus::*;
 pub use clock::*;
 pub use name::*;
+pub use twitch::*;
 pub use weather::*;
 
 use alloc::vec;
@@ -84,6 +86,7 @@ pub enum WidgetKind {
     Clock(Clock),
     Weather(Weather),
     Bus(Bus),
+    Twitch(Twitch),
 }
 
 impl WidgetKind {
@@ -93,6 +96,7 @@ impl WidgetKind {
             Self::Name(n) => n.update(),
             Self::Weather(w) => w.update(),
             Self::Bus(b) => b.update(),
+            Self::Twitch(t) => t.update(),
         }
     }
 }
@@ -107,6 +111,7 @@ impl Widget for &MemoriWidget {
             WidgetKind::Clock(c) => c.render(area, buf),
             WidgetKind::Weather(w) => w.render(area, buf),
             WidgetKind::Bus(b) => b.render(area, buf),
+            WidgetKind::Twitch(t) => t.render(area, buf),
         }
     }
 }

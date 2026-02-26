@@ -3,7 +3,7 @@ import { RuneStore } from '@tauri-store/svelte'
 import type { UserInfo } from '@/tauri'
 
 export type AuthProvider = 'google' | 'github' | 'twitch'
-type ProviderUsers = Partial<Record<AuthProvider, UserInfo>>
+export type ProviderUsers = Partial<Record<AuthProvider, UserInfo>>
 export type AuthState = { usersByProvider: ProviderUsers }
 
 const initialAuthState: AuthState = {
