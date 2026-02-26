@@ -47,6 +47,7 @@ pub(super) async fn handle_host_cmd<P: PacketPool>(
             let new_gen = current_gen.wrapping_add(1);
             REFRESH_GENERATION.store(new_gen, Ordering::Relaxed);
 
+            // remote
             let widgets_needing_refresh = mem_state
                 .widgets
                 .iter()
@@ -66,7 +67,7 @@ pub(super) async fn handle_host_cmd<P: PacketPool>(
                     .inspect_err(|e| error!("Error with spawning refresh task: {e:#?}, aborting spawning refresh for this task, may not work as intended."));
             }
           
-            //Identify widgets that need local update
+            // local
             let widgets_to_update = {
                   mem_state
                   .widgets
@@ -111,16 +112,14 @@ async fn refresh_widget_task(
     my_generation: u32,
 ) {
     // Watches for the cancellation watch to be updated, and returns when it does so.
-    let Some(wait_period) = widget
+    let Some(update_frequency) = widget
         .get_remote_update_frequency()
-        .to_seconds()
-    else {
-        // Called this function on a widget that doesn't have an update frequency, just return.
-        return;
+        .to_seconds().map(|s| s as u64) else {
+        return
     };
 
     loop {
-        Timer::after(Duration::from_secs(wait_period.into())).await;
+        Timer::after(Duration::from_secs(update_frequency)).await;
 
         // If the generation of tasks has passed the generation for this one, we just kill ourself lol.
         if REFRESH_GENERATION.load(Ordering::Relaxed) != my_generation {

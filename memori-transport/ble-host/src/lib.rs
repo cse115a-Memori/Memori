@@ -14,12 +14,12 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{Mutex, mpsc, oneshot};
 use tokio::time::sleep;
-use transport::ByteArray;
 use transport::ble_types::*;
 use transport::ble_types::{
     BATTERY_LEVEL_CHAR_UUID as BATTERY_CHAR_STR, NUS_RX_CHAR_UUID as NUS_RX_STR,
     NUS_TX_CHAR_UUID as NUS_TX_STR,
 };
+
 use transport::*;
 use uuid::Uuid;
 
@@ -78,7 +78,13 @@ pub struct HostBLETransport {
 }
 
 impl HostBLETransport {
-    pub async fn connect() -> anyhow::Result<Self> {
+    pub async fn connect() -> anyhow::Result<(
+        Self,
+        (
+            mpsc::UnboundedReceiver<DeviceBLECommand>,
+            mpsc::UnboundedSender<HostBLEResponse>,
+        ),
+    )> {
         let manager = Manager::new().await?;
         let central = manager
             .adapters()
@@ -119,6 +125,9 @@ impl HostBLETransport {
         let (out_tx, out_rx) = mpsc::channel::<OutboundPacket>(16);
         let (cmd_tx, cmd_rx) = mpsc::channel::<(DeviceBLECommand, u32)>(16);
 
+        let (device_command_tx, device_command_rx) = mpsc::unbounded_channel::<DeviceBLECommand>();
+        let (host_response_tx, host_response_rx) = mpsc::unbounded_channel::<HostBLEResponse>();
+
         let pending_responses: ResponseMap = Arc::new(Mutex::new(HashMap::new()));
         let notif_stream = peripheral.notifications().await?;
 
@@ -135,16 +144,24 @@ impl HostBLETransport {
             pending_responses.clone(),
         ));
 
-        let command_handle = tokio::spawn(Self::server_command_handler(cmd_rx, out_tx.clone()));
+        let command_handle = tokio::spawn(Self::server_command_handler(
+            cmd_rx,
+            out_tx.clone(),
+            device_command_tx,
+            host_response_rx,
+        ));
 
-        Ok(Self {
-            outbound: out_tx,
-            battery_char,
-            peripheral,
-            read_handle,
-            write_handle,
-            command_handle
-        })
+        Ok((
+            Self {
+                outbound: out_tx,
+                battery_char,
+                peripheral,
+                read_handle,
+                write_handle,
+                command_handle,
+            },
+            (device_command_rx, host_response_tx),
+        ))
     }
 
     // Send a command and wait for response
@@ -251,28 +268,19 @@ impl HostBLETransport {
     async fn server_command_handler(
         mut cmd_rx: mpsc::Receiver<(DeviceBLECommand, MessageID)>,
         outbound_tx: mpsc::Sender<OutboundPacket>,
+        device_command_tx: mpsc::UnboundedSender<DeviceBLECommand>,
+        mut host_response_rx: mpsc::UnboundedReceiver<HostBLEResponse>,
     ) {
         while let Some((cmd, id)) = cmd_rx.recv().await {
-            let response = match cmd {
-                DeviceBLECommand::Ping => {
-                    HostBLEResponse::Ping { result: Ok(()) }
-                }
-                DeviceBLECommand::RefreshData { widget_id } => {
-                    let mut bytes: ByteArray = Default::default();
-                    bytes
-                        .extend_from_slice(b"widget data for widget: ")
-                        .unwrap();
-                    bytes
-                        .extend_from_slice(widget_id.0.to_string().as_bytes())
-                        .unwrap();
+            if let Err(e) = device_command_tx.send(cmd) {
+                eprintln!("[ble-host] command: Failed to forward device command: {:?}", e);
+                continue;
+            }
 
-                    let Ok(widget) = from_bytes::<MemoriWidget>(&bytes) else {
-                        eprintln!("[ble-host] command: Failed to deserialize widget");
-                        continue;
-                    };
-
-                    HostBLEResponse::RefreshData { result: Ok(widget) }
-                }
+            // wait for synchronous response from external handler (in tauri app)
+            let Some(response) = host_response_rx.recv().await else {
+                eprintln!("[ble-host] command: Response channel closed");
+                break;
             };
 
             let packet = OutboundPacket {
@@ -302,13 +310,17 @@ impl HostBLETransport {
 
 impl HostTransport for HostBLETransport {
     async fn set_state(&mut self, state: MemoriState) -> TransResult<()> {
-        println!("[host_transport] set_widgets called");
         let command = HostBLECommand::SetState { state };
         let response = self.send_command(command).await?;
 
         match response {
-            DeviceBLEResponse::SetState { result } => result,
-            _ => Err(TransError::ProtocolIssue),
+            DeviceBLEResponse::SetState { result } => {
+                result
+            }
+            _ => {
+                eprintln!("[host_transport] Unexpected response type");
+                Err(TransError::ProtocolIssue)
+            }
         }
     }
 
