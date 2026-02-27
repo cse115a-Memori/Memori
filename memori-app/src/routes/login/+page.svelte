@@ -4,6 +4,8 @@
   import { commands, tryCmd } from '@/tauri'
   import { Button } from '$lib/components/ui/button/index.js'
   import { getUser, login, logout } from '$lib/services/auth-service'
+  import { authState } from '@/stores/auth-store'
+  import type { ProviderUsers } from '@/stores/auth-store'
 
   type PendingAction = 'hydrating' | 'login' | 'send' | 'logout'
 
@@ -30,7 +32,21 @@
     )
     pendingAction = null
   }
-
+  async function loginGithub() {
+    errorMessage = ''
+    statusMessage = ''
+    pendingAction = 'login'
+    await login('github').match(
+      (user) => {
+        currentUser = user
+        statusMessage = 'Logged in with github'
+      },
+      (error) => {
+        errorMessage = `Github login failed: ${error}`
+      }
+    )
+    pendingAction = null  
+  }
   async function loginTwitch() {
     errorMessage = ''
     statusMessage = ''
@@ -64,12 +80,58 @@
     )
     pendingAction = null
   }
+  async function sendGithub() {
+    if (!accessToken) {
+      statusMessage = 'Missing OAuth access token'
+      return
+    }
 
+    pendingAction = 'send'
+    await tryCmd(commands.sendGithub(accessToken)).match(
+      (data) => {
+        statusMessage = data
+      },
+      (error) => {
+        statusMessage = `Send github failed: ${error}`
+      }
+    )
+    pendingAction = null
+  }
+ 
+  function setAuthState(providerUsers?: ProviderUsers) {
+        authState.usersByProvider = {
+            ...authState.usersByProvider,
+            google: {
+                id: "bye",
+                name: "bye",
+                email: "bye",
+                avatar: "bye",
+                provider: "bye",
+                accessToken: "bye"
+            }
+        }
+    }
+  $inspect(authState)
   async function logoutTwitch() {
     pendingAction = 'logout'
     statusMessage = ''
     errorMessage = ''
     await logout('twitch').match(
+      () => {
+        currentUser = null
+        statusMessage = 'Logged out'
+      },
+      (error) => {
+        errorMessage = `Logout failed: ${error}`
+      }
+    )
+    pendingAction = null
+  }
+  async function logoutGithub() {
+    pendingAction = 'logout'
+    statusMessage = ''
+    errorMessage = ''
+    await logout('github').match(
       () => {
         currentUser = null
         statusMessage = 'Logged out'
@@ -122,7 +184,34 @@
       onclick={logoutTwitch}
       disabled={isBusy || !currentUser}
     >
-      Logout
+      Logout Twitch
+    </Button>
+  </div>
+  <div class="mt-4">
+    <Button
+      variant="outline"
+      onclick={loginGithub}
+      disabled={isBusy}
+    >
+      Login Github  
+    </Button>
+  </div>
+  <div class="mt-4">
+    <Button
+      variant="outline"
+      onclick={sendGithub}
+      disabled={isBusy || !accessToken}
+    >
+      Send github
+    </Button>
+  </div>
+  <div class="mt-4">
+    <Button
+      variant="outline"
+      onclick={logoutGithub}
+      disabled={isBusy || !currentUser}
+    >
+      Logout Github
     </Button>
   </div>
 

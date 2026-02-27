@@ -151,9 +151,18 @@
   async function sendTemp() {
     pending = 'temp'
     try {
-      await tryCmd(commands.sendTemp(city)).match(
-        () => {
-          result = 'Weather sent'
+      const position = await requestLocationState()
+      if (!position) {
+        result = 'Location permission required'
+        return
+      }
+      await tryCmd(
+        commands.sendTemp(
+          position.coords.latitude,
+          position.coords.longitude
+      )).match(
+        (data) => {
+          result = data
         },
         (error) => {
           result = `Send weather failed: ${error}`
