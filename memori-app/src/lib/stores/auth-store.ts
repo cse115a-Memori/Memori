@@ -1,10 +1,8 @@
 import { RuneStore } from '@tauri-store/svelte'
 
-import type { UserInfo } from '@/tauri'
+import type { AuthState } from '@/stores/auth/types.ts'
 
-export type AuthProvider = 'google' | 'github' | 'twitch'
-export type ProviderUsers = Partial<Record<AuthProvider, UserInfo>>
-export type AuthState = { usersByProvider: ProviderUsers }
+export type { AuthProvider, AuthState } from '@/stores/auth/types.ts'
 
 const initialAuthState: AuthState = {
 	usersByProvider: {},

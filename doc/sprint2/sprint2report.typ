@@ -118,5 +118,5 @@ Work hours / day : 0
 
 
 = Burnup Chart
-// #image("sprint2burnup.png")
+#image("sprint2burnup.png")
 // Get a burnup chart from github

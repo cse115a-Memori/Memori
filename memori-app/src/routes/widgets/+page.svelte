@@ -1,212 +1,392 @@
 <script lang="ts">
-  import { CollisionPriority } from '@dnd-kit/abstract'
-  import { move } from '@dnd-kit/helpers'
-  import { DragDropProvider, DragOverlay } from '@dnd-kit-svelte/svelte'
-  import { RestrictToWindowEdges } from '@dnd-kit-svelte/svelte/modifiers'
-  import { sensors } from '$lib/sensors'
-  import Droppable from './Droppable.svelte'
-  import SortableItem from './SortableItem.svelte'
-  import {
-    sortableCardBaseClasses,
-    sortableCardContentClasses,
-    sortableCardTitleClasses,
-  } from './sortable-item-classes.ts'
+	import {
+		type DragDropEvents,
+		DragDropProvider,
+		DragOverlay,
+	} from '@dnd-kit-svelte/svelte'
+	import { RestrictToWindowEdges } from '@dnd-kit-svelte/svelte/modifiers'
+	import { onMount } from 'svelte'
+	import {
+		formatCompactClock,
+		WidgetSection,
+		WidgetsDragOverlay,
+		WidgetsToolbar,
+	} from '@/components/layout'
+	import { getLayoutSlotCount, LAYOUT_TEMPLATES } from '@/model/layout'
+	import {
+		findActiveWidget,
+		getDragOverKey,
+		projectLayoutFrameOnDragOver,
+		resolveOverlaySize,
+		shouldCancelOverflowSwapPreview,
+		shouldResetDragPreviewOnOverflowMiss,
+		shouldUseCommittedFrameForOverflowSwap,
+	} from '@/model/widget-dnd.ts'
+	import {
+		createWidgetFrameEntry,
+		getFrameWidgetCount,
+		isLayoutVariant,
+		type WidgetFrame,
+		type WidgetFrameEntry,
+		type WidgetView,
+	} from '@/model/widget-frame.ts'
+	import { getWidgetKinds } from '@/services/widget-service.ts'
+	import {
+		appState,
+		ensureWidgetFrameEntry,
+		setWidgetFrame,
+		setWidgetFrameLayout,
+		syncWidgetPoolAndFrame,
+	} from '@/stores/app-store.ts'
+	import {
+		commands,
+		type MemoriLayout,
+		type MemoriStateInput,
+		type MemoriWidget,
+		tryCmd,
+	} from '@/tauri'
+	import { sensors } from '$lib'
 
-  function formatTime12h(date = new Date()) {
-    let h = date.getHours()
-    const m = String(date.getMinutes()).padStart(2, '0')
-    const ampm = h >= 12 ? 'pm' : 'am'
-    h = h % 12
-    if (h === 0) h = 12
-    return `${h}:${m} ${ampm}`
-  }
+	let errMsg = $state('')
+	let currFrameIdx = $state(0)
+	let now = $state(new Date())
+	const FLASH_DURATION_MS = 1000
+	const CLOCK_TICK_MS = 1000
+	const FRAME_TIME_SECONDS = 5
 
-  interface WidgetItem {
-    id: string
-    name: string
-    content: string
-  }
+	const toMemoriLayout = (
+		layout: Memori.Layout['variant'],
+		frameWidgets: WidgetView[]
+	): MemoriLayout => {
+		switch (layout) {
+			case 'Full':
+				return { Full: frameWidgets[0].widgetId }
+			case 'VSplit':
+				return {
+					VSplit: {
+						left: frameWidgets[0].widgetId,
+						right: frameWidgets[1].widgetId,
+					},
+				}
+			case 'HSplit':
+				return {
+					HSplit: {
+						top: frameWidgets[0].widgetId,
+						bottom: frameWidgets[1].widgetId,
+					},
+				}
+			case 'VSplitWithRightHSplit':
+				return {
+					VSplitWithRightHSplit: {
+						left: frameWidgets[0].widgetId,
+						rightTop: frameWidgets[1].widgetId,
+						rightBottom: frameWidgets[2].widgetId,
+					},
+				}
+			case 'HSplitWithTopVSplit':
+				return {
+					HSplitWithTopVSplit: {
+						topLeft: frameWidgets[0].widgetId,
+						topRight: frameWidgets[1].widgetId,
+						bottom: frameWidgets[2].widgetId,
+					},
+				}
+			case 'VSplitWithLeftHSplit':
+				return {
+					VSplitWithLeftHSplit: {
+						leftTop: frameWidgets[0].widgetId,
+						leftBottom: frameWidgets[1].widgetId,
+						right: frameWidgets[2].widgetId,
+					},
+				}
+			case 'HSplitWithBottomVSplit':
+				return {
+					HSplitWithBottomVSplit: {
+						top: frameWidgets[0].widgetId,
+						bottomLeft: frameWidgets[1].widgetId,
+						bottomRight: frameWidgets[2].widgetId,
+					},
+				}
+			case 'Fourths':
+				return {
+					Fourths: {
+						topLeft: frameWidgets[0].widgetId,
+						topRight: frameWidgets[1].widgetId,
+						bottomLeft: frameWidgets[2].widgetId,
+						bottomRight: frameWidgets[3].widgetId,
+					},
+				}
+		}
+	}
 
-  const items = {
-    widgets: [
-      { id: 'task-1', name: 'Weather', content: '22°C' },
-      { id: 'task-2', name: 'Time', content: formatTime12h() },
-      { id: 'task-3', name: 'Bus', content: 'Next 19 in ~22 min' },
-      {
-        id: 'task-4',
-        name: 'GitHub stats',
-        content: 'PRs to review: 2\nIssues: 5',
-      },
-    ],
-    'frame-widgets': [],
-  }
+	let isFlashing = $state(false)
+	const flash = async () => {
+		const frameEntries = appState.widgetFrames.map((_, frameIdx) =>
+			ensureWidgetFrameEntry(frameIdx)
+		)
+		if (frameEntries.length === 0) {
+			errMsg = 'Cannot flash: no frames are configured.'
+			return
+		}
 
-  type WidgetItems = Record<string, WidgetItem[]>
-  let widgets = $state<WidgetItems>(items)
-  let activeWidget = $state<WidgetItem | null>(null)
-  let lastDragOverKey = $state<string | null>(null)
+		const framesPayload: MemoriLayout[] = []
+		for (const [frameIdx, frameEntry] of frameEntries.entries()) {
+			const layout = frameEntry.activeLayout
+			const expectedSlotsLen = getLayoutSlotCount(layout)
+			const actualSlotsLen = getFrameWidgetCount(frameEntry.frameLayouts, layout)
+			if (actualSlotsLen !== expectedSlotsLen) {
+				errMsg = `Cannot flash: frame ${frameIdx + 1} (${layout}) requires ${expectedSlotsLen} widget slot${expectedSlotsLen === 1 ? '' : 's'}, but has ${actualSlotsLen}.`
+				return
+			}
 
-  function getGroupIdFromDragItem(
-    item: { id?: unknown; data?: unknown } | null | undefined
-  ) {
-    const dataGroup =
-      item &&
-      typeof item.data === 'object' &&
-      item.data !== null &&
-      'group' in item.data &&
-      typeof (item.data as { group?: unknown }).group === 'string'
-        ? (item.data as { group: string }).group
-        : undefined
+			framesPayload.push(
+				toMemoriLayout(layout, frameEntry.frameLayouts[layout]['frame-widgets'])
+			)
+		}
 
-    if (dataGroup) return dataGroup
-    if (item && typeof item.id === 'string' && item.id in widgets)
-      return item.id
-    return undefined
-  }
+		const widgetsPayload = $state.snapshot(appState.widgetPool) as MemoriWidget[]
+		const widgetIds = new Set(widgetsPayload.map(widget => widget.id))
+		for (const [frameIdx, frameEntry] of frameEntries.entries()) {
+			const layout = frameEntry.activeLayout
+			for (const widget of frameEntry.frameLayouts[layout]['frame-widgets']) {
+				if (!widgetIds.has(widget.widgetId)) {
+					errMsg = `Cannot flash: frame ${frameIdx + 1} references widget ${widget.widgetId}, but it is missing from the widget pool.`
+					return
+				}
+			}
+		}
 
-  function getDragOverKey(event: {
-    operation?: { source?: unknown; target?: unknown }
-  }) {
-    const source = event.operation?.source as
-      | {
-          id?: unknown
-          data?: unknown
-          index?: unknown
-          shape?: { center?: { y?: number } }
-          manager?: {
-            dragOperation?: {
-              shape?: { current?: { center?: { y?: number } } }
-              position?: { current?: { y?: number } }
-            }
-          }
-        }
-      | undefined
-    const target = event.operation?.target as
-      | {
-          id?: unknown
-          data?: unknown
-          index?: unknown
-          shape?: { center?: { y?: number } }
-        }
-      | undefined
-    const sourceGroup = getGroupIdFromDragItem(source)
-    const targetGroup = getGroupIdFromDragItem(target)
+		errMsg = ''
+		isFlashing = true
 
-    if (!source || !target || !sourceGroup || !targetGroup) return null
+		const payload: MemoriStateInput = {
+			activeFrameIdx: Math.min(currFrameIdx, frameEntries.length - 1),
+			widgets: widgetsPayload,
+			frames: framesPayload,
+			frameTime: FRAME_TIME_SECONDS,
+		}
 
-    const sourceIndex = typeof source.index === 'number' ? source.index : -1
-    const targetIndex = typeof target.index === 'number' ? target.index : -1
+		await tryCmd(commands.setMemoriState(payload)).match(
+			() => {
+				errMsg = ''
+			},
+			error => {
+				errMsg = `Flash failed: ${error}`
+			}
+		)
+		isFlashing = false
+	}
 
-    const operationShape = source.manager?.dragOperation?.shape?.current
-    const operationPosition = source.manager?.dragOperation?.position?.current
-    const pointerY = operationShape?.center?.y ?? operationPosition?.y
-    const targetY = target.shape?.center?.y
-    const side =
-      pointerY !== undefined && targetY !== undefined
-        ? pointerY > targetY
-          ? 'after'
-          : 'before'
-        : 'none'
+	const getCurrentFrameSnapshot = (): WidgetFrame =>
+		$state.snapshot(currWidgetFrame) as WidgetFrame
 
-    return `${String(source.id)}:${sourceGroup}:${sourceIndex}->${String(target.id)}:${targetGroup}:${targetIndex}:${side}`
-  }
+	const loadWidgets = (): Promise<void> =>
+		getWidgetKinds().match(
+			data => {
+				syncWidgetPoolAndFrame(currFrameIdx, data)
+			},
+			error => {
+				errMsg = `Load widgets failed: ${error}`
+			}
+		)
+
+	const compactClock = $derived(
+		formatCompactClock(now, appState.systemOptions.timeZone ?? undefined)
+	)
+
+	onMount(() => {
+		void loadWidgets()
+
+		const intervalId = setInterval(() => {
+			now = new Date()
+		}, CLOCK_TICK_MS)
+
+		return () => {
+			clearInterval(intervalId)
+		}
+	})
+
+	const defaultFrameEntry = createWidgetFrameEntry()
+	$effect(() => {
+		ensureWidgetFrameEntry(currFrameIdx)
+	})
+	const currFrameEntry = $derived(
+		appState.widgetFrames[currFrameIdx] ?? defaultFrameEntry
+	)
+	const currLayout = $derived(currFrameEntry.activeLayout)
+	const currWidgetFrame = $derived(currFrameEntry.frameLayouts)
+	const tmpl = $derived(LAYOUT_TEMPLATES[currLayout])
+
+	let dragFrame = $state<WidgetFrame | null>(null)
+	let hasOverflowSwapPreview = $state(false)
+	let lastDragOverKey = $state<string | null>(null)
+	const visibleFrame = $derived(dragFrame ?? currWidgetFrame)
+	let overlaySize = $state<{ width: number; height: number } | null>(null)
+	const overlayStyle = $derived(
+		overlaySize
+			? `width: ${overlaySize.width}px; height: ${overlaySize.height}px;`
+			: undefined
+	)
+
+	const handleLayoutChange = (nextLayout: string) => {
+		if (!isLayoutVariant(nextLayout)) return
+		setWidgetFrameLayout(currFrameIdx, nextLayout)
+		dragFrame = null
+		lastDragOverKey = null
+	}
+
+	let activeWidget = $state<WidgetView | null>(null)
+
+	function resetDragState(): void {
+		dragFrame = null
+		hasOverflowSwapPreview = false
+		lastDragOverKey = null
+		activeWidget = null
+		overlaySize = null
+	}
+
+	function commitFrame(nextFrame: WidgetFrame): void {
+		setWidgetFrame(currFrameIdx, nextFrame)
+	}
+
+	const handleDragStart: DragDropEvents['dragstart'] = event => {
+		const source = event.operation.source
+		if (!source) return
+
+		dragFrame = getCurrentFrameSnapshot()
+		hasOverflowSwapPreview = false
+		activeWidget = findActiveWidget(dragFrame[currLayout], String(source.id))
+		lastDragOverKey = null
+
+		const nextOverlaySize = resolveOverlaySize(event.operation)
+		if (nextOverlaySize) overlaySize = nextOverlaySize
+	}
+
+	const handleDragOver: DragDropEvents['dragover'] = event => {
+		const nextOverlaySize = resolveOverlaySize(event.operation)
+		if (nextOverlaySize) overlaySize = nextOverlaySize
+
+		const nextKey = getDragOverKey(event.operation)
+		if (nextKey && nextKey === lastDragOverKey) return
+
+		const frameSlotCount = getLayoutSlotCount(currLayout)
+		const committedFrame = getCurrentFrameSnapshot()
+		const useCommittedFrame = shouldUseCommittedFrameForOverflowSwap(
+			committedFrame[currLayout],
+			event,
+			frameSlotCount
+		)
+		const baseFrame = useCommittedFrame ? committedFrame : (dragFrame ?? committedFrame)
+		const projected = projectLayoutFrameOnDragOver(
+			baseFrame[currLayout],
+			event,
+			frameSlotCount
+		)
+		if (!projected) {
+			if (
+				shouldResetDragPreviewOnOverflowMiss(
+					baseFrame[currLayout],
+					event,
+					frameSlotCount
+				)
+			) {
+				dragFrame = null
+				hasOverflowSwapPreview = false
+			}
+
+			lastDragOverKey = nextKey ?? null
+			return
+		}
+
+		dragFrame = { ...baseFrame, [currLayout]: projected }
+		hasOverflowSwapPreview = useCommittedFrame
+		lastDragOverKey = nextKey ?? null
+	}
+
+	const handleDragEnd: DragDropEvents['dragend'] = event => {
+		if (event.operation.canceled) {
+			resetDragState()
+			return
+		}
+
+		if (!event.operation.target) {
+			resetDragState()
+			return
+		}
+
+		const baseFrame = getCurrentFrameSnapshot()
+		const frameSlotCount = getLayoutSlotCount(currLayout)
+		if (hasOverflowSwapPreview) {
+			if (
+				shouldCancelOverflowSwapPreview(baseFrame[currLayout], event, frameSlotCount)
+			) {
+				resetDragState()
+				return
+			}
+
+			const projected = projectLayoutFrameOnDragOver(
+				baseFrame[currLayout],
+				event,
+				frameSlotCount
+			)
+			if (projected) {
+				commitFrame({ ...baseFrame, [currLayout]: projected })
+			}
+		} else if (dragFrame) {
+			commitFrame(dragFrame)
+		} else {
+			const projected = projectLayoutFrameOnDragOver(
+				baseFrame[currLayout],
+				event,
+				frameSlotCount
+			)
+			if (projected) {
+				commitFrame({ ...baseFrame, [currLayout]: projected })
+			}
+		}
+
+		resetDragState()
+	}
 </script>
 
+<WidgetsToolbar
+	layout={currLayout}
+	{isFlashing}
+	onLayoutChange={handleLayoutChange}
+	onFlash={flash}
+/>
+
+{#if errMsg}
+	<p class="text-sm text-red-600">{errMsg}</p>
+{/if}
+
 <DragDropProvider
-  {sensors}
-  modifiers={[RestrictToWindowEdges]}
-  onDragStart={(event) => {
-    const source = event.operation.source
-    const sourceGroup = getGroupIdFromDragItem(source)
-    if (!source || !sourceGroup) return
-
-    activeWidget =
-      widgets[sourceGroup]?.find((entry) => entry.id === String(source.id)) ??
-      null
-    lastDragOverKey = null
-  }}
-  onDragOver={(event) => {
-    const nextKey = getDragOverKey(event)
-    if (!nextKey) return
-    if (nextKey === lastDragOverKey) return
-
-    const nextWidgets = move(widgets, event)
-    if (nextWidgets !== widgets) widgets = nextWidgets
-    lastDragOverKey = nextKey
-  }}
-  onDragEnd={(event) => {
-    const nextWidgets = move(widgets, event)
-    if (nextWidgets !== widgets) widgets = nextWidgets
-    activeWidget = null
-    lastDragOverKey = null
-  }}
+	{sensors}
+	modifiers={[RestrictToWindowEdges]}
+	onDragStart={handleDragStart}
+	onDragOver={handleDragOver}
+	onDragEnd={handleDragEnd}
 >
-  <div class="grid gap-4 md:grid-cols-[1fr_3fr]">
-    {@render taskList('widgets', 'Widgets', widgets['widgets'])}
-    {@render taskList('frame-widgets', 'Frame', widgets['frame-widgets'])}
-  </div>
+	<div class="grid gap-2 md:grid-cols-[1fr_3fr]">
+		<WidgetSection
+			id="widgets"
+			title="Widgets"
+			tasks={visibleFrame[currLayout]['widgets']}
+			layout={currLayout}
+			frameContainerClass={tmpl.container}
+		/>
+		<WidgetSection
+			id="frame-widgets"
+			title="Frame"
+			tasks={visibleFrame[currLayout]['frame-widgets']}
+			layout={currLayout}
+			frameContainerClass={tmpl.container}
+		/>
+	</div>
 
-  <DragOverlay>
-    {#snippet children(source)}
-      {#if activeWidget}
-        <div class="relative select-none">
-          <div
-            class={[
-              sortableCardBaseClasses,
-              'shadow-lg ring-2 ring-sky-300/60',
-            ]}
-          >
-            <div class={sortableCardTitleClasses}>
-              {activeWidget.name}
-            </div>
-            <p class={sortableCardContentClasses}>
-              {activeWidget.content}
-            </p>
-          </div>
-        </div>
-      {/if}
-    {/snippet}
-  </DragOverlay>
+	<DragOverlay>
+		{#snippet children(_source)}
+			<WidgetsDragOverlay {activeWidget} {overlayStyle} {compactClock} />
+		{/snippet}
+	</DragOverlay>
 </DragDropProvider>
-
-{#snippet taskList(id: string, title: string, tasks: WidgetItem[])}
-  <section class="bg-#F9F9F9 rd-3xl p-3 pt-6">
-    <p class="text-lg fw-bold pb-3">{title}</p>
-
-    <Droppable
-      class="min-h-24"
-      {id}
-      type="column"
-      accept="item"
-      collisionPriority={CollisionPriority.Low}
-    >
-      {#if id == 'frame-widgets'}
-        <div class="grid grid-cols-2 gap-2">
-          {#each tasks as task, index (task.id)}
-            <SortableItem
-              widget={task}
-              id={task.id}
-              index={() => index}
-              group={id}
-              data={{ group: id }}
-              type="item"
-            />
-          {/each}
-        </div>
-      {:else}
-        <div class="flex flex-col gap-2">
-          {#each tasks as task, index (task.id)}
-            <SortableItem
-              widget={task}
-              id={task.id}
-              index={() => index}
-              group={id}
-              data={{ group: id }}
-              type="item"
-            ></SortableItem>
-          {/each}
-        </div>
-      {/if}
-    </Droppable>
-  </section>
-{/snippet}

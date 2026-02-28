@@ -1,13 +1,12 @@
+import type { LayoutSlotPos as MemoriLayoutSlot } from '@/model/layout.ts'
 import type {
-	MemoriWidget,
 	MemoriLayout,
-	WidgetKind as MemoriWidgetKind,
+	MemoriWidget,
 	WidgetId as MemoriWidgetId,
+	WidgetKind as MemoriWidgetKind,
 } from '@/tauri'
 
-import type { LayoutSlot as MemoriLayoutSlot } from '@/widget-utils'
-
-// helper: normalize raw payload -> always `{ widget: ... }` form
+// helper: normalize raw payload -> always `{ center: ... }` form
 type NormalizeWidgetPayload<V> = V extends MemoriWidgetId
 	? { center: MemoriWidgetId }
 	: V extends Record<string, MemoriWidgetId>

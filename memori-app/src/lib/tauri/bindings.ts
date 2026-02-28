@@ -53,7 +53,7 @@ async getBattery() : Promise<Result<number, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async getWidgetKinds() : Promise<Result<[MemoriWidget, MemoriWidget], string>> {
+async getWidgetKinds() : Promise<Result<[MemoriWidget, MemoriWidget, MemoriWidget, MemoriWidget], string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_widget_kinds") };
 } catch (e) {
@@ -61,9 +61,17 @@ async getWidgetKinds() : Promise<Result<[MemoriWidget, MemoriWidget], string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async sendTwitch(token: string) : Promise<Result<null, string>> {
+async sendTwitch(token: string) : Promise<Result<string, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("send_twitch", { token }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async setMemoriState(memoriState: MemoriStateInput) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_memori_state", { memoriState }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -77,9 +85,9 @@ async sendName(name: string) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async sendTemp(lat: number, lon: number) : Promise<Result<string, string>> {
+async sendTemp(city: string) : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("send_temp", { lat, lon }) };
+    return { status: "ok", data: await TAURI_INVOKE("send_temp", { city }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -88,14 +96,6 @@ async sendTemp(lat: number, lon: number) : Promise<Result<string, string>> {
 async sendBustime(lat: number, lon: number) : Promise<Result<string, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("send_bustime", { lat, lon }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async sendGithub(token: string) : Promise<Result<string, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("send_github", { token }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -229,15 +229,12 @@ export type MemoriLayout =
  * └────────┴────────┘
  */
 { Fourths: { topLeft: WidgetId; topRight: WidgetId; bottomLeft: WidgetId; bottomRight: WidgetId } }
+export type MemoriStateInput = { activeFrameIdx: number; widgets: MemoriWidget[]; frames: MemoriLayout[]; frameTime: number }
 export type MemoriWidget = { id: WidgetId; kind: WidgetKind; remoteUpdateFrequency: UpdateFrequency; localUpdateFrequency: UpdateFrequency }
 /**
  * Define a widget by its data
  */
 export type Name = { name: string }
-/**
- * Define a widget by its data
- */
-export type Twitch = { user: string }
 export type UpdateFrequency = { Seconds: number } | { Minutes: number } | { Hours: number } | "Never"
 export type UserInfo = { id: string; name: string; email: string; avatar: string | null; provider: string; accessToken: string }
 /**
@@ -245,7 +242,7 @@ export type UserInfo = { id: string; name: string; email: string; avatar: string
  */
 export type Weather = { temp: string; icon: string }
 export type WidgetId = number
-export type WidgetKind = { Name: Name } | { Clock: Clock } | { Weather: Weather } | { Bus: Bus } | { Twitch: Twitch }
+export type WidgetKind = { Name: Name } | { Clock: Clock } | { Weather: Weather } | { Bus: Bus }
 
 /** tauri-specta globals **/
 

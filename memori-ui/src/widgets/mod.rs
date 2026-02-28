@@ -3,11 +3,13 @@ mod clock;
 mod name;
 mod twitch;
 mod weather;
+mod github;
 pub use bus::*;
 pub use clock::*;
 pub use name::*;
 pub use twitch::*;
 pub use weather::*;
+pub use github::*;
 
 use alloc::vec;
 use ratatui::widgets::Widget;
@@ -84,6 +86,7 @@ impl MemoriWidget {
 pub enum WidgetKind {
     Name(Name),
     Clock(Clock),
+    Github(Github),
     Weather(Weather),
     Bus(Bus),
     Twitch(Twitch),
@@ -97,6 +100,7 @@ impl WidgetKind {
             Self::Weather(w) => w.update(),
             Self::Bus(b) => b.update(),
             Self::Twitch(t) => t.update(),
+            Self::Github(g) => g.update(),
         }
     }
 }
@@ -109,6 +113,7 @@ impl Widget for &MemoriWidget {
         match &self.kind {
             WidgetKind::Name(n) => n.render(area, buf),
             WidgetKind::Clock(c) => c.render(area, buf),
+            WidgetKind::Github(g) => g.render(area, buf),
             WidgetKind::Weather(w) => w.render(area, buf),
             WidgetKind::Bus(b) => b.render(area, buf),
             WidgetKind::Twitch(t) => t.render(area, buf),

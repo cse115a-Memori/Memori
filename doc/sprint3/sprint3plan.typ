@@ -34,8 +34,8 @@ The main goal of this sprint is to tie up all the loose ends from last sprint an
 create a finished hardware product.
 
 == Duration
-*Start Date:* 2/12/26 \
-*End Date:* 2/26/26\
+*Start Date:* 2/25/26 \
+*End Date:* 3/9/26\
 *Sprint Length:* 2 weeks
 
 = Sprint Tasks
@@ -43,12 +43,6 @@ create a finished hardware product.
 
 
 == High Priority Items
-+ *User Story 2.1* {OVERFLOW} - As an application user, I want to be able to connect to my Memori device using bluetooth from a mobile device.
-  - Estimated Points: 3
-  - Tasks
-    - Verify that btleplug works on ios (1 Hour) (Preston)
-  - Total Time: 3 Hours
-
 + *User Story 3.1* As a user, I want to be able to choose the widgets that are displayed on my device.
 - Estimated Points: 8
   - Tasks
@@ -65,13 +59,13 @@ create a finished hardware product.
       - layout configuration
   - Total Time: 10 Hours
 
+  + *User Story 3.3* - As a user, I want my widgets to display accurate updated information.
+    - Estimated Points: 8
+    - Tasks
+      - Move host request handler to be channel based. (expose state to host-ble command handling) (2 hours) (Preston)
+      - Implement update function for each widget and put that in the app (2 hours) (Preston)
+    - Total Time: 4 Hours
 == Medium Priority Items
-+ *User Story 3.3* - As a user, I want my widgets to display accurate updated information.
-  - Estimated Points: 8
-  - Tasks
-    - Move host request handler to be channel based. (expose state to host-ble command handling) (2 hours) (Preston)
-    - Implement update function for each widget and put that in the app (2 hours) (Preston)
-  - Total Time: 4 Hours
 + *User Story 2.2* {OVERFLOW} - As a developer, I would want to see my github statistics on the Memori device.
   - Estimated Points: 5
   - Tasks

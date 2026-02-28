@@ -33,7 +33,7 @@ doc PATH:
 # desktop app
 [working-directory('memori-app')]
 pc:
-    bunx tauri dev
+    bunx tauri dev --no-watch
 
 # mobile app
 [working-directory('memori-app')]
@@ -42,10 +42,9 @@ app:
 
 [working-directory('memori-app')]
 check:
-    bunx @biomejs/biome check --write .
-    # bunx dprint fmt "**/*.{svelte,astro}"
-    bun run prettier --write "**/*.{svelte,astro}"
-    bunx sv check --compiler-warnings "state_referenced_locally:ignore"
+    bun --bun run biome check --write .
+    bunx --bun sv check --compiler-warnings "state_referenced_locally:ignore"
+    # bunx --bun golar --noEmit
     cd ./src-tauri && cargo check
 
 [working-directory('memori-app')]
@@ -67,6 +66,7 @@ ext +args:
 
     cd "memori-app"
 
+    hdiutil attach "/Volumes/X31/MemoriTarget.sparsebundle"
     if [[ -d "{{ MOUNT }}" ]]; then
         export CARGO_TARGET_DIR="{{ EXT_TARGET }}"
         mkdir -p "$CARGO_TARGET_DIR"
@@ -76,3 +76,11 @@ ext +args:
     fi
 
     exec just --justfile "{{ justfile() }}" {{ args }}
+
+diff:
+    jj diff 'all() ~ ( \
+      root-glob:"*.lock" | \
+      root-glob:"**/*.lock" | \
+      root-glob:"**/*.json" | \
+      root-glob:"**/*prettier*" \
+    )'
