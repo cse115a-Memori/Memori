@@ -992,7 +992,14 @@
   resolved "https://registry.npmjs.org/@tauri-apps/cli-win32-x64-msvc/-/cli-win32-x64-msvc-2.10.0.tgz"
   integrity sha512-NTpyQxkpzGmU6ceWBTY2xRIEaS0ZLbVx1HE1zTA3TY/pV3+cPoPPOs+7YScr4IMzXMtOw7tLw5LEXo5oIG3qaQ==
 
-"@tauri-apps/plugin-geolocation@~2.3.2":
+"@tauri-apps/plugin-deep-link@~2":
+  version "2.4.7"
+  resolved "https://registry.npmjs.org/@tauri-apps/plugin-deep-link/-/plugin-deep-link-2.4.7.tgz"
+  integrity sha512-K0FQlLM6BoV7Ws2xfkh+Tnwi5VZVdkI4Vw/3AGLSf0Xvu2y86AMBzd9w/SpzKhw9ai2B6ES8di/OoGDCExkOzg==
+  dependencies:
+    "@tauri-apps/api" "^2.10.1"
+
+"@tauri-apps/plugin-geolocation@~2":
   version "2.3.2"
   resolved "https://registry.npmjs.org/@tauri-apps/plugin-geolocation/-/plugin-geolocation-2.3.2.tgz"
   integrity sha512-ONCwav1monafjeO8/JdXtRlbhZ3xgAdBYxo/62qgw99u9+y6xGsohy3avZgFZsBHA0JVNe1uJnMi+vfT5ZSFUA==

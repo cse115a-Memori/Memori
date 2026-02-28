@@ -12,16 +12,19 @@ pub use weather::*;
 use alloc::vec;
 use ratatui::widgets::Widget;
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "specta")]
 use specta::Type;
 
 #[derive(
-    Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Hash, Type,
+    Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Hash,
 )]
+#[cfg_attr(feature = "specta", derive(Type))]
 pub struct WidgetId(pub u32);
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Type)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "specta", derive(Type))]
 #[serde(rename_all = "camelCase")]
-#[specta(rename_all = "camelCase")]
+#[cfg_attr(feature = "specta", specta(rename_all = "camelCase"))]
 pub struct MemoriWidget {
     pub id: WidgetId,
     pub(crate) kind: WidgetKind,
@@ -29,7 +32,8 @@ pub struct MemoriWidget {
     local_update_frequency: UpdateFrequency,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy, Type)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "specta", derive(Type))]
 pub enum UpdateFrequency {
     Seconds(u32),
     Minutes(u32),
@@ -80,7 +84,8 @@ impl MemoriWidget {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Type)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "specta", derive(Type))]
 pub enum WidgetKind {
     Name(Name),
     Clock(Clock),

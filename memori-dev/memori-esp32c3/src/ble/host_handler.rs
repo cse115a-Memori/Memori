@@ -6,11 +6,12 @@ use embassy_executor::Spawner;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex};
 use embassy_time::{Duration, Timer};
 use log::{error, info};
-use memori_ui::{MemoriState, widgets::MemoriWidget};
+use memori_ui::{MemoriState, widgets::{MemoriWidget, UpdateFrequency}};
 use transport::{DeviceTransport, TransError, ble_types::*};
 use trouble_host::prelude::*;
 
 use crate::ble::{Server, send_packet};
+use crate::local_widget_update::widget_update_task;
 
 /// Keeps track of the generation of refresh tasks, basically
 /// a way to tell older tasks to die when we update the state with
@@ -51,7 +52,7 @@ pub(super) async fn handle_host_cmd<P: PacketPool>(
                 .iter()
                 // Filter for widgets that have an update frequency
                 .filter_map(|(_, w)| {
-                    if w.update_frequency.is_some() {
+                    if !matches!(w.get_remote_update_frequency(), UpdateFrequency::Never) {
                         Some(w)
                     } else {
                         None
@@ -81,7 +82,7 @@ pub(super) async fn handle_host_cmd<P: PacketPool>(
 
               for (widget_id, seconds) in widgets_to_update {
                   spawner
-                      .spawn(widget_update_task(mem_state, widget_id, seconds as u64))
+                      .spawn(widget_update_task(state, widget_id, seconds as u64))
                       .expect("Failed to spawn widget update task");
               }
 
@@ -109,10 +110,7 @@ async fn refresh_widget_task(
     my_generation: u32,
 ) {
     // Watches for the cancellation watch to be updated, and returns when it does so.
-    let Some(wait_period) = widget
-        .update_frequency
-        .map(|f| f.to_seconds().expect("Should convert to seconds"))
-    else {
+    let Some(wait_period) = widget.get_remote_update_frequency().to_seconds() else {
         // Called this function on a widget that doesn't have an update frequency, just return.
         return;
     };

@@ -36,6 +36,7 @@
                 SDL2
                 pkg-config
                 libiconv
+                vips
 
                 esp-generate
                 espflash
@@ -50,11 +51,22 @@
                 pkgs.lib.makeLibraryPath [
                   pkgs.SDL2
                   pkgs.libiconv
+                  pkgs.vips
                 ]
               }:$LIBRARY_PATH
-              export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath [ pkgs.SDL2 ]}:$LD_LIBRARY_PATH
+              export LD_LIBRARY_PATH=${
+                pkgs.lib.makeLibraryPath [
+                  pkgs.SDL2
+                  pkgs.vips
+                ]
+              }:$LD_LIBRARY_PATH
               ${pkgs.lib.optionalString pkgs.stdenv.isDarwin ''
-                export DYLD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath [ pkgs.SDL2 ]}:$DYLD_LIBRARY_PATH
+                export DYLD_LIBRARY_PATH=${
+                  pkgs.lib.makeLibraryPath [
+                    pkgs.SDL2
+                    pkgs.vips
+                  ]
+                }:$DYLD_LIBRARY_PATH
               ''}
             '';
           };
