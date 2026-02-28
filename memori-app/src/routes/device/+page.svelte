@@ -6,17 +6,14 @@
     requestLocationState,
   } from '@/features/prefs/service.ts'
   import { prefsState } from '@/features/prefs/store.ts'
-  import { commands, events, type DeviceMode, tryCmd } from '@/tauri'
-  // import { Window } from '@tauri-apps/api/window'
+  import { commands, type DeviceMode, tryCmd } from '@/tauri'
   import { Button } from '$lib/components/ui/button/index.js'
   import * as Field from '$lib/components/ui/field/index.js'
   import { Input } from '$lib/components/ui/input/index.js'
 
-  // const appWindow = new Window('theUniqueLabel')
-
-  events.updateIsConnected.listen((e) => {
-    console.log('listening', e)
-  })
+  // events.updateIsConnected.listen((e) => {
+  //   console.log('listening', e)
+  // })
 
   type PendingAction =
     | 'connect'
