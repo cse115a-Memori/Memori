@@ -1,9 +1,11 @@
-use crate::state::{AppState, DeviceConnection, TCPConnection};
+use crate::oauth::cloudflare;
+use crate::state::{AppState, DeviceConnection};
 use memori_ui::{
-    MemoriState, layout::MemoriLayout, widgets::{Bus, Clock, MemoriWidget, Name, UpdateFrequency, Weather, WidgetId, WidgetKind}
+    MemoriState, layout::MemoriLayout, widgets::{Bus, Clock, MemoriWidget, Name, Twitch, UpdateFrequency, Weather, WidgetId, WidgetKind}
 };
 use reqwest::Client;
-use serde::Deserialize;
+use serde::{de::DeserializeOwned, Deserialize};
+use serde_json::json;
 use tauri::State;
 use transport::HostTransport as _;
 
@@ -45,20 +47,131 @@ impl MemoriStateInput {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn hello(name: String) -> Result<String, String> {
-    Ok(format!("hi there, {}", name))
+pub async fn flash_memori_state(
+    state: State<'_, AppState>,
+    memori_state: MemoriStateInput,
+) -> Result<(), String> {
+    let memori_state = memori_state.into_memori_state()?;
+    let mut guard = state.conn.lock().await;
+
+    match &mut *guard {
+        DeviceConnection::RealDevice(transport) => transport
+            .set_state(memori_state)
+            .await
+            .map_err(|e| format!("Failed to set state: {e}")),
+        DeviceConnection::Simulator(transport) => transport
+            .set_state(memori_state)
+            .await
+            .map_err(|e| format!("Failed to set state: {e}")),
+        DeviceConnection::Disconnected => Err("Device is not connected".to_string()),
+    }
+}
+
+
+async fn set_memori_state(state: &State<'_, AppState>, memori_state: MemoriState) -> Result<(), String> {
+    let mut state_guard = state.conn.lock().await;
+
+    match &mut *state_guard {
+        DeviceConnection::RealDevice(host_bletransport) => host_bletransport
+            .set_state(memori_state)
+            .await
+            .map_err(|e| format!("Failed to set state: {e}")),
+        DeviceConnection::Simulator(host_tcp_transport) => host_tcp_transport
+            .set_state(memori_state)
+            .await
+            .map_err(|e| format!("Failed to set state: {e}")),
+        DeviceConnection::Disconnected => Err("Device is not connected".to_string()),
+    }
+}
+
+async fn call_api_json<T>(args: serde_json::Value) -> Result<T, String>
+where
+    T: DeserializeOwned,
+{
+    let response = cloudflare("call_api", args)
+        .await
+        .map_err(|e| format!("cloudflare error: {e}"))?;
+    serde_json::from_value(response).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn send_twitch(_state: State<'_, AppState>, token: String) -> Result<String, String> {
-    println!("token: {}", token);
-    Ok(format!("access token: {}", token))
-}
+pub async fn send_github(_state: State<'_, AppState>, token: String) -> Result<String, String> {
+     let url = "https://api.github.com/user";
+     let client = Client::new();
+     let response = client
+         .get(url)
+         .header("Authorization", format!("Bearer {}", token))
+         .header("Accept", "application/vnd.github.v3+json")
+         .header("User-Agent", "tauri-app")
+         .send()
+         .await
+         .map_err(|e| e.to_string())?;
+    let response = response.error_for_status().map_err(|e| e.to_string())?;
+     let user_info: serde_json::Value = response.json().await.map_err(|err| err.to_string())?;
+    let _ = user_info;
+     Ok("ok".to_string())
+ }
+ 
+ #[tauri::command]
+ #[specta::specta]
+pub async fn send_twitch(state: State<'_, AppState>, token: String) -> Result<(), String> {
+     #[derive(Debug, Deserialize)]
+     struct Broadcaster {
+         broadcaster_type: String,
+         created_at: String,
+         description: String,
+         display_name: String,
+        email: Option<String>,
+         id: String,
+         login: String,
+         view_count: u64,
+     }
+     #[derive(Debug, Deserialize)]
+     struct TwitchResponse {
+         data: Vec<Broadcaster>,
+     }
+    let mut headers = serde_json::Map::new();
+    let client_id = std::env::var("TWITCH_CLIENT_ID")
+        .ok()
+        .or_else(|| option_env!("TWITCH_CLIENT_ID").map(ToString::to_string))
+        .ok_or("TWITCH_CLIENT_ID is not configured".to_string())?;
+    headers.insert(
+        "Authorization".to_string(),
+        serde_json::Value::String(format!("Bearer {}", token)),
+    );
+    headers.insert(
+        "Client-ID".to_string(),
+        serde_json::Value::String(client_id),
+    );
+     let args = json!({
+         "provider": "twitch",
+         "url": "https://api.twitch.tv/helix/users",
+        "headers": serde_json::Value::Object(headers),
+     });
 
-#[tauri::command]
-#[specta::specta]
-pub async fn get_widget_kinds() -> Result<[MemoriWidget; 4], String> {
+    let api_response: TwitchResponse = call_api_json(args).await?;
+     let broadcaster = match api_response.data.get(0) {
+         Some(first_element) => first_element,
+        None => return Err("Twitch response contained no user".to_string()),
+     };
+     let memori_state = MemoriState::new(
+         0,
+         vec![MemoriWidget::new(
+             WidgetId(0),
+             WidgetKind::Twitch(Twitch::new(broadcaster.display_name.clone())),
+             UpdateFrequency::Seconds(1),
+             UpdateFrequency::Seconds(1),
+         )],
+         vec![MemoriLayout::Full(WidgetId(0))],
+         5,
+     );
+    set_memori_state(&state, memori_state).await
+ }
+ 
+ #[tauri::command]
+ #[specta::specta]
+ pub async fn get_widget_kinds() -> Result<[MemoriWidget; 4], String> {
     Ok([
         MemoriWidget::new(
             WidgetId(0),
@@ -89,33 +202,7 @@ pub async fn get_widget_kinds() -> Result<[MemoriWidget; 4], String> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn set_memori_state(
-    state: State<'_, AppState>,
-    memori_state: MemoriStateInput,
-) -> Result<(), String> {
-    let memori_state = memori_state.into_memori_state()?;
-    let mut guard = state.conn.lock().await;
-
-    match &mut *guard {
-        DeviceConnection::RealDevice(transport) => transport
-            .set_state(memori_state)
-            .await
-            .map_err(|e| format!("Failed to set state: {e}")),
-        DeviceConnection::Simulator(transport) => transport
-            .set_state(memori_state)
-            .await
-            .map_err(|e| format!("Failed to set state: {e}")),
-        DeviceConnection::Disconnected => Err("Device is not connected".to_string()),
-    }
-
-    // Ok("flash success".to_string())
-}
-
-#[tauri::command]
-#[specta::specta]
 pub async fn send_name(state: State<'_, AppState>, name: String) -> Result<(), String> {
-    let mut state_guard = state.tcp_conn.lock().await;
-
     let memori_state = MemoriState::new(
         0,
         vec![MemoriWidget::new(
@@ -132,22 +219,12 @@ pub async fn send_name(state: State<'_, AppState>, name: String) -> Result<(), S
         }],
         5,
     );
-
-    if let TCPConnection::Connected(conn) = &mut *state_guard {
-        return conn
-            .set_state(memori_state)
-            .await
-            .map_err(|e| format!("Failed to set state: {e}"));
-    }
-
-    Err("Device is not connected".to_string())
+    set_memori_state(&state, memori_state).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn send_temp(state: State<'_, AppState>, city: String) -> Result<(), String> {
-    let mut state_guard = state.tcp_conn.lock().await;
-
+ pub async fn send_temp(state: State<'_, AppState>, lat: f64, lon: f64) -> Result<String, String> {
     #[derive(Deserialize, Debug)]
     struct WeatherResponse {
         main: Main,
@@ -158,30 +235,16 @@ pub async fn send_temp(state: State<'_, AppState>, city: String) -> Result<(), S
         temp: f32,
     }
 
-    let api_key = match std::env::var("API_KEY_W")
-        .ok()
-        .or_else(|| option_env!("API_KEY_W").map(ToString::to_string))
-    {
-        Some(value) => value,
-        None => return Ok(()),
-    };
 
-    println!("city: {}", city);
-    let url = format!(
-        "https://api.openweathermap.org/data/2.5/weather?q={}&appid={}&units=metric",
-        city, api_key
-    );
-
-    let client = Client::new();
-    let response: WeatherResponse = client
-        .get(&url)
-        .send()
-        .await
-        .map_err(|e| format!("request err: {e}"))?
-        .json()
-        .await
-        .map_err(|e| format!("deserialize err: {e}"))?;
-
+    let request_body = json!({
+        "provider": "weather",
+        "url": format!(
+            "https://api.openweathermap.org/data/2.5/weather?appid={{}}&lat={lat}&lon={lon}&units=metric"
+        ),
+        "lat": lat.to_string(),//lat.to_string().as_str(),
+        "lon": lon.to_string(),// lon.to_string().as_str(),
+    });
+    let response: WeatherResponse = call_api_json(request_body).await?;
     let memori_state = MemoriState::new(
         0,
         vec![MemoriWidget::new(
@@ -193,26 +256,17 @@ pub async fn send_temp(state: State<'_, AppState>, city: String) -> Result<(), S
         vec![MemoriLayout::Full(WidgetId(0))],
         5,
     );
-
-    if let TCPConnection::Connected(conn) = &mut *state_guard {
-        return conn
-            .set_state(memori_state)
-            .await
-            .map_err(|e| format!("Failed to set state: {e}"));
-    }
-
-    Err("Device is not connected".to_string())
+    set_memori_state(&state, memori_state).await?;
+    Ok(format!("{:?}", response.main.temp))
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn send_bustime(
-    state: State<'_, AppState>,
+    _state: State<'_, AppState>,
     lat: f64,
     lon: f64,
 ) -> Result<String, String> {
-    let _state_guard = state.tcp_conn.lock().await;
-
     #[derive(Debug, Deserialize)]
     struct BustimeResponse<T> {
         #[serde(rename = "bustime-response")]
@@ -252,28 +306,11 @@ pub async fn send_bustime(
         lon: f64,
     }
 
-    let api_key = match std::env::var("API_KEY")
-        .ok()
-        .or_else(|| option_env!("API_KEY").map(ToString::to_string))
-    {
-        Some(value) => value,
-        None => return Ok("Bus API key not configured".to_string()),
-    };
-
-    let client = Client::new();
-    let routes_url = format!(
-        "https://rt.scmetro.org/bustime/api/v3/getroutes?key={}&format=json",
-        api_key
-    );
-
-    let response: BustimeResponse<Routes> = client
-        .get(&routes_url)
-        .send()
-        .await
-        .map_err(|e| format!("request err: {e}"))?
-        .json()
-        .await
-        .map_err(|e| format!("deserialize err: {e}"))?;
+    let request_body = json!({
+        "provider": "bustime",
+        "url": "https://rt.scmetro.org/bustime/api/v3/getroutes?key={}&format=json",
+    });
+    let response: BustimeResponse<Routes> = call_api_json(request_body).await?;
 
     let routes: Vec<&Route> = response
         .bustime_response
@@ -285,34 +322,24 @@ pub async fn send_bustime(
     let mut stops = Vec::new();
     for route in routes {
         let directions_url = format!(
-            "https://rt.scmetro.org/bustime/api/v3/getdirections?key={}&rt={}&format=json",
-            api_key, route.rt
+            "https://rt.scmetro.org/bustime/api/v3/getdirections?key={{}}&rt={}&format=json",
+            route.rt
         );
-
-        let response: BustimeResponse<Directions> = client
-            .get(&directions_url)
-            .send()
-            .await
-            .map_err(|e| format!("request err: {e}"))?
-            .json()
-            .await
-            .map_err(|e| format!("deserialize err: {e}"))?;
-
+        let args = json!({
+            "provider": "bustime",
+            "url": directions_url,
+        });
+        let response: BustimeResponse<Directions> = call_api_json(args).await?;
         for direction in response.bustime_response.directions {
             let stops_url = format!(
-                "https://rt.scmetro.org/bustime/api/v3/getstops?key={}&rt={}&dir={}&format=json",
-                api_key, route.rt, direction.id
+                "https://rt.scmetro.org/bustime/api/v3/getstops?key={{}}&rt={}&dir={}&format=json",
+                route.rt, direction.id
             );
-
-            let response: BustimeResponse<Stops> = client
-                .get(&stops_url)
-                .send()
-                .await
-                .map_err(|e| format!("request err: {e}"))?
-                .json()
-                .await
-                .map_err(|e| format!("deserialize err: {e}"))?;
-
+            let args2 = json!({
+                "provider": "bustime",
+                "url": stops_url,
+            });
+            let response: BustimeResponse<Stops> = call_api_json(args2).await?;
             stops.extend(response.bustime_response.stops);
         }
     }
@@ -338,6 +365,6 @@ pub async fn send_bustime(
     if let Some(stop) = closest_stop {
         Ok(format!("closest stop: {}", stop.stpid))
     } else {
-        Err("1111".into())
+        Err("No nearby bus stop was found".into())
     }
 }

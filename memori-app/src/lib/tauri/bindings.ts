@@ -5,14 +5,6 @@
 
 
 export const commands = {
-async hello(name: string) : Promise<Result<string, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("hello", { name }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async connectDevice(mode: DeviceMode) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("connect_device", { mode }) };
@@ -61,7 +53,7 @@ async getWidgetKinds() : Promise<Result<[MemoriWidget, MemoriWidget, MemoriWidge
     else return { status: "error", error: e  as any };
 }
 },
-async sendTwitch(token: string) : Promise<Result<string, string>> {
+async sendTwitch(token: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("send_twitch", { token }) };
 } catch (e) {
@@ -69,9 +61,17 @@ async sendTwitch(token: string) : Promise<Result<string, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async setMemoriState(memoriState: MemoriStateInput) : Promise<Result<null, string>> {
+async flashMemoriState(memoriState: MemoriStateInput) : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("set_memori_state", { memoriState }) };
+    return { status: "ok", data: await TAURI_INVOKE("flash_memori_state", { memoriState }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async sendGithub(token: string) : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("send_github", { token }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -85,9 +85,9 @@ async sendName(name: string) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async sendTemp(city: string) : Promise<Result<null, string>> {
+async sendTemp(lat: number, lon: number) : Promise<Result<string, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("send_temp", { city }) };
+    return { status: "ok", data: await TAURI_INVOKE("send_temp", { lat, lon }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -146,7 +146,7 @@ export type MemoriLayout =
  * │                 │
  * └─────────────────┘
  */
-{ Full: WidgetId } | 
+{ full: WidgetId } | 
 /**
  * ┌────────┬────────┐
  * │        │        │
@@ -156,7 +156,7 @@ export type MemoriLayout =
  * │        │        │
  * └────────┴────────┘
  */
-{ VSplit: { left: WidgetId; right: WidgetId } } | 
+{ vsplit: { left: WidgetId; right: WidgetId } } | 
 /**
  * ┌─────────────────┐
  * │                 │
@@ -168,7 +168,7 @@ export type MemoriLayout =
  * │                 │
  * └─────────────────┘
  */
-{ HSplit: { top: WidgetId; bottom: WidgetId } } | 
+{ hsplit: { top: WidgetId; bottom: WidgetId } } | 
 /**
  * ┌──────┬──────────┐
  * │      │          │
@@ -180,7 +180,7 @@ export type MemoriLayout =
  * │      │  Bottom  │
  * └──────┴──────────┘
  */
-{ VSplitWithRightHSplit: { left: WidgetId; rightTop: WidgetId; rightBottom: WidgetId } } | 
+{ vsplitWithRightHSplit: { left: WidgetId; right_top: WidgetId; right_bottom: WidgetId } } | 
 /**
  * ┌────────┬────────┐
  * │        │        │
@@ -192,7 +192,7 @@ export type MemoriLayout =
  * │     Bottom      │
  * └─────────────────┘
  */
-{ HSplitWithTopVSplit: { bottom: WidgetId; topRight: WidgetId; topLeft: WidgetId } } | 
+{ hsplitWithTopVSplit: { bottom: WidgetId; top_right: WidgetId; top_left: WidgetId } } | 
 /**
  * ┌──────────┬──────┐
  * │          │      │
@@ -204,7 +204,7 @@ export type MemoriLayout =
  * │  Bottom  │      │
  * └──────────┴──────┘
  */
-{ VSplitWithLeftHSplit: { leftTop: WidgetId; leftBottom: WidgetId; right: WidgetId } } | 
+{ vsplitWithLeftHSplit: { left_top: WidgetId; left_bottom: WidgetId; right: WidgetId } } | 
 /**
  * ┌─────────────────┐
  * │                 │
@@ -217,7 +217,7 @@ export type MemoriLayout =
  * │  Left  │ Right  │
  * └────────┴────────┘
  */
-{ HSplitWithBottomVSplit: { top: WidgetId; bottomLeft: WidgetId; bottomRight: WidgetId } } | 
+{ hsplitWithBottomVSplit: { top: WidgetId; bottom_left: WidgetId; bottom_right: WidgetId } } | 
 /**
  * ┌────────┬────────┐
  * │        │        │
@@ -229,7 +229,7 @@ export type MemoriLayout =
  * │  Left  │ Right  │
  * └────────┴────────┘
  */
-{ Fourths: { topLeft: WidgetId; topRight: WidgetId; bottomLeft: WidgetId; bottomRight: WidgetId } }
+{ fourths: { top_left: WidgetId; top_right: WidgetId; bottom_left: WidgetId; bottom_right: WidgetId } }
 export type MemoriStateInput = { activeFrameIdx: number; widgets: MemoriWidget[]; frames: MemoriLayout[]; frameTime: number }
 export type MemoriWidget = { id: WidgetId; kind: WidgetKind; remoteUpdateFrequency: UpdateFrequency; localUpdateFrequency: UpdateFrequency }
 /**

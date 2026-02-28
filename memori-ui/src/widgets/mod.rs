@@ -1,15 +1,15 @@
 mod bus;
 mod clock;
+mod github;
 mod name;
 mod twitch;
 mod weather;
-mod github;
 pub use bus::*;
 pub use clock::*;
+pub use github::*;
 pub use name::*;
 pub use twitch::*;
 pub use weather::*;
-pub use github::*;
 
 use alloc::vec;
 use ratatui::widgets::Widget;

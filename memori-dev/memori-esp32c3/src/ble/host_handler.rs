@@ -6,12 +6,12 @@ use embassy_executor::Spawner;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex};
 use embassy_time::{Duration, Timer};
 use log::{error, info};
-use memori_ui::{MemoriState, widgets::MemoriWidget, widgets::UpdateFrequency};
+use memori_ui::{MemoriState, widgets::{MemoriWidget, UpdateFrequency}};
 use transport::{DeviceTransport, TransError, ble_types::*};
 use trouble_host::prelude::*;
 
-use crate::local_widget_update::widget_update_task;
 use crate::ble::{Server, send_packet};
+use crate::local_widget_update::widget_update_task;
 
 /// Keeps track of the generation of refresh tasks, basically
 /// a way to tell older tasks to die when we update the state with
@@ -47,13 +47,12 @@ pub(super) async fn handle_host_cmd<P: PacketPool>(
             let new_gen = current_gen.wrapping_add(1);
             REFRESH_GENERATION.store(new_gen, Ordering::Relaxed);
 
-            // remote
             let widgets_needing_refresh = mem_state
                 .widgets
                 .iter()
                 // Filter for widgets that have an update frequency
                 .filter_map(|(_, w)| {
-                    if w.get_remote_update_frequency() != UpdateFrequency::Never {
+                    if !matches!(w.get_remote_update_frequency(), UpdateFrequency::Never) {
                         Some(w)
                     } else {
                         None
@@ -67,7 +66,6 @@ pub(super) async fn handle_host_cmd<P: PacketPool>(
                     .inspect_err(|e| error!("Error with spawning refresh task: {e:#?}, aborting spawning refresh for this task, may not work as intended."));
             }
           
-            // local
             let widgets_to_update = {
                   mem_state
                   .widgets
@@ -112,14 +110,13 @@ async fn refresh_widget_task(
     my_generation: u32,
 ) {
     // Watches for the cancellation watch to be updated, and returns when it does so.
-    let Some(update_frequency) = widget
-        .get_remote_update_frequency()
-        .to_seconds().map(|s| s as u64) else {
-        return
+    let Some(wait_period) = widget.get_remote_update_frequency().to_seconds() else {
+        // Called this function on a widget that doesn't have an update frequency, just return.
+        return;
     };
 
     loop {
-        Timer::after(Duration::from_secs(update_frequency)).await;
+        Timer::after(Duration::from_secs(wait_period.into())).await;
 
         // If the generation of tasks has passed the generation for this one, we just kill ourself lol.
         if REFRESH_GENERATION.load(Ordering::Relaxed) != my_generation {

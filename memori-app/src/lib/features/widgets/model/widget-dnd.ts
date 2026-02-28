@@ -14,7 +14,10 @@ type DragItem = {
 	id?: unknown
 	data?: unknown
 	index?: unknown
-	shape?: { center?: { y?: number } }
+	shape?: {
+		center?: { y?: number }
+		boundingRectangle?: { top?: number; height?: number }
+	}
 	manager?: {
 		dragOperation?: {
 			shape?: { current?: { center?: { y?: number } } }
@@ -65,22 +68,22 @@ function getFrameTargetIndex(
 	target: DragItem | undefined,
 	event?: DragMutationEvent
 ): number {
+	const frameLength = layoutFrame['frame-widgets'].length
 	const targetId = target?.id
-	if (targetId === undefined) return -1
-	const explicitIndex = findIndexById(layoutFrame['frame-widgets'], String(targetId))
-	if (explicitIndex >= 0) return explicitIndex
-	const targetIndexFromPayload =
-		typeof target?.index === 'number' ? target.index : undefined
-	if (
-		typeof targetIndexFromPayload === 'number' &&
-		targetIndexFromPayload >= 0 &&
-		targetIndexFromPayload < layoutFrame['frame-widgets'].length
-	) {
-		return targetIndexFromPayload
+	if (targetId !== undefined) {
+		const explicitIndex = findIndexById(layoutFrame['frame-widgets'], String(targetId))
+		if (explicitIndex >= 0) return explicitIndex
 	}
 
 	const targetGroup = getGroupIdFromDragItem(target)
 	if (targetGroup !== 'frame-widgets') return -1
+
+	const targetIndexFromPayload =
+		typeof target?.index === 'number' ? target.index : undefined
+	if (typeof targetIndexFromPayload === 'number' && targetIndexFromPayload >= 0) {
+		if (frameLength <= 0) return -1
+		return Math.min(targetIndexFromPayload, frameLength - 1)
+	}
 
 	const source = event?.operation?.source as DragItem | undefined
 	const pointerY =
@@ -90,7 +93,6 @@ function getFrameTargetIndex(
 		event?.operation?.source?.manager?.dragOperation?.shape?.current?.center?.y ??
 		event?.operation?.target?.shape?.center?.y
 	const targetRect = target?.shape?.boundingRectangle
-	const frameLength = layoutFrame['frame-widgets'].length
 
 	if (
 		frameLength === 0 ||

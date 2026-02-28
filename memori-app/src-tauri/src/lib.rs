@@ -4,8 +4,8 @@ mod simulator;
 mod state;
 
 use commands::{
-    connect_device, disconnect_device, get_battery, get_device_mode, get_widget_kinds, hello,
-    is_connected, send_bustime, send_name, send_temp, send_twitch, set_memori_state,
+    connect_device, disconnect_device, flash_memori_state, get_battery, get_device_mode,
+    get_widget_kinds, is_connected, send_bustime, send_github, send_name, send_temp, send_twitch,
 };
 use memori_ui::{layout::MemoriLayout, widgets::MemoriWidget};
 use oauth::{login_with_provider, start_oauth_server};
@@ -17,7 +17,6 @@ use tauri_specta::{collect_commands, Builder};
 pub fn run() {
     let builder = Builder::<tauri::Wry>::new()
         .commands(collect_commands![
-            hello,
             connect_device,
             disconnect_device,
             get_device_mode,
@@ -25,7 +24,8 @@ pub fn run() {
             get_battery,
             get_widget_kinds,
             send_twitch,
-            set_memori_state,
+            flash_memori_state,
+            send_github,
             send_name,
             send_temp,
             send_bustime,

@@ -66,16 +66,16 @@ impl Widget for &Clock {
         let string = format!("{}:{}:{}", hours_string, minutes_string, seconds_string);
 
         let border_set = border::PLAIN;
-                
+
         // Outer "Github" box
         let outer_block = Block::default()
             .borders(Borders::ALL)
             .border_set(border_set)
             .border_style(Style::default().fg(ratatui::style::Color::White));
-        
+
         let outer_inner = outer_block.inner(area);
         outer_block.render(area, buf);
-        
+
         // Calculate center position
         let text_len = string.len() as u16;
         let center_x = outer_inner.x + (outer_inner.width.saturating_sub(text_len)) / 2;
