@@ -33,7 +33,7 @@ doc PATH:
 # desktop app
 [working-directory('memori-app')]
 pc:
-    bunx tauri dev --no-watch
+    bunx tauri dev
 
 # mobile app
 [working-directory('memori-app')]

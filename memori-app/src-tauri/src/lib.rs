@@ -11,7 +11,13 @@ use memori_ui::{layout::MemoriLayout, widgets::MemoriWidget};
 use oauth::{login_with_provider, start_oauth_server};
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use state::AppState;
-use tauri_specta::{collect_commands, Builder};
+use tauri_specta::{collect_commands, collect_events, Builder, Event};
+
+// use serde::{Deserialize, Serialize};
+// use specta::Type;
+
+// #[derive(Serialize, Deserialize, Debug, Clone, Type, Event)]
+// pub struct UpdateIsConnected(pub bool);
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -32,6 +38,7 @@ pub fn run() {
             start_oauth_server,
             login_with_provider,
         ])
+        // .events(collect_events![UpdateIsConnected])
         .typ::<MemoriLayout>()
         .typ::<MemoriWidget>();
 
@@ -59,6 +66,11 @@ pub fn run() {
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
             builder.mount_events(app);
+
+            // UpdateIsConnected::listen(app, |event| {
+            //     println!("hi event: {:?}", event.payload);
+            // });
+
             Ok(())
         })
         .run(tauri::generate_context!())

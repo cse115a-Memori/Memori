@@ -1,7 +1,11 @@
 use crate::oauth::cloudflare;
 use crate::state::{AppState, DeviceConnection};
 use memori_ui::{
-    MemoriState, layout::MemoriLayout, widgets::{Bus, Clock, MemoriWidget, Name, Twitch, UpdateFrequency, Weather, WidgetId, WidgetKind}
+    layout::MemoriLayout,
+    widgets::{
+        Bus, Clock, MemoriWidget, Name, Twitch, UpdateFrequency, Weather, WidgetId, WidgetKind,
+    },
+    MemoriState,
 };
 use reqwest::Client;
 use serde::{de::DeserializeOwned, Deserialize};
@@ -67,8 +71,10 @@ pub async fn flash_memori_state(
     }
 }
 
-
-async fn set_memori_state(state: &State<'_, AppState>, memori_state: MemoriState) -> Result<(), String> {
+async fn set_memori_state(
+    state: &State<'_, AppState>,
+    memori_state: MemoriState,
+) -> Result<(), String> {
     let mut state_guard = state.conn.lock().await;
 
     match &mut *state_guard {
@@ -97,40 +103,40 @@ where
 #[tauri::command]
 #[specta::specta]
 pub async fn send_github(_state: State<'_, AppState>, token: String) -> Result<String, String> {
-     let url = "https://api.github.com/user";
-     let client = Client::new();
-     let response = client
-         .get(url)
-         .header("Authorization", format!("Bearer {}", token))
-         .header("Accept", "application/vnd.github.v3+json")
-         .header("User-Agent", "tauri-app")
-         .send()
-         .await
-         .map_err(|e| e.to_string())?;
+    let url = "https://api.github.com/user";
+    let client = Client::new();
+    let response = client
+        .get(url)
+        .header("Authorization", format!("Bearer {}", token))
+        .header("Accept", "application/vnd.github.v3+json")
+        .header("User-Agent", "tauri-app")
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
     let response = response.error_for_status().map_err(|e| e.to_string())?;
-     let user_info: serde_json::Value = response.json().await.map_err(|err| err.to_string())?;
+    let user_info: serde_json::Value = response.json().await.map_err(|err| err.to_string())?;
     let _ = user_info;
-     Ok("ok".to_string())
- }
- 
- #[tauri::command]
- #[specta::specta]
+    Ok("ok".to_string())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn send_twitch(state: State<'_, AppState>, token: String) -> Result<(), String> {
-     #[derive(Debug, Deserialize)]
-     struct Broadcaster {
-         broadcaster_type: String,
-         created_at: String,
-         description: String,
-         display_name: String,
+    #[derive(Debug, Deserialize)]
+    struct Broadcaster {
+        broadcaster_type: String,
+        created_at: String,
+        description: String,
+        display_name: String,
         email: Option<String>,
-         id: String,
-         login: String,
-         view_count: u64,
-     }
-     #[derive(Debug, Deserialize)]
-     struct TwitchResponse {
-         data: Vec<Broadcaster>,
-     }
+        id: String,
+        login: String,
+        view_count: u64,
+    }
+    #[derive(Debug, Deserialize)]
+    struct TwitchResponse {
+        data: Vec<Broadcaster>,
+    }
     let mut headers = serde_json::Map::new();
     let client_id = std::env::var("TWITCH_CLIENT_ID")
         .ok()
@@ -144,34 +150,34 @@ pub async fn send_twitch(state: State<'_, AppState>, token: String) -> Result<()
         "Client-ID".to_string(),
         serde_json::Value::String(client_id),
     );
-     let args = json!({
-         "provider": "twitch",
-         "url": "https://api.twitch.tv/helix/users",
-        "headers": serde_json::Value::Object(headers),
-     });
+    let args = json!({
+        "provider": "twitch",
+        "url": "https://api.twitch.tv/helix/users",
+       "headers": serde_json::Value::Object(headers),
+    });
 
     let api_response: TwitchResponse = call_api_json(args).await?;
-     let broadcaster = match api_response.data.get(0) {
-         Some(first_element) => first_element,
+    let broadcaster = match api_response.data.get(0) {
+        Some(first_element) => first_element,
         None => return Err("Twitch response contained no user".to_string()),
-     };
-     let memori_state = MemoriState::new(
-         0,
-         vec![MemoriWidget::new(
-             WidgetId(0),
-             WidgetKind::Twitch(Twitch::new(broadcaster.display_name.clone())),
-             UpdateFrequency::Seconds(1),
-             UpdateFrequency::Seconds(1),
-         )],
-         vec![MemoriLayout::Full(WidgetId(0))],
-         5,
-     );
+    };
+    let memori_state = MemoriState::new(
+        0,
+        vec![MemoriWidget::new(
+            WidgetId(0),
+            WidgetKind::Twitch(Twitch::new(broadcaster.display_name.clone())),
+            UpdateFrequency::Seconds(1),
+            UpdateFrequency::Seconds(1),
+        )],
+        vec![MemoriLayout::Full(WidgetId(0))],
+        5,
+    );
     set_memori_state(&state, memori_state).await
- }
- 
- #[tauri::command]
- #[specta::specta]
- pub async fn get_widget_kinds() -> Result<[MemoriWidget; 4], String> {
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn get_widget_kinds() -> Result<[MemoriWidget; 4], String> {
     Ok([
         MemoriWidget::new(
             WidgetId(0),
@@ -224,7 +230,7 @@ pub async fn send_name(state: State<'_, AppState>, name: String) -> Result<(), S
 
 #[tauri::command]
 #[specta::specta]
- pub async fn send_temp(state: State<'_, AppState>, lat: f64, lon: f64) -> Result<String, String> {
+pub async fn send_temp(state: State<'_, AppState>, lat: f64, lon: f64) -> Result<String, String> {
     #[derive(Deserialize, Debug)]
     struct WeatherResponse {
         main: Main,
@@ -234,7 +240,6 @@ pub async fn send_name(state: State<'_, AppState>, name: String) -> Result<(), S
     struct Main {
         temp: f32,
     }
-
 
     let request_body = json!({
         "provider": "weather",

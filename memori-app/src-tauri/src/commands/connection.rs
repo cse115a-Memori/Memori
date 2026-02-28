@@ -2,12 +2,18 @@ use crate::simulator::request_handler;
 use crate::state::{AppState, DeviceConnection, DeviceMode};
 use ble_host::HostBLETransport;
 use memori_tcp::HostTcpTransport;
+use tauri::AppHandle;
 use tauri::State;
+// use tauri_plugin_svelte::ManagerExt;
 use transport::HostTransport as _;
 
 #[tauri::command]
 #[specta::specta]
-pub async fn connect_device(state: State<'_, AppState>, mode: DeviceMode) -> Result<(), String> {
+pub async fn connect_device(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    mode: DeviceMode,
+) -> Result<(), String> {
     let mut guard = state.conn.lock().await;
 
     if !matches!(*guard, DeviceConnection::Disconnected) {
@@ -22,6 +28,7 @@ pub async fn connect_device(state: State<'_, AppState>, mode: DeviceMode) -> Res
 
             *guard = DeviceConnection::RealDevice(conn);
             println!("Connected to real device over Bluetooth");
+
             Ok(())
         }
         DeviceMode::Simulator => {
