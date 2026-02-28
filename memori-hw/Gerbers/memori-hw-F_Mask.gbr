@@ -1,0 +1,116 @@
+G04 #@! TF.GenerationSoftware,KiCad,Pcbnew,9.0.7*
+G04 #@! TF.CreationDate,2026-02-21T01:38:48-08:00*
+G04 #@! TF.ProjectId,memori-hw,6d656d6f-7269-42d6-9877-2e6b69636164,vFEB 2026*
+G04 #@! TF.SameCoordinates,Original*
+G04 #@! TF.FileFunction,Soldermask,Top*
+G04 #@! TF.FilePolarity,Negative*
+%FSLAX46Y46*%
+G04 Gerber Fmt 4.6, Leading zero omitted, Abs format (unit mm)*
+G04 Created by KiCad (PCBNEW 9.0.7) date 2026-02-21 01:38:48*
+%MOMM*%
+%LPD*%
+G01*
+G04 APERTURE LIST*
+G04 Aperture macros list*
+%AMRoundRect*
+0 Rectangle with rounded corners*
+0 $1 Rounding radius*
+0 $2 $3 $4 $5 $6 $7 $8 $9 X,Y pos of 4 corners*
+0 Add a 4 corners polygon primitive as box body*
+4,1,4,$2,$3,$4,$5,$6,$7,$8,$9,$2,$3,0*
+0 Add four circle primitives for the rounded corners*
+1,1,$1+$1,$2,$3*
+1,1,$1+$1,$4,$5*
+1,1,$1+$1,$6,$7*
+1,1,$1+$1,$8,$9*
+0 Add four rect primitives between the rounded corners*
+20,1,$1+$1,$2,$3,$4,$5,0*
+20,1,$1+$1,$4,$5,$6,$7,0*
+20,1,$1+$1,$6,$7,$8,$9,0*
+20,1,$1+$1,$8,$9,$2,$3,0*%
+%AMOutline5P*
+0 Free polygon, 5 corners , with rotation*
+0 The origin of the aperture is its center*
+0 number of corners: always 5*
+0 $1 to $10 corner X, Y*
+0 $11 Rotation angle, in degrees counterclockwise*
+0 create outline with 5 corners*
+4,1,5,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$1,$2,$11*%
+%AMOutline6P*
+0 Free polygon, 6 corners , with rotation*
+0 The origin of the aperture is its center*
+0 number of corners: always 6*
+0 $1 to $12 corner X, Y*
+0 $13 Rotation angle, in degrees counterclockwise*
+0 create outline with 6 corners*
+4,1,6,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$1,$2,$13*%
+%AMOutline7P*
+0 Free polygon, 7 corners , with rotation*
+0 The origin of the aperture is its center*
+0 number of corners: always 7*
+0 $1 to $14 corner X, Y*
+0 $15 Rotation angle, in degrees counterclockwise*
+0 create outline with 7 corners*
+4,1,7,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$1,$2,$15*%
+%AMOutline8P*
+0 Free polygon, 8 corners , with rotation*
+0 The origin of the aperture is its center*
+0 number of corners: always 8*
+0 $1 to $16 corner X, Y*
+0 $17 Rotation angle, in degrees counterclockwise*
+0 create outline with 8 corners*
+4,1,8,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$1,$2,$17*%
+G04 Aperture macros list end*
+%ADD10C,1.400000*%
+%ADD11RoundRect,0.250000X0.625000X-0.350000X0.625000X0.350000X-0.625000X0.350000X-0.625000X-0.350000X0*%
+%ADD12O,1.750000X1.200000*%
+%ADD13Outline5P,-0.850000X0.510000X-0.510000X0.850000X0.850000X0.850000X0.850000X-0.850000X-0.850000X-0.850000X0.000000*%
+%ADD14C,1.700000*%
+%ADD15RoundRect,0.525400X-0.525400X0.900400X-0.525400X-0.900400X0.525400X-0.900400X0.525400X0.900400X0*%
+%ADD16RoundRect,0.300400X0.300400X-1.000400X0.300400X1.000400X-0.300400X1.000400X-0.300400X-1.000400X0*%
+G04 APERTURE END LIST*
+D10*
+X95250000Y-90576000D03*
+X102870000Y-90576000D03*
+X102870000Y-93726000D03*
+X95250000Y-93726000D03*
+D11*
+X95594000Y-111744000D03*
+D12*
+X95594000Y-109744000D03*
+D13*
+X95504000Y-97790000D03*
+D14*
+X98044000Y-97790000D03*
+X95504000Y-100330000D03*
+X98044000Y-100330000D03*
+X95504000Y-102870000D03*
+X98044000Y-102870000D03*
+X95504000Y-105410000D03*
+X98044000Y-105410000D03*
+D15*
+X182503000Y-93545000D03*
+X179963000Y-93545000D03*
+X177423000Y-93545000D03*
+X174883000Y-93545000D03*
+X172343000Y-93545000D03*
+X169803000Y-93545000D03*
+X167263000Y-93545000D03*
+X167263000Y-109710000D03*
+X169803000Y-109710000D03*
+X172343000Y-109710000D03*
+X174883000Y-109710000D03*
+X177423000Y-109710000D03*
+X179963000Y-109710000D03*
+X182503000Y-109710000D03*
+D16*
+X175265000Y-97155000D03*
+X177170000Y-97155000D03*
+D14*
+X183515000Y-100330000D03*
+X183515000Y-102870000D03*
+X180975000Y-100330000D03*
+X180975000Y-102870000D03*
+X178435000Y-100330000D03*
+X178435000Y-102870000D03*
+M02*

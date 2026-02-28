@@ -1,0 +1,6 @@
+[submodule "memori-hw/libraries/kicad_templates"]
+	path = memori-hw/libraries/kicad_templates
+	url = https://github.com/sethhillbrand/kicad_templates.git
+[submodule "memori-hw/libraries/OPL_Kicad_Library"]
+	path = memori-hw/libraries/OPL_Kicad_Library
+	url = https://github.com/Seeed-Studio/OPL_Kicad_Library.git
