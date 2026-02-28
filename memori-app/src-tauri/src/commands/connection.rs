@@ -16,7 +16,7 @@ pub async fn connect_device(state: State<'_, AppState>, mode: DeviceMode) -> Res
 
     match mode {
         DeviceMode::RealDevice => {
-            let conn = HostBLETransport::connect()
+            let (conn, _) = HostBLETransport::connect()
                 .await
                 .map_err(|e| format!("Failed to connect to device: {e}"))?;
 

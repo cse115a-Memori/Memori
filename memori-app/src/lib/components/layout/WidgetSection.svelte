@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { CollisionPriority } from '@dnd-kit/abstract'
-	import { getSlotClassByIndex, type LayoutVariant } from '@/model/layout.ts'
-	import type { GroupId, WidgetView } from '@/model/widget-frame.ts'
+	import {
+		getSlotClassByIndex,
+		type LayoutVariant,
+	} from '@/features/widgets/model/layout.ts'
+	import type { GroupId, WidgetView } from '@/features/widgets/model/widget-frame.ts'
 	import Droppable from './Droppable.svelte'
 	import SortableItem from './SortableItem.svelte'
 

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
-	import { appState } from '@/stores/app-store'
+	import { prefsState } from '@/features/prefs/store.ts'
 	import { Button } from '$lib/components/ui/button'
 
 	let now = $state(new Date())
@@ -10,7 +10,7 @@
 			hour: '2-digit',
 			minute: '2-digit',
 			second: '2-digit',
-			timeZone: appState.systemOptions.timeZone ?? undefined,
+			timeZone: prefsState.systemOptions.timeZone ?? undefined,
 			timeZoneName: 'short',
 		}).format(now)
 	)
@@ -38,7 +38,7 @@
 		<p class="text-xs text-muted-foreground">System Clock</p>
 		<p class="text-3xl font-semibold tabular-nums">{formattedTime}</p>
 		<p class="text-xs text-muted-foreground">
-			Timezone: {appState.systemOptions.timeZone ?? 'Unavailable'}
+			Timezone: {prefsState.systemOptions.timeZone ?? 'Unavailable'}
 		</p>
 	</section>
 

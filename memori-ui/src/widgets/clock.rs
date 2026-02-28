@@ -7,9 +7,9 @@ use ratatui::style::Style;
 use ratatui::symbols::border;
 use ratatui::widgets::{Block, Borders, Widget};
 use serde::{Deserialize, Serialize};
-use specta::Type;
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Type)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct Clock {
     pub seconds: u32,
     pub minutes: u32,

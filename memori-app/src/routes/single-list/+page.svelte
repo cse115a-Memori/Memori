@@ -3,8 +3,11 @@
 	import { swap } from '@dnd-kit/helpers'
 	import { DragDropProvider, DragOverlay } from '@dnd-kit-svelte/svelte'
 	import { RestrictToWindowEdges } from '@dnd-kit-svelte/svelte/modifiers'
-	import { getOverlaySize } from '@/model'
-	import { LAYOUT_TEMPLATES, type LayoutVariant } from '@/model/layout.ts'
+	import { getOverlaySize } from '@/features/widgets/model/index.ts'
+	import {
+		LAYOUT_TEMPLATES,
+		type LayoutVariant,
+	} from '@/features/widgets/model/layout.ts'
 	import { sensors } from '$lib'
 	import Droppable from './droppable.svelte'
 	import SortableItem from './sortable-item.svelte'
@@ -123,8 +126,13 @@
 
 	<DragOverlay>
 		{#snippet children(source)}
-			{@const widget = todos.widgets.find((todo) => todo.id === source.id)!}
-			<SortableItem id={widget.id} {widget} index={0} isOverlay {overlayStyle} />
+			{@const sourceId = typeof source === 'object' && source !== null && 'id' in source
+					? String(source.id)
+					: ''}
+			{@const widget = todos.widgets.find((todo) => todo.id === sourceId)}
+			{#if widget}
+				<SortableItem id={widget.id} {widget} index={0} isOverlay {overlayStyle} />
+			{/if}
 		{/snippet}
 	</DragOverlay>
 </DragDropProvider>

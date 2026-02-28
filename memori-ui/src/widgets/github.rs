@@ -12,9 +12,9 @@ use ratatui::text::Line;
 use ratatui::widgets::{Bar, BarChart, BarGroup};
 use ratatui::widgets::{Block, Borders, Padding, Paragraph, Widget};
 use serde::{Deserialize, Serialize};
-use specta::Type;
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Type)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct Github {
     pub username: String,
     pub repo: Option<String>,

@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
 	import { Button } from '@/components/ui/button'
-	import { startAppStore } from '@/stores/app-store'
-	import { startAuthStore } from '@/stores/auth-store'
+	import { startAuthStore } from '@/features/auth/store.ts'
+	import { startPrefsStore } from '@/features/prefs/store.ts'
+	import { startWidgetsEditorStore } from '@/features/widgets/editor-store.ts'
+	import { startMemoriDraftStore } from '@/features/widgets/memori-draft-store.ts'
 	import { onNavigate } from '$app/navigation'
 	import { page } from '$app/state'
 	import '../app.css'
@@ -10,7 +12,12 @@
 	const { children } = $props()
 
 	onMount(() => {
-		void Promise.all([startAppStore(), startAuthStore()]).catch(error => {
+		void Promise.all([
+			startPrefsStore(),
+			startWidgetsEditorStore(),
+			startMemoriDraftStore(),
+			startAuthStore(),
+		]).catch(error => {
 			console.error('Failed to start stores:', error)
 		})
 	})

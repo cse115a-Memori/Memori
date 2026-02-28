@@ -43,7 +43,7 @@ serde_json = "1"
 
 tokio = { version = "1", features = ["full"] }
 transport = { path = "../../memori-transport/transport" }
-memori-ui = { path = "../../memori-ui" }
+memori-ui = { path = "../../memori-ui", features = ["specta"] }
 memori-tcp = { path = "../../memori-transport/memori-tcp" }
 ble-host = { path = "../../memori-transport/ble-host" }
 url = "2.5.8"

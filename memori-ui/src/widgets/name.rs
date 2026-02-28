@@ -4,10 +4,10 @@ use alloc::vec;
 use log::info;
 use ratatui::{text::Text, widgets::Widget};
 use serde::{Deserialize, Serialize};
-use specta::Type;
 
 /// Define a widget by its data
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Type)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct Name {
     pub name: String,
 }

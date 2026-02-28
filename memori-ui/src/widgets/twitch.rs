@@ -9,10 +9,10 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph, Widget, Wrap},
 };
 use serde::{Deserialize, Serialize};
-use specta::Type;
 
 /// Define a widget by its data
-#[derive(Serialize, Deserialize, Eq, PartialEq, Clone, Debug, Type)]
+#[derive(Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct Twitch {
     pub user: String,
 }

@@ -1,5 +1,8 @@
 <script lang="ts">
-	import { kindToDisplay, type WidgetView } from '@/model/widget-frame.ts'
+	import {
+		kindToDisplay,
+		type WidgetView,
+	} from '@/features/widgets/model/widget-frame.ts'
 	import {
 		sortableCardBaseClasses,
 		sortableCardContentClasses,

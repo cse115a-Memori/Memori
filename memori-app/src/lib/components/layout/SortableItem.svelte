@@ -3,8 +3,11 @@
 	import { useSortable } from '@dnd-kit-svelte/svelte/sortable'
 	import { onMount } from 'svelte'
 	import type { ClassValue } from 'svelte/elements'
-	import { kindToDisplay, type WidgetView } from '@/model/widget-frame.ts'
-	import { appState } from '@/stores/app-store.ts'
+	import { prefsState } from '@/features/prefs/store.ts'
+	import {
+		kindToDisplay,
+		type WidgetView,
+	} from '@/features/widgets/model/widget-frame.ts'
 	import { cn } from '@/utils.ts'
 	import {
 		sortableCardBaseClasses,
@@ -33,7 +36,7 @@
 	let now = $state(new Date())
 
 	const compactClock = $derived(
-		formatCompactClock(now, appState.systemOptions.timeZone ?? undefined)
+		formatCompactClock(now, prefsState.systemOptions.timeZone ?? undefined)
 	)
 
 	const { ref, isDragging } = useSortable({

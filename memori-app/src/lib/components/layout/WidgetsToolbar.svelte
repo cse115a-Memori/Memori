@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { LoaderCircle } from '@lucide/svelte'
 	import { Button } from '@/components/ui/button/index.ts'
-	import { LAYOUT_VARIANTS, type LayoutVariant } from '@/model/layout.ts'
+	import {
+		LAYOUT_VARIANTS,
+		type LayoutVariant,
+	} from '@/features/widgets/model/layout.ts'
 	import * as Select from '$lib/components/ui/select/index.js'
 
 	interface Props {

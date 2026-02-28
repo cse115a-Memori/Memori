@@ -12,7 +12,22 @@
 		WidgetsDragOverlay,
 		WidgetsToolbar,
 	} from '@/components/layout'
-	import { getLayoutSlotCount, LAYOUT_TEMPLATES } from '@/model/layout'
+	import { prefsState } from '@/features/prefs/store.ts'
+	import {
+		ensureWidgetFrameEntry,
+		setWidgetFrame,
+		setWidgetFrameLayout,
+		syncWidgetPoolAndFrame,
+		widgetsEditorState,
+	} from '@/features/widgets/editor-store.ts'
+	import {
+		memoriDraftState,
+		setMemoriDraft,
+	} from '@/features/widgets/memori-draft-store.ts'
+	import {
+		getLayoutSlotCount,
+		LAYOUT_TEMPLATES,
+	} from '@/features/widgets/model/layout.ts'
 	import {
 		findActiveWidget,
 		getDragOverKey,
@@ -21,7 +36,7 @@
 		shouldCancelOverflowSwapPreview,
 		shouldResetDragPreviewOnOverflowMiss,
 		shouldUseCommittedFrameForOverflowSwap,
-	} from '@/model/widget-dnd.ts'
+	} from '@/features/widgets/model/widget-dnd.ts'
 	import {
 		createWidgetFrameEntry,
 		getFrameWidgetCount,
@@ -29,15 +44,8 @@
 		type WidgetFrame,
 		type WidgetFrameEntry,
 		type WidgetView,
-	} from '@/model/widget-frame.ts'
-	import { getWidgetKinds } from '@/services/widget-service.ts'
-	import {
-		appState,
-		ensureWidgetFrameEntry,
-		setWidgetFrame,
-		setWidgetFrameLayout,
-		syncWidgetPoolAndFrame,
-	} from '@/stores/app-store.ts'
+	} from '@/features/widgets/model/widget-frame.ts'
+	import { getWidgetKinds } from '@/features/widgets/service.ts'
 	import {
 		commands,
 		type MemoriLayout,
@@ -121,7 +129,7 @@
 
 	let isFlashing = $state(false)
 	const flash = async () => {
-		const frameEntries = appState.widgetFrames.map((_, frameIdx) =>
+		const frameEntries = widgetsEditorState.widgetFrames.map((_, frameIdx) =>
 			ensureWidgetFrameEntry(frameIdx)
 		)
 		if (frameEntries.length === 0) {
@@ -144,7 +152,9 @@
 			)
 		}
 
-		const widgetsPayload = $state.snapshot(appState.widgetPool) as MemoriWidget[]
+		const widgetsPayload = $state.snapshot(
+			widgetsEditorState.widgetPool
+		) as MemoriWidget[]
 		const widgetIds = new Set(widgetsPayload.map(widget => widget.id))
 		for (const [frameIdx, frameEntry] of frameEntries.entries()) {
 			const layout = frameEntry.activeLayout
@@ -166,7 +176,15 @@
 			frameTime: FRAME_TIME_SECONDS,
 		}
 
-		await tryCmd(commands.setMemoriState(payload)).match(
+		setMemoriDraft(payload)
+		const draft = memoriDraftState.draft
+		if (!draft) {
+			errMsg = 'Flash failed: missing memori draft payload.'
+			isFlashing = false
+			return
+		}
+
+		await tryCmd(commands.setMemoriState(draft)).match(
 			() => {
 				errMsg = ''
 			},
@@ -191,7 +209,7 @@
 		)
 
 	const compactClock = $derived(
-		formatCompactClock(now, appState.systemOptions.timeZone ?? undefined)
+		formatCompactClock(now, prefsState.systemOptions.timeZone ?? undefined)
 	)
 
 	onMount(() => {
@@ -211,7 +229,7 @@
 		ensureWidgetFrameEntry(currFrameIdx)
 	})
 	const currFrameEntry = $derived(
-		appState.widgetFrames[currFrameIdx] ?? defaultFrameEntry
+		widgetsEditorState.widgetFrames[currFrameIdx] ?? defaultFrameEntry
 	)
 	const currLayout = $derived(currFrameEntry.activeLayout)
 	const currWidgetFrame = $derived(currFrameEntry.frameLayouts)

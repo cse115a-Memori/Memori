@@ -4,14 +4,14 @@
 	import {
 		refreshLocationState,
 		requestLocationState,
-	} from '@/services/location-service'
-	import { appState, startAppStore } from '@/stores/app-store'
+	} from '@/features/prefs/service.ts'
+	import { prefsState, startPrefsStore } from '@/features/prefs/store.ts'
 
 	let errorMessage = $state('')
 	let isRequesting = $state(false)
 	let hasCheckedPermission = $state(false)
-	const locationStatus = $derived(appState.locationStatus)
-	const lastKnownLocation = $derived(appState.lastKnownLocation)
+	const locationStatus = $derived(prefsState.locationStatus)
+	const lastKnownLocation = $derived(prefsState.lastKnownLocation)
 	const canEnableLocation = $derived(
 		hasCheckedPermission &&
 			(locationStatus === 'prompt' || locationStatus === 'prompt-with-rationale')
@@ -20,7 +20,7 @@
 	onMount(() => {
 		void (async () => {
 			try {
-				await startAppStore()
+				await startPrefsStore()
 				await refreshLocationState()
 			} catch (error) {
 				errorMessage =

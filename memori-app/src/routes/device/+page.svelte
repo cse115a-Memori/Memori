@@ -1,12 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
+	import { authState } from '@/features/auth/store.ts'
 	import {
 		refreshLocationState,
 		requestLocationState,
-	} from '@/services/location-service'
-	import { appState } from '@/stores/app-store'
-	import type { ProviderUsers } from '@/stores/auth/types'
-	import { authState } from '@/stores/auth-store'
+	} from '@/features/prefs/service.ts'
+	import { prefsState } from '@/features/prefs/store.ts'
 	import { commands, type DeviceMode, tryCmd } from '@/tauri'
 	import { Button } from '$lib/components/ui/button/index.js'
 	import * as Field from '$lib/components/ui/field/index.js'
@@ -31,7 +30,7 @@
 	let city = $state('')
 	let selectedMode: DeviceMode = $state('RealDevice')
 	const isBusy = $derived(pending !== null)
-	const locationStatus = $derived(appState.locationStatus)
+	const locationStatus = $derived(prefsState.locationStatus)
 
 	async function syncConnectionState() {
 		await tryCmd(commands.isConnected()).match(
@@ -262,8 +261,8 @@
 		<p>Location Status: {locationStatus}</p>
 		<p>
 			Last Known Location:
-			{appState.lastKnownLocation
-        ? `${appState.lastKnownLocation.coords.latitude.toFixed(6)}, ${appState.lastKnownLocation.coords.longitude.toFixed(6)}`
+			{prefsState.lastKnownLocation
+        ? `${prefsState.lastKnownLocation.coords.latitude.toFixed(6)}, ${prefsState.lastKnownLocation.coords.longitude.toFixed(6)}`
         : 'None'}
 		</p>
 	</section>

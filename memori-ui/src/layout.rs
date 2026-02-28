@@ -4,11 +4,11 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core as std;
 use serde::{Deserialize, Serialize};
-use specta::Type;
 
 use crate::widgets::WidgetId;
 
-#[derive(Debug, Clone, Deserialize, Serialize, Type)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 #[serde(rename_all_fields = "camelCase")]
 pub enum MemoriLayout {
     /// ┌─────────────────┐
@@ -27,7 +27,7 @@ pub enum MemoriLayout {
     /// │        │        │
     /// │        │        │
     /// └────────┴────────┘
-    #[specta(rename_all = "camelCase")]
+    #[cfg_attr(feature = "specta", specta(rename_all = "camelCase"))]
     VSplit { left: WidgetId, right: WidgetId },
 
     /// ┌─────────────────┐
@@ -39,7 +39,7 @@ pub enum MemoriLayout {
     /// │     Bottom      │
     /// │                 │
     /// └─────────────────┘
-    #[specta(rename_all = "camelCase")]
+    #[cfg_attr(feature = "specta", specta(rename_all = "camelCase"))]
     HSplit { top: WidgetId, bottom: WidgetId },
 
     /// ┌──────┬──────────┐
@@ -51,7 +51,7 @@ pub enum MemoriLayout {
     /// │      │  Right   │
     /// │      │  Bottom  │
     /// └──────┴──────────┘
-    #[specta(rename_all = "camelCase")]
+    #[cfg_attr(feature = "specta", specta(rename_all = "camelCase"))]
     VSplitWithRightHSplit {
         left: WidgetId,
         right_top: WidgetId,
@@ -67,7 +67,7 @@ pub enum MemoriLayout {
     /// │                 │
     /// │     Bottom      │
     /// └─────────────────┘
-    #[specta(rename_all = "camelCase")]
+    #[cfg_attr(feature = "specta", specta(rename_all = "camelCase"))]
     HSplitWithTopVSplit {
         bottom: WidgetId,
         top_right: WidgetId,
@@ -83,7 +83,7 @@ pub enum MemoriLayout {
     /// │   Left   │      │
     /// │  Bottom  │      │
     /// └──────────┴──────┘
-    #[specta(rename_all = "camelCase")]
+    #[cfg_attr(feature = "specta", specta(rename_all = "camelCase"))]
     VSplitWithLeftHSplit {
         left_top: WidgetId,
         left_bottom: WidgetId,
@@ -100,7 +100,7 @@ pub enum MemoriLayout {
     /// │ Bottom │ Bottom │
     /// │  Left  │ Right  │
     /// └────────┴────────┘
-    #[specta(rename_all = "camelCase")]
+    #[cfg_attr(feature = "specta", specta(rename_all = "camelCase"))]
     HSplitWithBottomVSplit {
         top: WidgetId,
         bottom_left: WidgetId,
@@ -116,7 +116,7 @@ pub enum MemoriLayout {
     /// │ Bottom │ Bottom │
     /// │  Left  │ Right  │
     /// └────────┴────────┘
-    #[specta(rename_all = "camelCase")]
+    #[cfg_attr(feature = "specta", specta(rename_all = "camelCase"))]
     Fourths {
         top_left: WidgetId,
         top_right: WidgetId,

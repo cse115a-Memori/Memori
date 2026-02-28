@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
+	import { getUser, login, logout } from '@/features/auth/service.ts'
 	import type { UserInfo } from '@/tauri'
 	import { commands, tryCmd } from '@/tauri'
 	import { Button } from '$lib/components/ui/button/index.js'
-	import { getUser, login, logout } from '$lib/services/auth-service'
 
 	type PendingAction = 'hydrating' | 'login' | 'send' | 'logout'
 

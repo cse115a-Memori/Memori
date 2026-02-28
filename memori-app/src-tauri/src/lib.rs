@@ -9,7 +9,7 @@ use commands::{
 };
 use memori_ui::{layout::MemoriLayout, widgets::MemoriWidget};
 use oauth::{login_with_provider, start_oauth_server};
-use specta_typescript::Typescript;
+use specta_typescript::{BigIntExportBehavior, Typescript};
 use state::AppState;
 use tauri_specta::{collect_commands, Builder};
 
@@ -37,7 +37,10 @@ pub fn run() {
 
     #[cfg(all(debug_assertions, not(any(target_os = "ios", target_os = "android"))))]
     builder
-        .export(Typescript::default(), "../src/lib/tauri/bindings.ts")
+        .export(
+            Typescript::default().bigint(BigIntExportBehavior::Number),
+            "../src/lib/tauri/bindings.ts",
+        )
         .expect("Failed to export typescript bindings");
 
     tauri::Builder::default()
