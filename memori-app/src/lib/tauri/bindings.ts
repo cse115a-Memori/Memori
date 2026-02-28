@@ -146,7 +146,7 @@ export type MemoriLayout =
  * │                 │
  * └─────────────────┘
  */
-{ full: WidgetId } | 
+{ Full: WidgetId } | 
 /**
  * ┌────────┬────────┐
  * │        │        │
@@ -156,7 +156,7 @@ export type MemoriLayout =
  * │        │        │
  * └────────┴────────┘
  */
-{ vsplit: { left: WidgetId; right: WidgetId } } | 
+{ VSplit: { left: WidgetId; right: WidgetId } } | 
 /**
  * ┌─────────────────┐
  * │                 │
@@ -168,7 +168,7 @@ export type MemoriLayout =
  * │                 │
  * └─────────────────┘
  */
-{ hsplit: { top: WidgetId; bottom: WidgetId } } | 
+{ HSplit: { top: WidgetId; bottom: WidgetId } } | 
 /**
  * ┌──────┬──────────┐
  * │      │          │
@@ -180,7 +180,7 @@ export type MemoriLayout =
  * │      │  Bottom  │
  * └──────┴──────────┘
  */
-{ vsplitWithRightHSplit: { left: WidgetId; right_top: WidgetId; right_bottom: WidgetId } } | 
+{ VSplitWithRightHSplit: { left: WidgetId; rightTop: WidgetId; rightBottom: WidgetId } } | 
 /**
  * ┌────────┬────────┐
  * │        │        │
@@ -192,7 +192,7 @@ export type MemoriLayout =
  * │     Bottom      │
  * └─────────────────┘
  */
-{ hsplitWithTopVSplit: { bottom: WidgetId; top_right: WidgetId; top_left: WidgetId } } | 
+{ HSplitWithTopVSplit: { bottom: WidgetId; topRight: WidgetId; topLeft: WidgetId } } | 
 /**
  * ┌──────────┬──────┐
  * │          │      │
@@ -204,7 +204,7 @@ export type MemoriLayout =
  * │  Bottom  │      │
  * └──────────┴──────┘
  */
-{ vsplitWithLeftHSplit: { left_top: WidgetId; left_bottom: WidgetId; right: WidgetId } } | 
+{ VSplitWithLeftHSplit: { leftTop: WidgetId; leftBottom: WidgetId; right: WidgetId } } | 
 /**
  * ┌─────────────────┐
  * │                 │
@@ -217,7 +217,7 @@ export type MemoriLayout =
  * │  Left  │ Right  │
  * └────────┴────────┘
  */
-{ hsplitWithBottomVSplit: { top: WidgetId; bottom_left: WidgetId; bottom_right: WidgetId } } | 
+{ HSplitWithBottomVSplit: { top: WidgetId; bottomLeft: WidgetId; bottomRight: WidgetId } } | 
 /**
  * ┌────────┬────────┐
  * │        │        │
@@ -229,7 +229,7 @@ export type MemoriLayout =
  * │  Left  │ Right  │
  * └────────┴────────┘
  */
-{ fourths: { top_left: WidgetId; top_right: WidgetId; bottom_left: WidgetId; bottom_right: WidgetId } }
+{ Fourths: { topLeft: WidgetId; topRight: WidgetId; bottomLeft: WidgetId; bottomRight: WidgetId } }
 export type MemoriStateInput = { activeFrameIdx: number; widgets: MemoriWidget[]; frames: MemoriLayout[]; frameTime: number }
 export type MemoriWidget = { id: WidgetId; kind: WidgetKind; remoteUpdateFrequency: UpdateFrequency; localUpdateFrequency: UpdateFrequency }
 /**
