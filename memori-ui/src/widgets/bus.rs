@@ -1,11 +1,11 @@
-use alloc::format;
-use alloc::string::String;
+use alloc::{format, string::String, vec};
 use log::info;
 use ratatui::{text::Text, widgets::Widget};
 use serde::{Deserialize, Serialize};
 
 /// Define a widget by its data
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct Bus {
     pub route: String,
     pub prediction: String,

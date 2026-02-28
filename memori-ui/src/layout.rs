@@ -1,12 +1,15 @@
 #![allow(unused)]
 
-use alloc::boxed::Box;
-use ratatui::widgets::Widget;
+use crate::widgets::WidgetId;
+use alloc::vec;
+use alloc::vec::Vec;
+use core as std;
 use serde::{Deserialize, Serialize};
 
-use crate::widgets::WidgetId;
-
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all_fields = "camelCase")]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[cfg_attr(feature = "specta", specta(rename_all = "camelCase"))]
 pub enum MemoriLayout {
     /// ┌─────────────────┐
     /// │                 │

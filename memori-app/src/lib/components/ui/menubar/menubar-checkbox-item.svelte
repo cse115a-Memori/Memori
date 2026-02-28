@@ -1,20 +1,20 @@
 <script lang="ts">
+	import CheckIcon from '@lucide/svelte/icons/check'
+	import MinusIcon from '@lucide/svelte/icons/minus'
 	import { Menubar as MenubarPrimitive } from 'bits-ui'
-  import CheckIcon from '@lucide/svelte/icons/check'
-  import MinusIcon from '@lucide/svelte/icons/minus'
-  import { cn, type WithoutChildrenOrChild } from '$lib/utils.js'
-  import type { Snippet } from 'svelte'
+	import type { Snippet } from 'svelte'
+	import { cn, type WithoutChildrenOrChild } from '$lib/utils.js'
 
-  let {
-    ref = $bindable(null),
-    class: className,
-    checked = $bindable(false),
-    indeterminate = $bindable(false),
-    children: childrenProp,
-    ...restProps
-  }: WithoutChildrenOrChild<MenubarPrimitive.CheckboxItemProps> & {
-    children?: Snippet
-  } = $props()
+	let {
+		ref = $bindable(null),
+		class: className,
+		checked = $bindable(false),
+		indeterminate = $bindable(false),
+		children: childrenProp,
+		...restProps
+	}: WithoutChildrenOrChild<MenubarPrimitive.CheckboxItemProps> & {
+		children?: Snippet
+	} = $props()
 </script>
 
 <MenubarPrimitive.CheckboxItem
@@ -23,8 +23,8 @@
 	bind:indeterminate
 	data-slot="menubar-checkbox-item"
 	class={cn(
-	  "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-xs py-1.5 ps-8 pe-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-	  className
+		"focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-xs py-1.5 ps-8 pe-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+		className
 	)}
 	{...restProps}
 >
@@ -35,9 +35,7 @@
 			{#if indeterminate}
 				<MinusIcon class="size-4" />
 			{:else}
-				<CheckIcon
-					class={cn('size-4', !checked && 'text-transparent')}
-				/>
+				<CheckIcon class={cn("size-4", !checked && "text-transparent")} />
 			{/if}
 		</span>
 		{@render childrenProp?.()}

@@ -103,6 +103,8 @@ async fn main(spawner: Spawner) -> () {
       .spawn(hello_task())
       .expect("Failed to begin hello_task");
 
+    // Temporarily disable the e-paper UI task while validating BLE advertising.
+    // The display driver performs blocking operations that can starve async BLE startup.
     spawner
       .spawn(ui_task(spi_bus, term_init_pins, mem_state))
       .expect("Failed to begin ui_task");

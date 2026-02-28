@@ -21,7 +21,6 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 
 tauri-plugin-opener = "2"
-tauri-plugin-tracing = "0.3.2"
 tauri-plugin-store = "2"
 tauri-plugin-geolocation = "2"
 tauri-plugin-blec = "0.8.1"
@@ -35,13 +34,16 @@ tauri-specta = { version = "=2.0.0-rc.21", features = ["derive", "typescript"] }
 specta = { version = "=2.0.0-rc.22", features = ["derive"] }
 specta-typescript = "0.0.9"
 
-reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.11", default-features = false, features = [
+  "json",
+  "rustls-tls",
+] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 tokio = { version = "1", features = ["full"] }
 transport = { path = "../../memori-transport/transport" }
-memori-ui = { path = "../../memori-ui" }
+memori-ui = { path = "../../memori-ui", features = ["specta"] }
 memori-tcp = { path = "../../memori-transport/memori-tcp" }
 ble-host = { path = "../../memori-transport/ble-host" }
 url = "2.5.8"

@@ -5,14 +5,6 @@
 
 
 export const commands = {
-async hello(name: string) : Promise<Result<string, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("hello", { name }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async connectDevice(mode: DeviceMode) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("connect_device", { mode }) };
@@ -53,9 +45,33 @@ async getBattery() : Promise<Result<number, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async sendTwitch(token: string) : Promise<Result<string, string>> {
+async getWidgetKinds() : Promise<Result<[MemoriWidget, MemoriWidget, MemoriWidget, MemoriWidget], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_widget_kinds") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async sendTwitch(token: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("send_twitch", { token }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async flashMemoriState(memoriState: MemoriStateInput) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("flash_memori_state", { memoriState }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async sendGithub(token: string) : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("send_github", { token }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -69,9 +85,9 @@ async sendName(name: string) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async sendTemp(city: string) : Promise<Result<null, string>> {
+async sendTemp(lat: number, lon: number) : Promise<Result<string, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("send_temp", { city }) };
+    return { status: "ok", data: await TAURI_INVOKE("send_temp", { lat, lon }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -113,8 +129,125 @@ async loginWithProvider(provider: string) : Promise<Result<UserInfo, string>> {
 
 /** user-defined types **/
 
+/**
+ * Define a widget by its data
+ */
+export type Bus = { route: string; prediction: string }
+export type Clock = { seconds: number; minutes: number; hours: number }
 export type DeviceMode = "RealDevice" | "Simulator"
-export type UserInfo = { id: string; name: string; email: string; avatar: string | null; provider: string; access_token: string }
+export type Github = { username: string; repo: string | null; open_issues: number; open_prs: number; stars: number; notifications: number; commits: [number, number, number, number, number, number, number]; weekday: number }
+export type MemoriLayout = 
+/**
+ * ┌─────────────────┐
+ * │                 │
+ * │                 │
+ * │      Full       │
+ * │                 │
+ * │                 │
+ * └─────────────────┘
+ */
+{ full: WidgetId } | 
+/**
+ * ┌────────┬────────┐
+ * │        │        │
+ * │        │        │
+ * │  Left  │ Right  │
+ * │        │        │
+ * │        │        │
+ * └────────┴────────┘
+ */
+{ vsplit: { left: WidgetId; right: WidgetId } } | 
+/**
+ * ┌─────────────────┐
+ * │                 │
+ * │       Top       │
+ * │                 │
+ * ├─────────────────┤
+ * │                 │
+ * │     Bottom      │
+ * │                 │
+ * └─────────────────┘
+ */
+{ hsplit: { top: WidgetId; bottom: WidgetId } } | 
+/**
+ * ┌──────┬──────────┐
+ * │      │          │
+ * │      │   Right  │
+ * │      │    Top   │
+ * │ Left ├──────────┤
+ * │      │          │
+ * │      │  Right   │
+ * │      │  Bottom  │
+ * └──────┴──────────┘
+ */
+{ vsplitWithRightHSplit: { left: WidgetId; right_top: WidgetId; right_bottom: WidgetId } } | 
+/**
+ * ┌────────┬────────┐
+ * │        │        │
+ * │  Top   │  Top   │
+ * │  Left  │ Right  │
+ * ├────────┴────────┤
+ * │                 │
+ * │                 │
+ * │     Bottom      │
+ * └─────────────────┘
+ */
+{ hsplitWithTopVSplit: { bottom: WidgetId; top_right: WidgetId; top_left: WidgetId } } | 
+/**
+ * ┌──────────┬──────┐
+ * │          │      │
+ * │   Left   │      │
+ * │    Top   │      │
+ * ├──────────┤ Right│
+ * │          │      │
+ * │   Left   │      │
+ * │  Bottom  │      │
+ * └──────────┴──────┘
+ */
+{ vsplitWithLeftHSplit: { left_top: WidgetId; left_bottom: WidgetId; right: WidgetId } } | 
+/**
+ * ┌─────────────────┐
+ * │                 │
+ * │                 │
+ * │       Top       │
+ * │                 │
+ * ├────────┬────────┤
+ * │        │        │
+ * │ Bottom │ Bottom │
+ * │  Left  │ Right  │
+ * └────────┴────────┘
+ */
+{ hsplitWithBottomVSplit: { top: WidgetId; bottom_left: WidgetId; bottom_right: WidgetId } } | 
+/**
+ * ┌────────┬────────┐
+ * │        │        │
+ * │  Top   │  Top   │
+ * │  Left  │ Right  │
+ * ├────────┼────────┤
+ * │        │        │
+ * │ Bottom │ Bottom │
+ * │  Left  │ Right  │
+ * └────────┴────────┘
+ */
+{ fourths: { top_left: WidgetId; top_right: WidgetId; bottom_left: WidgetId; bottom_right: WidgetId } }
+export type MemoriStateInput = { activeFrameIdx: number; widgets: MemoriWidget[]; frames: MemoriLayout[]; frameTime: number }
+export type MemoriWidget = { id: WidgetId; kind: WidgetKind; remoteUpdateFrequency: UpdateFrequency; localUpdateFrequency: UpdateFrequency }
+/**
+ * Define a widget by its data
+ */
+export type Name = { name: string }
+/**
+ * Define a widget by its data
+ */
+export type Twitch = { user: string }
+export type UpdateFrequency = { Seconds: number } | { Minutes: number } | { Hours: number } | "Never"
+export type UserInfo = { id: string; name: string; email: string; avatar: string | null; provider: string; accessToken: string }
+/**
+ * Define a widget by its data
+ */
+export type Weather = { temp: string; icon: string }
+export type WidgetId = number
+export type WidgetKind = { Name: Name } | { Clock: Clock } | { Github: Github } | { Weather: Weather } | { Bus: Bus } | { Twitch: Twitch }
 
 /** tauri-specta globals **/
 

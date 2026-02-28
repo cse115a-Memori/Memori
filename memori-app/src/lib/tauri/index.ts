@@ -1,2 +1,2 @@
-export * from './bindings.ts'
-// export * from './geolocation.ts'
+export * from './bindings'
+export * from './ipc'

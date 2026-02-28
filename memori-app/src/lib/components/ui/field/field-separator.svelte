@@ -1,19 +1,19 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte'
+	import type { HTMLAttributes } from 'svelte/elements'
 	import { Separator } from '$lib/components/ui/separator/index.js'
-  import { cn, type WithElementRef } from '$lib/utils.js'
-  import type { HTMLAttributes } from 'svelte/elements'
-  import type { Snippet } from 'svelte'
+	import { cn, type WithElementRef } from '$lib/utils.js'
 
-  let {
-    ref = $bindable(null),
-    class: className,
-    children,
-    ...restProps
-  }: WithElementRef<HTMLAttributes<HTMLDivElement>> & {
-    children?: Snippet
-  } = $props()
+	let {
+		ref = $bindable(null),
+		class: className,
+		children,
+		...restProps
+	}: WithElementRef<HTMLAttributes<HTMLDivElement>> & {
+		children?: Snippet
+	} = $props()
 
-  const hasContent = $derived(!!children)
+	const hasContent = $derived(!!children)
 </script>
 
 <div
@@ -21,8 +21,8 @@
 	data-slot="field-separator"
 	data-content={hasContent}
 	class={cn(
-	  'relative -my-2 h-5 text-sm group-data-[variant=outline]/field-group:-mb-2',
-	  className
+		"relative -my-2 h-5 text-sm group-data-[variant=outline]/field-group:-mb-2",
+		className
 	)}
 	{...restProps}
 >

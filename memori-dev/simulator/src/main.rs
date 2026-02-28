@@ -70,38 +70,38 @@ async fn main() -> Result<()> {
             vec![
                 MemoriLayout::Fourths {
                     top_left: WidgetId(0),
-                    top_right: WidgetId(1),
-                    bottom_left: WidgetId(1),
+                    top_right: WidgetId(0),
+                    bottom_left: WidgetId(0),
                     bottom_right: WidgetId(0),
                 },
-                MemoriLayout::Full(WidgetId(1)),
+                MemoriLayout::Full(WidgetId(0)),
                 MemoriLayout::VSplit {
                     left: WidgetId(0),
-                    right: WidgetId(1),
+                    right: WidgetId(0),
                 },
                 MemoriLayout::HSplit {
                     top: WidgetId(0),
-                    bottom: WidgetId(1),
+                    bottom: WidgetId(0),
                 },
                 MemoriLayout::VSplitWithLeftHSplit { 
                     left_top: WidgetId(0),
-                    left_bottom: WidgetId(1),
-                    right: WidgetId(1)
+                    left_bottom: WidgetId(0),
+                    right: WidgetId(0)
                 },
                 MemoriLayout::VSplitWithRightHSplit { 
                     right_top: WidgetId(0),
-                    right_bottom: WidgetId(1),
-                    left: WidgetId(1)
+                    right_bottom: WidgetId(0),
+                    left: WidgetId(0)
                 },
                 MemoriLayout::HSplitWithTopVSplit { 
                     top_left: WidgetId(0),
-                    top_right: WidgetId(1),
-                    bottom: WidgetId(1)
+                    top_right: WidgetId(0),
+                    bottom: WidgetId(0)
                 },
                 MemoriLayout::HSplitWithBottomVSplit { 
                     top: WidgetId(0),
-                    bottom_left: WidgetId(1),
-                    bottom_right: WidgetId(1)
+                    bottom_left: WidgetId(0),
+                    bottom_right: WidgetId(0)
                 }
             ],
             5,

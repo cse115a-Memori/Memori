@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.3.13/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.4.4/schema.json",
   "root": true,
   "assist": {
     "actions": {
@@ -12,10 +12,12 @@
     "enabled": true
   },
   "files": {
+    "ignoreUnknown": true,
     "includes": [
       "**",
-      "!**/src/lib/components/ui",
-      "!**/src/lib/utils.ts"
+      "!!**/src/lib/components/ui",
+      "!!**/src/lib/utils.ts",
+      "!!**/bindings.ts"
       // "!.sst",
     ]
   },
@@ -34,8 +36,9 @@
     },
     "formatter": {
       "enabled": true,
-      "indentStyle": "space",
       "lineWidth": 88,
+      "indentStyle": "space",
+      "indentWidth": 2,
       "quoteStyle": "single"
     },
     "linter": {
@@ -49,10 +52,13 @@
     "formatter": {
       "enabled": true,
       "bracketSameLine": false,
+      "indentScriptAndStyle": true,
       "selfCloseVoidElements": "always"
-    }
+    },
+    "experimentalFullSupportEnabled": true
   },
   "javascript": {
+    "experimentalEmbeddedSnippetsEnabled": true,
     "formatter": {
       "arrowParentheses": "asNeeded",
       "bracketSameLine": false,
@@ -78,7 +84,22 @@
       "recommended": true,
       // CSS-focused tuning (applies when linting .css)
       "a11y": {
-        "useGenericFontNames": "error"
+        "useGenericFontNames": "error",
+        "noAutofocus": "error",
+        "noPositiveTabindex": "error",
+        "useAltText": "error",
+        "useAnchorContent": "error",
+        "useMediaCaption": "error",
+        "useHtmlLang": "error",
+        "useValidLang": "error",
+        "useValidAriaRole": "error",
+        "useAriaPropsForRole": "error",
+        "useButtonType": "error",
+        "noAccessKey": "error",
+        "noDistractingElements": "error",
+        "noSvgWithoutTitle": "error",
+        "noRedundantAlt": "error",
+        "useIframeTitle": "error"
       },
       "correctness": {
         "noUnknownProperty": "error",
@@ -102,21 +123,18 @@
         "**/*.svelte",
         "**/*.astro"
       ],
-      "formatter": {
-        "enabled": false
-      },
       "linter": {
         "rules": {
-          "correctness": {
-            "noUnusedImports": "off",
-            "noUnusedVariables": "off"
-          },
           "nursery": {
             "useSortedClasses": "error"
           },
           "style": {
             "useConst": "off",
             "useImportType": "off"
+          },
+          "correctness": {
+            "noUnusedVariables": "off",
+            "noUnusedImports": "off"
           }
         }
       }
@@ -137,6 +155,7 @@
   "vcs": {
     "clientKind": "git",
     "enabled": true,
-    "useIgnoreFile": true
+    "useIgnoreFile": true,
+    "defaultBranch": "main"
   }
 }

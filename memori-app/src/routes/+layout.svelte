@@ -1,34 +1,56 @@
 <script lang="ts">
-  import { Button } from '@/components/ui/button'
-  import { onNavigate } from '$app/navigation'
-  import { page } from '$app/state'
-  import '../app.css'
+	import { onMount } from 'svelte'
+	import { Button } from '@/components/ui/button'
+	import { startAuthStore } from '@/features/auth/store.ts'
+	import { startPrefsStore } from '@/features/prefs/store.ts'
+	import { startWidgetsEditorStore } from '@/features/widgets/editor-store.ts'
+	import { startMemoriDraftStore } from '@/features/widgets/memori-draft-store.ts'
+	import { onNavigate } from '$app/navigation'
+	import { page } from '$app/state'
+	import '../app.css'
 
-  const { children } = $props()
+	const { children } = $props()
 
-  onNavigate((navigation) => {
-    if (!document.startViewTransition) return
+	onMount(() => {
+		void Promise.all([
+			startPrefsStore(),
+			startWidgetsEditorStore(),
+			startMemoriDraftStore(),
+			startAuthStore(),
+		]).catch(error => {
+			console.error('Failed to start stores:', error)
+		})
+	})
 
-    return new Promise((resolve) => {
-      document.startViewTransition(async () => {
-        resolve()
-        await navigation.complete
-      })
-    })
-  })
+	// onNavigate(navigation => {
+	// 	if (!document.startViewTransition) return
+
+	// 	return new Promise(resolve => {
+	// 		document.startViewTransition(async () => {
+	// 			resolve()
+	// 			await navigation.complete
+	// 		})
+	// 	})
+	// })
 </script>
 
-{@render navLinks('/', 'Home')}
-{@render navLinks('/ble', 'ble')}
-{@render navLinks('/test', 'test')}
+<div class="min-h-dvh">
+	<div class="mx-auto w-full max-w-screen-sm px-4 py-6">
+		{@render navLinks('/', 'Home')}
+		{@render navLinks('/login', 'Login')}
+		{@render navLinks('/device', 'Device')}
+		{@render navLinks('/widgets', 'widgets')}
+		{@render navLinks('/single-list', 'single-list')}
+		{@render navLinks('/location', 'Location')}
+		{@render children?.()}
+	</div>
+</div>
 
 {#snippet navLinks(route: string, name: string)}
-  <Button
-    variant="link"
-    href={route}
-    class={`${page.url.pathname == route ? 'font-bold' : ''} transition-all`}
-    >{name}</Button
-  >
+	<Button
+		variant="link"
+		href={route}
+		class={`${page.url.pathname === route ? 'font-bold' : ''} transition-all`}
+		>{name}</Button
+	>
 {/snippet}
-
-{@render children?.()}

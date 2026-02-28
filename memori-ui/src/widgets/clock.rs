@@ -1,5 +1,6 @@
 use crate::alloc::string::ToString;
 use alloc::format;
+use alloc::vec;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
@@ -8,6 +9,7 @@ use ratatui::widgets::{Block, Borders, Widget};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct Clock {
     pub seconds: u32,
     pub minutes: u32,
@@ -23,9 +25,9 @@ impl Default for Clock {
 impl Clock {
     pub fn new(hours: u32, minutes: u32, seconds: u32) -> Self {
         Clock {
-            seconds: seconds,
-            minutes: minutes,
-            hours: hours,
+            seconds,
+            minutes,
+            hours,
         }
     }
 
@@ -64,16 +66,16 @@ impl Widget for &Clock {
         let string = format!("{}:{}:{}", hours_string, minutes_string, seconds_string);
 
         let border_set = border::PLAIN;
-                
+
         // Outer "Github" box
         let outer_block = Block::default()
             .borders(Borders::ALL)
             .border_set(border_set)
             .border_style(Style::default().fg(ratatui::style::Color::White));
-        
+
         let outer_inner = outer_block.inner(area);
         outer_block.render(area, buf);
-        
+
         // Calculate center position
         let text_len = string.len() as u16;
         let center_x = outer_inner.x + (outer_inner.width.saturating_sub(text_len)) / 2;

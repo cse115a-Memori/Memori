@@ -1,21 +1,20 @@
 <script lang="ts">
+	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down'
 	import { RangeCalendar as RangeCalendarPrimitive } from 'bits-ui'
-  import { cn, type WithoutChildrenOrChild } from '$lib/utils.js'
-  import ChevronDownIcon from '@lucide/svelte/icons/chevron-down'
+	import { cn, type WithoutChildrenOrChild } from '$lib/utils.js'
 
-  let {
-    ref = $bindable(null),
-    class: className,
-    value,
-    ...restProps
-  }: WithoutChildrenOrChild<RangeCalendarPrimitive.YearSelectProps> =
-    $props()
+	let {
+		ref = $bindable(null),
+		class: className,
+		value,
+		...restProps
+	}: WithoutChildrenOrChild<RangeCalendarPrimitive.YearSelectProps> = $props()
 </script>
 
 <span
 	class={cn(
-	  'has-focus:border-ring border-input has-focus:ring-ring/50 relative flex rounded-md border shadow-xs has-focus:ring-[3px]',
-	  className
+		"has-focus:border-ring border-input has-focus:ring-ring/50 relative flex rounded-md border shadow-xs has-focus:ring-[3px]",
+		className
 	)}
 >
 	<RangeCalendarPrimitive.YearSelect
@@ -29,8 +28,8 @@
 					<option
 						value={yearItem.value}
 						selected={value !== undefined
-						? yearItem.value === value
-						: yearItem.value === selectedYearItem.value}
+							? yearItem.value === value
+							: yearItem.value === selectedYearItem.value}
 					>
 						{yearItem.label}
 					</option>
@@ -40,10 +39,7 @@
 				class="[&>svg]:text-muted-foreground flex h-8 items-center gap-1 rounded-md ps-2 pe-1 text-sm font-medium select-none [&>svg]:size-3.5"
 				aria-hidden="true"
 			>
-				{
-					yearItems.find((item) => item.value === value)?.label
-					|| selectedYearItem.label
-				}
+				{yearItems.find((item) => item.value === value)?.label || selectedYearItem.label}
 				<ChevronDownIcon class="size-4" />
 			</span>
 		{/snippet}

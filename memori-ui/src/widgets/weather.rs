@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 
 /// Define a widget by its data
 #[derive(Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct Weather {
     pub temp: String,
     pub icon: String,
@@ -41,13 +42,8 @@ impl Widget for &Weather {
 
         let icon_lines = WeatherIcon::Sun.to_ascii();
 
-        let text = Text::from(
-            icon_lines
-                .into_iter()
-                .map(|line| Line::from(line))
-                .collect::<Vec<_>>(),
-        )
-        .centered();
+        let text =
+            Text::from(icon_lines.into_iter().map(Line::from).collect::<Vec<_>>()).centered();
 
         let icon_paragraph = Paragraph::new(text)
             .alignment(Alignment::Center)

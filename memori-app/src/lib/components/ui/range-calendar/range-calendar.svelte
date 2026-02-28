@@ -1,46 +1,42 @@
 <script lang="ts">
+	import { type DateValue, isEqualMonth } from '@internationalized/date'
 	import { RangeCalendar as RangeCalendarPrimitive } from 'bits-ui'
-  import * as RangeCalendar from './index.js'
-  import { cn, type WithoutChildrenOrChild } from '$lib/utils.js'
-  import type { ButtonVariant } from '$lib/components/ui/button/index.js'
-  import type { Snippet } from 'svelte'
-  import { type DateValue, isEqualMonth } from '@internationalized/date'
+	import type { Snippet } from 'svelte'
+	import type { ButtonVariant } from '$lib/components/ui/button/index.js'
+	import { cn, type WithoutChildrenOrChild } from '$lib/utils.js'
+	import * as RangeCalendar from './index.js'
 
-  let {
-    ref = $bindable(null),
-    value = $bindable(),
-    placeholder = $bindable(),
-    weekdayFormat = 'short',
-    class: className,
-    buttonVariant = 'ghost',
-    captionLayout = 'label',
-    locale = 'en-US',
-    months: monthsProp,
-    years,
-    monthFormat: monthFormatProp,
-    yearFormat = 'numeric',
-    day,
-    disableDaysOutsideMonth = false,
-    ...restProps
-  }: WithoutChildrenOrChild<RangeCalendarPrimitive.RootProps> & {
-    buttonVariant?: ButtonVariant
-    captionLayout?:
-      | 'dropdown'
-      | 'dropdown-months'
-      | 'dropdown-years'
-      | 'label'
-    months?: RangeCalendarPrimitive.MonthSelectProps['months']
-    years?: RangeCalendarPrimitive.YearSelectProps['years']
-    monthFormat?: RangeCalendarPrimitive.MonthSelectProps['monthFormat']
-    yearFormat?: RangeCalendarPrimitive.YearSelectProps['yearFormat']
-    day?: Snippet<[{ day: DateValue; outsideMonth: boolean }]>
-  } = $props()
+	let {
+		ref = $bindable(null),
+		value = $bindable(),
+		placeholder = $bindable(),
+		weekdayFormat = 'short',
+		class: className,
+		buttonVariant = 'ghost',
+		captionLayout = 'label',
+		locale = 'en-US',
+		months: monthsProp,
+		years,
+		monthFormat: monthFormatProp,
+		yearFormat = 'numeric',
+		day,
+		disableDaysOutsideMonth = false,
+		...restProps
+	}: WithoutChildrenOrChild<RangeCalendarPrimitive.RootProps> & {
+		buttonVariant?: ButtonVariant
+		captionLayout?: 'dropdown' | 'dropdown-months' | 'dropdown-years' | 'label'
+		months?: RangeCalendarPrimitive.MonthSelectProps['months']
+		years?: RangeCalendarPrimitive.YearSelectProps['years']
+		monthFormat?: RangeCalendarPrimitive.MonthSelectProps['monthFormat']
+		yearFormat?: RangeCalendarPrimitive.YearSelectProps['yearFormat']
+		day?: Snippet<[{ day: DateValue; outsideMonth: boolean }]>
+	} = $props()
 
-  const monthFormat = $derived.by(() => {
-    if (monthFormatProp) return monthFormatProp
-    if (captionLayout.startsWith('dropdown')) return 'short'
-    return 'long'
-  })
+	const monthFormat = $derived.by(() => {
+		if (monthFormatProp) return monthFormatProp
+		if (captionLayout.startsWith('dropdown')) return 'short'
+		return 'long'
+	})
 </script>
 
 <RangeCalendarPrimitive.Root
@@ -50,8 +46,8 @@
 	{weekdayFormat}
 	{disableDaysOutsideMonth}
 	class={cn(
-	  'bg-background group/calendar p-3 [--cell-size:--spacing(8)] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent',
-	  className
+		"bg-background group/calendar p-3 [--cell-size:--spacing(8)] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",
+		className
 	)}
 	{locale}
 	{monthFormat}
@@ -94,18 +90,12 @@
 							{#each month.weeks as weekDates (weekDates)}
 								<RangeCalendar.GridRow class="mt-2 w-full">
 									{#each weekDates as date (date)}
-										<RangeCalendar.Cell
-											{date}
-											month={month.value}
-										>
+										<RangeCalendar.Cell {date} month={month.value}>
 											{#if day}
 												{@render day({
-                  day: date,
-                  outsideMonth: !isEqualMonth(
-                    date,
-                    month.value
-                  )
-                })}
+													day: date,
+													outsideMonth: !isEqualMonth(date, month.value),
+												})}
 											{:else}
 												<RangeCalendar.Day />
 											{/if}

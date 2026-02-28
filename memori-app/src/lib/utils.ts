@@ -13,3 +13,15 @@ export type WithoutChildrenOrChild<T> = WithoutChildren<WithoutChild<T>>
 export type WithElementRef<T, U extends HTMLElement = HTMLElement> = T & {
 	ref?: U | null
 }
+
+export function isMobilePlatform(): boolean {
+	if (typeof navigator === 'undefined') return false
+
+	const userAgent = navigator.userAgent.toLowerCase()
+	return (
+		userAgent.includes('android') ||
+		userAgent.includes('iphone') ||
+		userAgent.includes('ipad') ||
+		userAgent.includes('ipod')
+	)
+}

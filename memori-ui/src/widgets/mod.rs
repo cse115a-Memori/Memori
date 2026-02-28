@@ -1,21 +1,28 @@
 mod bus;
 mod clock;
-mod name;
-mod weather;
 mod github;
+mod name;
+mod twitch;
+mod weather;
 pub use bus::*;
 pub use clock::*;
-pub use name::*;
-pub use weather::*;
 pub use github::*;
+pub use name::*;
+pub use twitch::*;
+pub use weather::*;
 
+use alloc::vec;
 use ratatui::widgets::Widget;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Copy, Clone, Hash)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Hash)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct WidgetId(pub u32);
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(rename_all = "camelCase")]
+#[cfg_attr(feature = "specta", specta(rename_all = "camelCase"))]
 pub struct MemoriWidget {
     pub id: WidgetId,
     pub(crate) kind: WidgetKind,
@@ -24,6 +31,7 @@ pub struct MemoriWidget {
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 pub enum UpdateFrequency {
     Seconds(u32),
     Minutes(u32),
@@ -75,12 +83,14 @@ impl MemoriWidget {
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "specta", derive(specta::Type))]
 pub enum WidgetKind {
     Name(Name),
     Clock(Clock),
     Github(Github),
     Weather(Weather),
     Bus(Bus),
+    Twitch(Twitch),
 }
 
 impl WidgetKind {
@@ -90,6 +100,7 @@ impl WidgetKind {
             Self::Name(n) => n.update(),
             Self::Weather(w) => w.update(),
             Self::Bus(b) => b.update(),
+            Self::Twitch(t) => t.update(),
             Self::Github(g) => g.update(),
         }
     }
@@ -106,6 +117,7 @@ impl Widget for &MemoriWidget {
             WidgetKind::Github(g) => g.render(area, buf),
             WidgetKind::Weather(w) => w.render(area, buf),
             WidgetKind::Bus(b) => b.render(area, buf),
+            WidgetKind::Twitch(t) => t.render(area, buf),
         }
     }
 }
