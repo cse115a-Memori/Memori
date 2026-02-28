@@ -3,3 +3,4 @@ memori-hw-backups/
 #auto_saved_files#
 _autosave-*
 ~*.lck
+*.sch.lck
