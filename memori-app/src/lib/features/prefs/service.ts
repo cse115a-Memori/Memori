@@ -4,8 +4,8 @@ import {
 	type Position,
 	requestPermissions,
 } from '@tauri-apps/plugin-geolocation'
-import { prefsState, startPrefsStore } from '@/features/prefs/store.ts'
-import { isMobilePlatform } from '@/utils.ts'
+import { prefsState, startPrefsStore } from '@/features/prefs/store'
+import { isMobilePlatform } from '@/utils'
 
 async function readLocation(requestAccess: boolean): Promise<Position | null> {
 	if (!isMobilePlatform()) {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
-	import { prefsState } from '@/features/prefs/store.ts'
+	import { prefsState } from '@/features/prefs/store'
 	import { Button } from '$lib/components/ui/button'
 
 	let now = $state(new Date())

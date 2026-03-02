@@ -3,8 +3,8 @@
 	import {
 		getSlotClassByIndex,
 		type LayoutVariant,
-	} from '@/features/widgets/model/layout.ts'
-	import type { GroupId, WidgetView } from '@/features/widgets/model/widget-frame.ts'
+	} from '@/features/widgets/model/layout'
+	import type { GroupId, WidgetView } from '@/features/widgets/model/widget-frame'
 	import Droppable from './Droppable.svelte'
 	import SortableItem from './SortableItem.svelte'
 

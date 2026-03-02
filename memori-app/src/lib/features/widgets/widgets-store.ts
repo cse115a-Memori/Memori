@@ -3,18 +3,18 @@ import {
 	getLayoutSlotCount,
 	LAYOUT_VARIANTS,
 	type LayoutVariant,
-} from '@/features/widgets/model/layout.ts'
+} from '@/features/widgets/model/layout'
 import {
 	DEFAULT_LAYOUT,
 	isLayoutVariant,
 	type WidgetFrame,
 	type WidgetFrameEntry,
 	type WidgetView,
-} from '@/features/widgets/model/widget-frame.ts'
-import type { FrameDraft, WidgetsState } from '@/features/widgets/types.ts'
+} from '@/features/widgets/model/widget-frame'
+import type { FrameDraft, WidgetsState } from '@/features/widgets/types'
 import type { MemoriWidget } from '@/tauri'
 
-export type { FrameDraft, WidgetsState } from '@/features/widgets/types.ts'
+export type { FrameDraft, WidgetsState } from '@/features/widgets/types'
 
 const DEFAULT_FRAME_TIME_SECONDS = 5
 

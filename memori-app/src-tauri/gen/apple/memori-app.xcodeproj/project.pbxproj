@@ -19,7 +19,6 @@
 		8190CA9955937AD06316B45F /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1791B4D51C174ACDA7CCCA47 /* UIKit.framework */; };
 		856530659DB777681ACE4136 /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5523E4FC6C3314D69838AB84 /* CoreBluetooth.framework */; };
 		86D063BF185602C25CACC2F0 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = C84ABEE6E6AA546A01423341 /* LaunchScreen.storyboard */; };
-		8A46F9DBE720EFDF3B0FA23A /* libapp.a in Resources */ = {isa = PBXBuildFile; fileRef = 26534BA38B1DDE5276D319C8 /* libapp.a */; };
 		EF44FA98F3B4FFC168B56BD6 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 02C7177C17D96A01EF3FFFEE /* Security.framework */; };
 /* End PBXBuildFile section */
 
@@ -29,23 +28,25 @@
 		0E7E2BCCEE5BCAB4F708A70C /* memori-app_iOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "memori-app_iOS.entitlements"; sourceTree = "<group>"; };
 		1084B3C769EEEB7F72230912 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		1791B4D51C174ACDA7CCCA47 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
-		26534BA38B1DDE5276D319C8 /* libapp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libapp.a; sourceTree = "<group>"; };
 		34818AC372EFF36281420731 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
+		44AEC1A66146D2BBA4C61DB8 /* mod.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = mod.rs; sourceTree = "<group>"; };
 		4C30F4AEE5D694726B6F0448 /* simulator.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = simulator.rs; sourceTree = "<group>"; };
 		5523E4FC6C3314D69838AB84 /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = System/Library/Frameworks/CoreBluetooth.framework; sourceTree = SDKROOT; };
 		6EF34626A7E7B612AEFFC05A /* state.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = state.rs; sourceTree = "<group>"; };
-		6EF77788FADAC3821E2E4EFD /* memori-app_iOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; name = "memori-app_iOS.app"; path = "memori-app.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		6EF77788FADAC3821E2E4EFD /* memori-app.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "memori-app.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		748281B2AB42969C69FD5B6C /* main.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = main.rs; sourceTree = "<group>"; };
 		74DE3F35ED5498B52E01F733 /* mod.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = mod.rs; sourceTree = "<group>"; };
 		82C10C52661A9233A516F91B /* lib.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = lib.rs; sourceTree = "<group>"; };
 		835D4024C396BCEBCEA1CC60 /* oauth.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = oauth.rs; sourceTree = "<group>"; };
 		8A87A90F6CA9B214A63EA1CD /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = assets; sourceTree = SOURCE_ROOT; };
 		A2745FA377E75275E66578AE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AA245F4E5FA854A818B1CEAB /* connection.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = connection.rs; sourceTree = "<group>"; };
 		B1E61DB682F2DC4051DA0504 /* bindings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bindings.h; sourceTree = "<group>"; };
 		B6D400261E9657FD907B8C86 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		C84ABEE6E6AA546A01423341 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		D09BFC762C59CD36D2A4379F /* data.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = data.rs; sourceTree = "<group>"; };
 		D3F1C7F1998F47C32D1DAD6F /* connection.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = connection.rs; sourceTree = "<group>"; };
+		DA10E5A9E53FBB3769FD70CA /* fetch.rs */ = {isa = PBXFileReference; lastKnownFileType = text; path = fetch.rs; sourceTree = "<group>"; };
 		E18181FC9C3CF4E2E96B7F1F /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		ED062C06E3542299019271E5 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		EDB22220FDF82048F420CCD4 /* libapp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libapp.a; sourceTree = "<group>"; };
@@ -81,6 +82,7 @@
 				4C30F4AEE5D694726B6F0448 /* simulator.rs */,
 				6EF34626A7E7B612AEFFC05A /* state.rs */,
 				1C10ABD73F9579572373AFCE /* commands */,
+				71185A3C37DDF5D9D2FB8B6D /* events */,
 			);
 			name = src;
 			path = ../../src;
@@ -91,6 +93,7 @@
 			children = (
 				D3F1C7F1998F47C32D1DAD6F /* connection.rs */,
 				D09BFC762C59CD36D2A4379F /* data.rs */,
+				DA10E5A9E53FBB3769FD70CA /* fetch.rs */,
 				74DE3F35ED5498B52E01F733 /* mod.rs */,
 			);
 			path = commands;
@@ -117,7 +120,16 @@
 				0850228D38784A2C55D27005 /* src */,
 				8F1D509EBC532612AF531DC4 /* Frameworks */,
 				EAF382971BC7E8C5938F81F3 /* Products */,
+				5241FC5C2F58B042002A9D49 /* Recovered References */,
 			);
+			sourceTree = "<group>";
+		};
+		5241FC5C2F58B042002A9D49 /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				5523E4FC6C3314D69838AB84 /* CoreBluetooth.framework */,
+			);
+			name = "Recovered References";
 			sourceTree = "<group>";
 		};
 		65D723CB849042CF5100260E /* bindings */ = {
@@ -128,10 +140,18 @@
 			path = bindings;
 			sourceTree = "<group>";
 		};
+		71185A3C37DDF5D9D2FB8B6D /* events */ = {
+			isa = PBXGroup;
+			children = (
+				AA245F4E5FA854A818B1CEAB /* connection.rs */,
+				44AEC1A66146D2BBA4C61DB8 /* mod.rs */,
+			);
+			path = events;
+			sourceTree = "<group>";
+		};
 		7CE24931F8587FF87A25CD38 /* Externals */ = {
 			isa = PBXGroup;
 			children = (
-				93B61A984AA2D5CDEA591AB2 /* arm64 */,
 			);
 			path = Externals;
 			sourceTree = "<group>";
@@ -139,7 +159,6 @@
 		8F1D509EBC532612AF531DC4 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				5523E4FC6C3314D69838AB84 /* CoreBluetooth.framework */,
 				E18181FC9C3CF4E2E96B7F1F /* CoreGraphics.framework */,
 				EDB22220FDF82048F420CCD4 /* libapp.a */,
 				1084B3C769EEEB7F72230912 /* Metal.framework */,
@@ -150,14 +169,6 @@
 				34818AC372EFF36281420731 /* WebKit.framework */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		93B61A984AA2D5CDEA591AB2 /* arm64 */ = {
-			isa = PBXGroup;
-			children = (
-				E49A086E68EF164A31F58B63 /* debug */,
-			);
-			path = arm64;
 			sourceTree = "<group>";
 		};
 		9A0228369982A2F32BC3A124 /* memori-app_iOS */ = {
@@ -177,18 +188,10 @@
 			path = Sources;
 			sourceTree = "<group>";
 		};
-		E49A086E68EF164A31F58B63 /* debug */ = {
-			isa = PBXGroup;
-			children = (
-				26534BA38B1DDE5276D319C8 /* libapp.a */,
-			);
-			path = debug;
-			sourceTree = "<group>";
-		};
 		EAF382971BC7E8C5938F81F3 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				6EF77788FADAC3821E2E4EFD /* memori-app_iOS.app */,
+				6EF77788FADAC3821E2E4EFD /* memori-app.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -213,7 +216,7 @@
 			packageProductDependencies = (
 			);
 			productName = "memori-app_iOS";
-			productReference = 6EF77788FADAC3821E2E4EFD /* memori-app_iOS.app */;
+			productReference = 6EF77788FADAC3821E2E4EFD /* memori-app.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -224,11 +227,6 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
-				TargetAttributes = {
-					22D60EDCC204DB3BF4FEF35D = {
-						DevelopmentTeam = 556GSU2HQ3;
-					};
-				};
 			};
 			buildConfigurationList = B72E56E517C67817E9F97EE8 /* Build configuration list for PBXProject "memori-app" */;
 			compatibilityVersion = "Xcode 14.0";
@@ -256,7 +254,6 @@
 				1DBFE20FF28E6CCB208A04D7 /* Assets.xcassets in Resources */,
 				86D063BF185602C25CACC2F0 /* LaunchScreen.storyboard in Resources */,
 				797D2138DA2FA95BB7F9B6CF /* assets in Resources */,
-				8A46F9DBE720EFDF3B0FA23A /* libapp.a in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -265,7 +262,6 @@
 /* Begin PBXShellScriptBuildPhase section */
 		33AACB5E2783F6920B4BDADF /* Build Rust Code */ = {
 			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -282,7 +278,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/zsh;
-			shellScript = "source ~/.config/zsh/.zshrc\nexport PATH=\"/etc/profiles/per-user/kenrictee/bin:$PATH\"\nexport RUSTUP_HOME=\"$HOME/.rustup\"\nexport CARGO_HOME=\"$HOME/.cargo\"\nexport RUSTUP_TOOLCHAIN=\"nightly-aarch64-apple-darwin\"\nexport CARGO=\"/etc/profiles/per-user/kenrictee/bin/cargo\"\nexport RUSTC=\"/etc/profiles/per-user/kenrictee/bin/rustc\"\nunset LIBRARY_PATH\nunset LD_LIBRARY_PATH\nunset DYLD_LIBRARY_PATH\nunset PKG_CONFIG_PATH\nunset NIX_CFLAGS_COMPILE\nunset NIX_CFLAGS_LINK\nunset NIX_LDFLAGS\nbun tauri ios xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --framework-search-paths \"${FRAMEWORK_SEARCH_PATHS:?}\" --header-search-paths \"${HEADER_SEARCH_PATHS:?}\" --gcc-preprocessor-definitions \"${GCC_PREPROCESSOR_DEFINITIONS:-}\" --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?}\n";
+			shellScript = "source ~/.config/zsh/.zshrc\nexport PATH=\"/etc/profiles/per-user/kenrictee/bin:$PATH\"\nexport RUSTUP_HOME=\"$HOME/.rustup\"\nexport CARGO_HOME=\"$HOME/.cargo\"\nexport RUSTUP_TOOLCHAIN=\"nightly-aarch64-apple-darwin\"\nexport CARGO=\"/etc/profiles/per-user/kenrictee/bin/cargo\"\nexport RUSTC=\"/etc/profiles/per-user/kenrictee/bin/rustc\"\nunset LIBRARY_PATH\n\nbun tauri ios xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --framework-search-paths \"${FRAMEWORK_SEARCH_PATHS:?}\" --header-search-paths \"${HEADER_SEARCH_PATHS:?}\" --gcc-preprocessor-definitions \"${GCC_PREPROCESSOR_DEFINITIONS:-}\" --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?}\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -306,7 +302,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "memori-app_iOS/memori-app_iOS.entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = "556GSU2HQ3";
+				DEVELOPMENT_TEAM = 556GSU2HQ3;
 				ENABLE_BITCODE = NO;
 				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -348,7 +344,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "memori-app_iOS/memori-app_iOS.entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = "556GSU2HQ3";
+				DEVELOPMENT_TEAM = 556GSU2HQ3;
 				ENABLE_BITCODE = NO;
 				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
 				FRAMEWORK_SEARCH_PATHS = (

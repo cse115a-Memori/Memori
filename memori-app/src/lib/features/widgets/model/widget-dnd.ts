@@ -6,7 +6,7 @@ import {
 	isGroupId,
 	type WidgetFrame,
 	type WidgetView,
-} from '@/features/widgets/model/widget-frame.ts'
+} from '@/features/widgets/model/widget-frame'
 
 type FrameState = WidgetFrame[keyof WidgetFrame]
 type PointerPos = { x?: number; y?: number }

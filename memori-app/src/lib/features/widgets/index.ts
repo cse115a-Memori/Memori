@@ -1,4 +1,4 @@
-export * from './model/index.ts'
-export * from './service.ts'
-export type * from './types.ts'
-export * from './widgets-store.ts'
+export * from './model/index'
+export * from './service'
+export type * from './types'
+export * from './widgets-store'

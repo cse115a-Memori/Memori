@@ -9,7 +9,7 @@
 		getLayoutSlotCount,
 		LAYOUT_TEMPLATES,
 		type LayoutVariant,
-	} from '@/features/widgets/model/layout.ts'
+	} from '@/features/widgets/model/layout'
 	import {
 		type DragMutationEvent,
 		findActiveWidget,
@@ -19,24 +19,24 @@
 		shouldCancelOverflowSwapPreview,
 		shouldResetDragPreviewOnOverflowMiss,
 		shouldUseCommittedFrameForOverflowSwap,
-	} from '@/features/widgets/model/widget-dnd.ts'
+	} from '@/features/widgets/model/widget-dnd'
 	import {
 		type WidgetFrame,
 		type WidgetView,
-	} from '@/features/widgets/model/widget-frame.ts'
+	} from '@/features/widgets/model/widget-frame'
+	import { setWidgetFrame, widgetsState } from '@/features/widgets/widgets-store'
 	import { sensors } from '$lib'
 	import WidgetSection from './WidgetSection.svelte'
 	import WidgetsDragOverlay from './WidgetsDragOverlay.svelte'
-	import type { CompactClock } from './widget-clock.ts'
+	import type { CompactClock } from './widget-clock'
 
 	interface Props {
 		layout: LayoutVariant
 		frame: WidgetFrame
 		compactClock: CompactClock
-		onFrameCommit: (nextFrame: WidgetFrame) => void
 	}
 
-	let { layout, frame, compactClock, onFrameCommit }: Props = $props()
+	let { layout, frame, compactClock }: Props = $props()
 	const layoutTpl = $derived(LAYOUT_TEMPLATES[layout])
 
 	let previewFrame = $state<WidgetFrame | null>(null)
@@ -66,6 +66,10 @@
 		dragOverKey = null
 		activeWidget = null
 		overlayDims = null
+	}
+
+	function onFrameCommit(previewFrame: WidgetFrame) {
+		setWidgetFrame(widgetsState.activeFrameIdx, previewFrame)
 	}
 
 	function projectDragPreview(evt: DragMutationEvent): {
@@ -174,18 +178,18 @@
 	onDragOver={handleDragOver}
 	onDragEnd={handleDragEnd}
 >
-	<div class="grid gap-2 md:grid-cols-[1fr_3fr]">
-		<WidgetSection
-			id="widgets"
-			title="Widgets"
-			widgets={visibleFrame[layout]['widgets']}
-			{layout}
-			frameContainerClass={layoutTpl.container}
-		/>
+	<div class="grid gap-2 md:grid-cols-[3fr_1fr]">
 		<WidgetSection
 			id="frame-widgets"
 			title="Frame"
 			widgets={visibleFrame[layout]['frame-widgets']}
+			{layout}
+			frameContainerClass={layoutTpl.container}
+		/>
+		<WidgetSection
+			id="widgets"
+			title="Widgets"
+			widgets={visibleFrame[layout]['widgets']}
 			{layout}
 			frameContainerClass={layoutTpl.container}
 		/>

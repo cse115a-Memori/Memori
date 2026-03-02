@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { prefsState } from '@/features/prefs/store.ts'
+	import { prefsState } from '@/features/prefs/store'
 	import { Button } from '$lib/components/ui/button'
 </script>
 

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
-	import { getUser, login, logout } from '@/features/auth/service.ts'
+	import { getUser, login, logout } from '@/features/auth/service'
 	import type { UserInfo } from '@/tauri'
 	import { commands, tryCmd } from '@/tauri'
 	import { Button } from '$lib/components/ui/button/index.js'

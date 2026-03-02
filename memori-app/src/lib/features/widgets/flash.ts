@@ -1,8 +1,5 @@
-import {
-	getLayoutSlotCount,
-	type LayoutVariant,
-} from '@/features/widgets/model/layout.ts'
-import type { WidgetsState } from '@/features/widgets/types.ts'
+import { getLayoutSlotCount, type LayoutVariant } from '@/features/widgets/model/layout'
+import type { WidgetsState } from '@/features/widgets/types'
 import type { MemoriLayout, MemoriStateInput } from '@/tauri'
 
 function encodeLayout(

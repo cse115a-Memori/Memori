@@ -2,7 +2,7 @@ import {
 	getLayoutSlotCount,
 	LAYOUT_VARIANTS,
 	type LayoutVariant,
-} from '@/features/widgets/model/layout.ts'
+} from '@/features/widgets/model/layout'
 import type { MemoriWidget } from '@/tauri'
 import {
 	type Frame,
@@ -12,7 +12,7 @@ import {
 	type LayoutsInFrame,
 	type WidgetDisplay,
 	type WidgetView,
-} from './widget-frame.types.ts'
+} from './widget-frame.types'
 
 export const DEFAULT_LAYOUT: LayoutVariant = 'Full'
 export type {
@@ -23,8 +23,8 @@ export type {
 	LayoutsInFrame as WidgetFrame,
 	WidgetDisplay,
 	WidgetView,
-} from './widget-frame.types.ts'
-export { GROUP_IDS } from './widget-frame.types.ts'
+} from './widget-frame.types'
+export { GROUP_IDS } from './widget-frame.types'
 
 function createIdCountMap(ids: Memori.WidgetId[]): Map<Memori.WidgetId, number> {
 	const counts = new Map<Memori.WidgetId, number>()

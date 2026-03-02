@@ -1,11 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
 	import { Button } from '@/components/ui/button'
-	import {
-		refreshLocationState,
-		requestLocationState,
-	} from '@/features/prefs/service.ts'
-	import { prefsState, startPrefsStore } from '@/features/prefs/store.ts'
+	import { refreshLocationState, requestLocationState } from '@/features/prefs/service'
+	import { prefsState, startPrefsStore } from '@/features/prefs/store'
 
 	let errMsg = $state('')
 	let isRequesting = $state(false)

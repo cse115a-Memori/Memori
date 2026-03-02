@@ -133,6 +133,8 @@ async fn set_memori_state(
     state: &State<'_, AppState>,
     memori_state: MemoriState,
 ) -> Result<(), String> {
+    println!("set_memori_state payload: {:?}", &memori_state);
+
     let mut conn_guard = state.conn.lock().await;
 
     match &mut *conn_guard {

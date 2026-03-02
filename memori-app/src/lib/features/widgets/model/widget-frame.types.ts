@@ -1,4 +1,4 @@
-import type { LayoutVariant } from '@/features/widgets/model/layout.ts'
+import type { LayoutVariant } from '@/features/widgets/model/layout'
 import type { MemoriWidget } from '@/tauri'
 
 export const GROUP_IDS = ['widgets', 'frame-widgets'] as const

@@ -33,12 +33,16 @@ doc PATH:
 # desktop app
 [working-directory('memori-app')]
 pc:
-    bunx tauri dev
+    bun tauri dev
 
 # mobile app
 [working-directory('memori-app')]
 app:
-    bunx tauri ios dev --host --open
+    bun tauri ios dev --host
+
+[working-directory('memori-app')]
+appo:
+    bun tauri ios dev --host --open
 
 [working-directory('memori-app')]
 check:

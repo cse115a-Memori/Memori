@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
 	import { Button } from '@/components/ui/button'
-	import { startAuthStore } from '@/features/auth/store.ts'
-	import { startPrefsStore } from '@/features/prefs/store.ts'
-	import { startWidgetsStore } from '@/features/widgets/widgets-store.ts'
+	import { startAuthStore } from '@/features/auth/store'
+	import { startPrefsStore } from '@/features/prefs/store'
+	import { startWidgetsStore } from '@/features/widgets/widgets-store'
 	import { page } from '$app/state'
 	import '../app.css'
 
@@ -23,7 +23,6 @@
 		{@render navLinks('/', 'Home')}
 		{@render navLinks('/login', 'Login')}
 		{@render navLinks('/device', 'Device')}
-		{@render navLinks('/widgets', 'widgets')}
 		{@render navLinks('/location', 'Location')}
 		{@render children?.()}
 	</div>
@@ -34,6 +33,7 @@
 		variant="link"
 		href={route}
 		class={`${page.url.pathname === route ? 'font-bold' : ''} transition-all`}
-		>{name}</Button
 	>
+		{name}
+	</Button>
 {/snippet}

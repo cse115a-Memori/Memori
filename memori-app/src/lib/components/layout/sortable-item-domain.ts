@@ -1,4 +1,4 @@
-import type { WidgetView } from '@/features/widgets/model/widget-frame.ts'
+import type { WidgetView } from '@/features/widgets/model/widget-frame'
 
 export interface SortableItemDraft {
 	name: string

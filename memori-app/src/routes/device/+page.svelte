@@ -1,15 +1,33 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
-	import { authState } from '@/features/auth/store.ts'
-	import {
-		refreshLocationState,
-		requestLocationState,
-	} from '@/features/prefs/service.ts'
-	import { prefsState } from '@/features/prefs/store.ts'
+	import { Sound } from 'svelte-sound'
+	import WidgetEditor from '@/components/layout/WidgetEditor.svelte'
+	import { authState } from '@/features/auth/store'
+	import { refreshLocationState, requestLocationState } from '@/features/prefs/service'
+	import { prefsState } from '@/features/prefs/store'
 	import { commands, type DeviceMode, tryCmd } from '@/tauri'
+	import alarm_wav from '$lib/assets/alarm.wav'
+	import retro_wav from '$lib/assets/retro.wav'
 	import { Button } from '$lib/components/ui/button/index.js'
 	import * as Field from '$lib/components/ui/field/index.js'
 	import { Input } from '$lib/components/ui/input/index.js'
+
+	let sound_playing = $state(false)
+
+	const click_sound = new Sound(retro_wav)
+	const alarm_sound = new Sound(alarm_wav, {
+		onend: () => (sound_playing = false),
+	})
+
+	function playSuccessSound() {
+		sound_playing = true
+		click_sound.play()
+	} // playSound can be called anywhere in the code
+
+	function playFailedSound() {
+		sound_playing = true
+		alarm_sound.play()
+	} // playSound can be called anywhere in the code
 
 	type PendingAction =
 		| 'connect'
@@ -25,6 +43,8 @@
 	let isConnected = $state(false)
 	let pendingOp = $state<PendingAction | null>(null)
 	let actionResult = $state<DeviceResult>(null)
+
+	$inspect(isConnected, sound_playing)
 
 	let name = $state('')
 	let city = $state('')
@@ -107,9 +127,11 @@
 			await tryCmd(commands.connectDevice(deviceMode)).match(
 				() => {
 					isConnected = true
+					playSuccessSound()
 					actionResult = `Connected to ${deviceMode}`
 				},
 				error => {
+					playFailedSound()
 					actionResult = `Connection failed: ${error}`
 				}
 			)
@@ -191,81 +213,90 @@
 	}
 </script>
 
-<main class="space-y-6">
-	<h1 class="text-2xl font-semibold">Device Controls</h1>
+<Button onclick={()=> isConnected = !isConnected}>Dev Toggle</Button>
 
-	<Field.Field orientation="horizontal" class="justify-center mx-auto max-w-xs">
-		<Field.Label for="device-mode" class="sr-only">Device Mode</Field.Label>
-		<select
-			id="device-mode"
-			bind:value={deviceMode}
-			disabled={isBusy || isConnected}
-			class="border rounded px-3 py-2"
-		>
-			<option value="RealDevice">Real Device (Bluetooth)</option>
-			<option value="Simulator">Simulator (TCP)</option>
-		</select>
+{#if !isConnected}
+	<section class="space-y-6">
+		<h1 class="text-2xl font-semibold">Device Controls</h1>
 
-		<Button
-			variant="outline"
-			onclick={isConnected ? disconnect : connect}
-			disabled={isBusy}
-		>
-			{#if pendingOp === 'connect'}
-				Connecting...
-			{:else if pendingOp === 'disconnect'}
-				Disconnecting...
-			{:else}
-				{isConnected ? 'Disconnect' : 'Connect'}
-			{/if}
-		</Button>
-	</Field.Field>
+		<Field.Field orientation="horizontal" class="justify-center mx-auto max-w-xs">
+			<Field.Label for="device-mode" class="sr-only">Device Mode</Field.Label>
+			<select
+				id="device-mode"
+				bind:value={deviceMode}
+				disabled={isBusy || isConnected}
+				class="border rounded px-3 py-2"
+			>
+				<option value="RealDevice">Real Device (Bluetooth)</option>
+				<option value="Simulator">Simulator (TCP)</option>
+			</select>
 
-	<Field.Field orientation="horizontal" class="justify-center mx-auto max-w-xs">
-		<Field.Label for="name-input" class="sr-only">Name</Field.Label>
-		<Input id="name-input" placeholder="Enter a name..." bind:value={name} />
-		<Button variant="outline" onclick={sendName} disabled={isBusy || !name.trim()}>
-			{pendingOp === 'name' ? 'Sending...' : 'Send Name'}
-		</Button>
-	</Field.Field>
+			<Button
+				variant="outline"
+				onclick={isConnected ? disconnect : connect}
+				disabled={isBusy}
+			>
+				{#if pendingOp === 'connect'}
+					Connecting...
+				{:else if pendingOp === 'disconnect'}
+					Disconnecting...
+				{:else}
+					{isConnected ? 'Disconnect' : 'Connect'}
+				{/if}
+			</Button>
+			<Button variant="outline" onclick={disconnect} disabled={isBusy}>
+				Disconnect
+			</Button>
+		</Field.Field>
 
-	<Field.Field orientation="horizontal" class="justify-center mx-auto max-w-xs">
-		<Field.Label for="city-input" class="sr-only">City</Field.Label>
-		<Input id="city-input" placeholder="Enter a city..." bind:value={city} />
-		<Button variant="outline" onclick={sendTemp} disabled={isBusy || !city.trim()}>
-			{pendingOp === 'temp' ? 'Sending...' : 'Send Weather'}
-		</Button>
-	</Field.Field>
+		<Field.Field orientation="horizontal" class="justify-center mx-auto max-w-xs">
+			<Field.Label for="name-input" class="sr-only">Name</Field.Label>
+			<Input id="name-input" placeholder="Enter a name..." bind:value={name} />
+			<Button variant="outline" onclick={sendName} disabled={isBusy || !name.trim()}>
+				{pendingOp === 'name' ? 'Sending...' : 'Send Name'}
+			</Button>
+		</Field.Field>
 
-	<div class="flex justify-center gap-3">
-		<Button variant="outline" onclick={getBattery} disabled={isBusy}>
-			{pendingOp === 'battery' ? 'Checking...' : 'Device Battery'}
-		</Button>
+		<Field.Field orientation="horizontal" class="justify-center mx-auto max-w-xs">
+			<Field.Label for="city-input" class="sr-only">City</Field.Label>
+			<Input id="city-input" placeholder="Enter a city..." bind:value={city} />
+			<Button variant="outline" onclick={sendTemp} disabled={isBusy || !city.trim()}>
+				{pendingOp === 'temp' ? 'Sending...' : 'Send Weather'}
+			</Button>
+		</Field.Field>
 
-		<Button variant="outline" onclick={sendBustime} disabled={isBusy}>
-			{pendingOp === 'bustime' ? 'Sending...' : 'Send Bustime'}
-		</Button>
-	</div>
+		<div class="flex justify-center gap-3">
+			<Button variant="outline" onclick={getBattery} disabled={isBusy}>
+				{pendingOp === 'battery' ? 'Checking...' : 'Device Battery'}
+			</Button>
 
-	<section class="space-y-1 text-center text-sm">
-		<p>Location Status: {locationStatus}</p>
-		<p>
-			Last Known Location:
-			{prefsState.lastKnownLocation
-				? `${prefsState.lastKnownLocation.coords.latitude.toFixed(6)}, ${prefsState.lastKnownLocation.coords.longitude.toFixed(6)}`
-				: 'None'}
-		</p>
-	</section>
-
-	{#if locationStatus !== 'granted' && locationStatus !== 'not-available'}
-		<div class="flex justify-center">
-			<Button variant="outline" onclick={requestLocationAccess} disabled={isBusy}>
-				{pendingOp === 'location' ? 'Requesting...' : 'Enable Location Access'}
+			<Button variant="outline" onclick={sendBustime} disabled={isBusy}>
+				{pendingOp === 'bustime' ? 'Sending...' : 'Send Bustime'}
 			</Button>
 		</div>
-	{/if}
 
-	{#if actionResult !== null}
-		<p class="text-center text-sm">{actionResult}</p>
-	{/if}
-</main>
+		<section class="space-y-1 text-center text-sm">
+			<p>Location Status: {locationStatus}</p>
+			<p>
+				Last Known Location:
+				{prefsState.lastKnownLocation
+				? `${prefsState.lastKnownLocation.coords.latitude.toFixed(6)}, ${prefsState.lastKnownLocation.coords.longitude.toFixed(6)}`
+				: 'None'}
+			</p>
+		</section>
+
+		{#if locationStatus !== 'granted' && locationStatus !== 'not-available'}
+			<div class="flex justify-center">
+				<Button variant="outline" onclick={requestLocationAccess} disabled={isBusy}>
+					{pendingOp === 'location' ? 'Requesting...' : 'Enable Location Access'}
+				</Button>
+			</div>
+		{/if}
+
+		{#if actionResult !== null}
+			<p class="text-center text-sm">{actionResult}</p>
+		{/if}
+	</section>
+{:else}
+	<WidgetEditor />
+{/if}

@@ -7,14 +7,11 @@
 	import { Button } from '@/components/ui/button'
 	import * as Drawer from '@/components/ui/drawer'
 	import { Input } from '@/components/ui/input'
-	import { prefsState } from '@/features/prefs/store.ts'
-	import {
-		kindToDisplay,
-		type WidgetView,
-	} from '@/features/widgets/model/widget-frame.ts'
-	import { updateWidgetKind } from '@/features/widgets/widgets-store.ts'
-	import { cn } from '@/utils.ts'
-	import { cardCls } from './sortable-item-classes.ts'
+	import { prefsState } from '@/features/prefs/store'
+	import { kindToDisplay, type WidgetView } from '@/features/widgets/model/widget-frame'
+	import { updateWidgetKind } from '@/features/widgets/widgets-store'
+	import { cn } from '@/utils'
+	import { cardCls } from './sortable-item-classes'
 	import {
 		buildKindFromDraft,
 		createDraftFromKind,
@@ -22,8 +19,8 @@
 		isKindEditable,
 		kindSignature,
 		type SortableItemDraft,
-	} from './sortable-item-domain.ts'
-	import { formatCompactClock } from './widget-clock.ts'
+	} from './sortable-item-domain'
+	import { formatCompactClock } from './widget-clock'
 
 	interface Props {
 		id: UniqueIdentifier

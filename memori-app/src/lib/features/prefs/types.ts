@@ -1,5 +1,5 @@
 import type { PermissionStatus, Position } from '@tauri-apps/plugin-geolocation'
-import type { SystemOptions } from '@/features/prefs/system-options.ts'
+import type { SystemOptions } from '@/features/prefs/system-options'
 
 export type LocationStatus = PermissionStatus['location'] | 'not-available'
 

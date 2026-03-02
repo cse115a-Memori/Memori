@@ -1,10 +1,7 @@
 <script lang="ts">
-	import {
-		kindToDisplay,
-		type WidgetView,
-	} from '@/features/widgets/model/widget-frame.ts'
-	import { cardCls } from './sortable-item-classes.ts'
-	import type { CompactClock } from './widget-clock.ts'
+	import { kindToDisplay, type WidgetView } from '@/features/widgets/model/widget-frame'
+	import { cardCls } from './sortable-item-classes'
+	import type { CompactClock } from './widget-clock'
 
 	interface Props {
 		activeWidget: WidgetView | null

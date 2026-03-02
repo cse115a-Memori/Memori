@@ -2,28 +2,27 @@
 	import { onMount } from 'svelte'
 	import {
 		formatCompactClock,
-		WidgetsEditorSurface,
+		WidgetsEditorFrame,
 		WidgetsToolbar,
 	} from '@/components/layout'
-	import { startAuthStore } from '@/features/auth/store.ts'
-	import { prefsState } from '@/features/prefs/store.ts'
+	import { startAuthStore } from '@/features/auth/store'
+	import { prefsState } from '@/features/prefs/store'
 	import {
 		selectFlashPayload,
 		validateWidgetsStateForFlash,
-	} from '@/features/widgets/flash.ts'
+	} from '@/features/widgets/flash'
 	import {
 		isLayoutVariant,
 		type WidgetFrame,
-	} from '@/features/widgets/model/widget-frame.ts'
-	import { getWidgetKinds } from '@/features/widgets/service.ts'
-	import type { WidgetsState } from '@/features/widgets/types.ts'
+	} from '@/features/widgets/model/widget-frame'
+	import { getWidgetKinds } from '@/features/widgets/service'
+	import type { WidgetsState } from '@/features/widgets/types'
 	import {
 		selectWidgetFrameEntry,
-		setWidgetFrame,
 		setWidgetFrameLayout,
 		syncWidgets,
 		widgetsState,
-	} from '@/features/widgets/widgets-store.ts'
+	} from '@/features/widgets/widgets-store'
 	import { commands, tryCmd } from '@/tauri'
 
 	let flashErr = $state('')
@@ -90,10 +89,6 @@
 		if (!isLayoutVariant(nextLayout)) return
 		setWidgetFrameLayout(widgetsState.activeFrameIdx, nextLayout)
 	}
-
-	function handleFrameCommit(nextFrame: WidgetFrame): void {
-		setWidgetFrame(widgetsState.activeFrameIdx, nextFrame)
-	}
 </script>
 
 <WidgetsToolbar
@@ -107,9 +102,4 @@
 	<p class="text-sm text-red-600">{flashErr}</p>
 {/if}
 
-<WidgetsEditorSurface
-	layout={activeLayout}
-	frame={frameLayouts}
-	{compactClock}
-	onFrameCommit={handleFrameCommit}
-/>
+<WidgetsEditorFrame layout={activeLayout} frame={frameLayouts} {compactClock} />

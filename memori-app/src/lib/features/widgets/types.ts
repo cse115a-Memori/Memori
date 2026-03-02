@@ -1,4 +1,4 @@
-import type { LayoutVariant } from '@/features/widgets/model/layout.ts'
+import type { LayoutVariant } from '@/features/widgets/model/layout'
 import type { MemoriStateInput, MemoriWidget } from '@/tauri'
 
 export type FrameDraft = {
