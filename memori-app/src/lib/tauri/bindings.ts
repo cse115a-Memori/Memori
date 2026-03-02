@@ -45,7 +45,7 @@ async getBattery() : Promise<Result<number, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async getWidgetKinds() : Promise<Result<[MemoriWidget, MemoriWidget, MemoriWidget, MemoriWidget], string>> {
+async getWidgetKinds() : Promise<Result<[MemoriWidget, MemoriWidget, MemoriWidget, MemoriWidget, MemoriWidget, MemoriWidget], string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_widget_kinds") };
 } catch (e) {

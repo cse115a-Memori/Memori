@@ -9,4 +9,5 @@ export type PrefsState = {
 	onboarded: boolean
 	lastKnownDeviceId: string | null
 	systemOptions: SystemOptions
+	name: string
 }

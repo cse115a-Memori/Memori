@@ -1,17 +1,28 @@
-use crate::oauth::cloudflare;
+use super::fetch::{
+    fetch_all_ucsc_stops, fetch_github_widget, fetch_twitch_display_name, fetch_weather_temp, Stop,
+};
 use crate::state::{AppState, DeviceConnection};
 use memori_ui::{
     layout::MemoriLayout,
     widgets::{
-        Bus, Clock, MemoriWidget, Name, Twitch, UpdateFrequency, Weather, WidgetId, WidgetKind,
+        Bus, Clock, Github, MemoriWidget, Name, Twitch, UpdateFrequency, Weather, WidgetId,
+        WidgetKind,
     },
     MemoriState,
 };
-use reqwest::Client;
 use serde::{de::DeserializeOwned, Deserialize};
-use serde_json::json;
-use tauri::State;
+use std::time::Duration;
+use tauri::{AppHandle, State};
+use tauri_plugin_svelte::ManagerExt;
+use tokio::time::timeout;
 use transport::HostTransport as _;
+
+const DEFAULT_WEATHER_TEXT: &str = "20.0";
+const DEFAULT_GITHUB_USERNAME: &str = "CaiNann";
+const DEFAULT_TWITCH_USER: &str = "twitch_user";
+const DEFAULT_BUS_PREDICTION: &str = "9 min";
+const DEFAULT_BUS_ROUTE: &str = "Route 19";
+const BUS_FETCH_TIMEOUT_SECS: u64 = 3;
 
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -21,6 +32,75 @@ pub struct MemoriStateInput {
     widgets: Vec<MemoriWidget>,
     frames: Vec<MemoriLayout>,
     frame_time: u32,
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+struct PrefsState {
+    // location_status: String,
+    pub last_known_location: Option<Position>,
+    // onboarded: bool,
+    // last_known_device_id: Option<String>,
+    // system_options: serde_json::Value,
+    name: String,
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+struct AuthState {
+    users_by_provider: ProviderUsers,
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+struct ProviderUsers {
+    github: Option<AuthUserInfo>,
+    twitch: Option<AuthUserInfo>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+struct AuthUserInfo {
+    name: String,
+    access_token: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct Position {
+    // pub timestamp: f64,
+    pub coords: Coordinates,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct Coordinates {
+    pub latitude: f64,
+    pub longitude: f64,
+    // pub accuracy: f64,
+    // pub altitude: Option<f64>,
+    // pub altitude_accuracy: Option<f64>,
+    // pub heading: Option<f64>,
+    // pub speed: Option<f64>,
+}
+
+fn coords_from_prefs(prefs: &PrefsState) -> (f64, f64) {
+    const DEF_LAT: f64 = 36.97412;
+    const DEF_LON: f64 = -122.0308;
+
+    match prefs.last_known_location.as_ref() {
+        Some(location) => (location.coords.latitude, location.coords.longitude),
+        None => (DEF_LAT, DEF_LON),
+    }
+}
+
+fn non_empty(value: &str) -> Option<String> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
 }
 
 impl MemoriStateInput {
@@ -49,160 +129,212 @@ impl MemoriStateInput {
     }
 }
 
+async fn set_memori_state(
+    state: &State<'_, AppState>,
+    memori_state: MemoriState,
+) -> Result<(), String> {
+    let mut conn_guard = state.conn.lock().await;
+
+    match &mut *conn_guard {
+        DeviceConnection::RealDevice(ble_transport) => ble_transport
+            .set_state(memori_state)
+            .await
+            .map_err(|err| format!("Failed to set state: {err}")),
+        DeviceConnection::Simulator(sim_transport) => sim_transport
+            .set_state(memori_state)
+            .await
+            .map_err(|err| format!("Failed to set state: {err}")),
+        DeviceConnection::Disconnected => Err("Device is not connected".to_string()),
+    }
+}
+
+fn read_store_state<T>(app: &AppHandle, store_id: &str) -> T
+where
+    T: DeserializeOwned + Default,
+{
+    app.svelte().state_or_default(store_id).unwrap_or_default()
+}
+
+async fn resolve_weather_text(prefs: &PrefsState) -> String {
+    let (lat, lon) = coords_from_prefs(prefs);
+
+    fetch_weather_temp(lat, lon)
+        .await
+        .map(|temp_celsius| format!("{temp_celsius:.1}"))
+        .unwrap_or_else(|_| DEFAULT_WEATHER_TEXT.to_string())
+}
+
+fn fallback_github_username(auth: &AuthState) -> String {
+    auth.users_by_provider
+        .github
+        .as_ref()
+        .and_then(|user| non_empty(&user.name))
+        .unwrap_or_else(|| DEFAULT_GITHUB_USERNAME.to_string())
+}
+
+fn fallback_twitch_user(auth: &AuthState) -> String {
+    auth.users_by_provider
+        .twitch
+        .as_ref()
+        .and_then(|user| non_empty(&user.name))
+        .unwrap_or_else(|| DEFAULT_TWITCH_USER.to_string())
+}
+
+async fn resolve_github_data(auth: &AuthState) -> (String, Option<String>) {
+    let fallback_username = fallback_github_username(auth);
+
+    match auth.users_by_provider.github.as_ref() {
+        Some(user) => match non_empty(&user.access_token) {
+            Some(token) => fetch_github_widget(&token)
+                .await
+                .map(|github| (github.username, github.repo))
+                .unwrap_or_else(|_| (fallback_username.clone(), None)),
+            None => (fallback_username, None),
+        },
+        None => (fallback_username, None),
+    }
+}
+
+fn default_bus_data() -> (String, String) {
+    (
+        DEFAULT_BUS_PREDICTION.to_string(),
+        DEFAULT_BUS_ROUTE.to_string(),
+    )
+}
+
+async fn resolve_bus_data(prefs: &PrefsState) -> (String, String) {
+    let location = match prefs.last_known_location.as_ref() {
+        Some(location) => location,
+        None => return default_bus_data(),
+    };
+
+    let lat = location.coords.latitude;
+    let lon = location.coords.longitude;
+
+    let all_stops = match timeout(
+        Duration::from_secs(BUS_FETCH_TIMEOUT_SECS),
+        fetch_all_ucsc_stops(),
+    )
+    .await
+    {
+        Ok(Ok(stops)) => stops,
+        Err(_) => return default_bus_data(),
+        Ok(Err(_)) => return default_bus_data(),
+    };
+
+    match find_closest_stop(&all_stops, lat, lon) {
+        Some(stop) => {
+            let distance_km = haversine_km(lat, lon, stop.lat, stop.lon);
+            (
+                format!("{distance_km:.1} km"),
+                format!("Stop {}", stop.stpid),
+            )
+        }
+        None => default_bus_data(),
+    }
+}
+
+fn never_widget(id: u32, kind: WidgetKind) -> MemoriWidget {
+    MemoriWidget::new(
+        WidgetId(id),
+        kind,
+        UpdateFrequency::Never,
+        UpdateFrequency::Never,
+    )
+}
+
+fn build_twitch_state(display_name: String) -> MemoriState {
+    MemoriState::new(
+        0,
+        vec![MemoriWidget::new(
+            WidgetId(0),
+            WidgetKind::Twitch(Twitch::new(display_name)),
+            UpdateFrequency::Seconds(1),
+            UpdateFrequency::Seconds(1),
+        )],
+        vec![MemoriLayout::Full(WidgetId(0))],
+        5,
+    )
+}
+
+fn build_weather_state(temp_celsius: f32) -> MemoriState {
+    MemoriState::new(
+        0,
+        vec![MemoriWidget::new(
+            WidgetId(0),
+            WidgetKind::Weather(Weather::new(temp_celsius.to_string())),
+            UpdateFrequency::Seconds(60),
+            UpdateFrequency::Seconds(60),
+        )],
+        vec![MemoriLayout::Full(WidgetId(0))],
+        5,
+    )
+}
+
+fn haversine_km(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
+    let earth_radius_km = 6371.0;
+    let dlat = (lat2 - lat1).to_radians();
+    let dlon = (lon2 - lon1).to_radians();
+    let a = (dlat / 2.0).sin().powi(2)
+        + lat1.to_radians().cos() * lat2.to_radians().cos() * (dlon / 2.0).sin().powi(2);
+    let c = 2.0 * a.sqrt().asin();
+    earth_radius_km * c
+}
+
+fn find_closest_stop(stops: &[Stop], lat: f64, lon: f64) -> Option<&Stop> {
+    stops.iter().min_by(|stop_a, stop_b| {
+        let dist_a = haversine_km(lat, lon, stop_a.lat, stop_a.lon);
+        let dist_b = haversine_km(lat, lon, stop_b.lat, stop_b.lon);
+        dist_a
+            .partial_cmp(&dist_b)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    })
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn flash_memori_state(
     state: State<'_, AppState>,
     memori_state: MemoriStateInput,
 ) -> Result<(), String> {
-    let memori_state = memori_state.into_memori_state()?;
-    let mut guard = state.conn.lock().await;
-
-    match &mut *guard {
-        DeviceConnection::RealDevice(transport) => transport
-            .set_state(memori_state)
-            .await
-            .map_err(|e| format!("Failed to set state: {e}")),
-        DeviceConnection::Simulator(transport) => transport
-            .set_state(memori_state)
-            .await
-            .map_err(|e| format!("Failed to set state: {e}")),
-        DeviceConnection::Disconnected => Err("Device is not connected".to_string()),
-    }
-}
-
-async fn set_memori_state(
-    state: &State<'_, AppState>,
-    memori_state: MemoriState,
-) -> Result<(), String> {
-    let mut state_guard = state.conn.lock().await;
-
-    match &mut *state_guard {
-        DeviceConnection::RealDevice(host_bletransport) => host_bletransport
-            .set_state(memori_state)
-            .await
-            .map_err(|e| format!("Failed to set state: {e}")),
-        DeviceConnection::Simulator(host_tcp_transport) => host_tcp_transport
-            .set_state(memori_state)
-            .await
-            .map_err(|e| format!("Failed to set state: {e}")),
-        DeviceConnection::Disconnected => Err("Device is not connected".to_string()),
-    }
-}
-
-async fn call_api_json<T>(args: serde_json::Value) -> Result<T, String>
-where
-    T: DeserializeOwned,
-{
-    let response = cloudflare("call_api", args)
-        .await
-        .map_err(|e| format!("cloudflare error: {e}"))?;
-    serde_json::from_value(response).map_err(|e| e.to_string())
+    set_memori_state(&state, memori_state.into_memori_state()?).await
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn send_github(_state: State<'_, AppState>, token: String) -> Result<String, String> {
-    let url = "https://api.github.com/user";
-    let client = Client::new();
-    let response = client
-        .get(url)
-        .header("Authorization", format!("Bearer {}", token))
-        .header("Accept", "application/vnd.github.v3+json")
-        .header("User-Agent", "tauri-app")
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
-    let response = response.error_for_status().map_err(|e| e.to_string())?;
-    let user_info: serde_json::Value = response.json().await.map_err(|err| err.to_string())?;
-    let _ = user_info;
-    Ok("ok".to_string())
+    let github_widget = fetch_github_widget(&token).await?;
+    Ok(github_widget.username)
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn send_twitch(state: State<'_, AppState>, token: String) -> Result<(), String> {
-    #[derive(Debug, Deserialize)]
-    struct Broadcaster {
-        broadcaster_type: String,
-        created_at: String,
-        description: String,
-        display_name: String,
-        email: Option<String>,
-        id: String,
-        login: String,
-        view_count: u64,
-    }
-    #[derive(Debug, Deserialize)]
-    struct TwitchResponse {
-        data: Vec<Broadcaster>,
-    }
-    let mut headers = serde_json::Map::new();
-    let client_id = std::env::var("TWITCH_CLIENT_ID")
-        .ok()
-        .or_else(|| option_env!("TWITCH_CLIENT_ID").map(ToString::to_string))
-        .ok_or("TWITCH_CLIENT_ID is not configured".to_string())?;
-    headers.insert(
-        "Authorization".to_string(),
-        serde_json::Value::String(format!("Bearer {}", token)),
-    );
-    headers.insert(
-        "Client-ID".to_string(),
-        serde_json::Value::String(client_id),
-    );
-    let args = json!({
-        "provider": "twitch",
-        "url": "https://api.twitch.tv/helix/users",
-       "headers": serde_json::Value::Object(headers),
-    });
-
-    let api_response: TwitchResponse = call_api_json(args).await?;
-    let broadcaster = match api_response.data.get(0) {
-        Some(first_element) => first_element,
-        None => return Err("Twitch response contained no user".to_string()),
-    };
-    let memori_state = MemoriState::new(
-        0,
-        vec![MemoriWidget::new(
-            WidgetId(0),
-            WidgetKind::Twitch(Twitch::new(broadcaster.display_name.clone())),
-            UpdateFrequency::Seconds(1),
-            UpdateFrequency::Seconds(1),
-        )],
-        vec![MemoriLayout::Full(WidgetId(0))],
-        5,
-    );
-    set_memori_state(&state, memori_state).await
+    let display_name = fetch_twitch_display_name(&token).await?;
+    set_memori_state(&state, build_twitch_state(display_name)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn get_widget_kinds() -> Result<[MemoriWidget; 4], String> {
+pub async fn get_widget_kinds(app: AppHandle) -> Result<[MemoriWidget; 6], String> {
+    let prefs: PrefsState = read_store_state(&app, "prefs");
+    let auth: AuthState = read_store_state(&app, "auth");
+    let temp_text = resolve_weather_text(&prefs).await;
+    let (bus_prediction, bus_route) = resolve_bus_data(&prefs).await;
+    let (github_username, github_repo) = resolve_github_data(&auth).await;
+    let twitch_user = fallback_twitch_user(&auth);
+    let name = prefs.name;
+
     Ok([
-        MemoriWidget::new(
-            WidgetId(0),
-            WidgetKind::Name(Name::new("John Doe")),
-            UpdateFrequency::Never,
-            UpdateFrequency::Never,
+        never_widget(0, WidgetKind::Name(Name::new(name))),
+        never_widget(1, WidgetKind::Clock(Clock::new(1, 0, 0))),
+        never_widget(2, WidgetKind::Bus(Bus::new(bus_prediction, bus_route))),
+        never_widget(3, WidgetKind::Weather(Weather::new(temp_text))),
+        never_widget(
+            4,
+            WidgetKind::Github(Github::new(github_username, github_repo)),
         ),
-        MemoriWidget::new(
-            WidgetId(1),
-            WidgetKind::Clock(Clock::new(1, 0, 0)),
-            UpdateFrequency::Never,
-            UpdateFrequency::Never,
-        ),
-        MemoriWidget::new(
-            WidgetId(2),
-            WidgetKind::Bus(Bus::new("9 min", "Route 19")),
-            UpdateFrequency::Never,
-            UpdateFrequency::Never,
-        ),
-        MemoriWidget::new(
-            WidgetId(3),
-            WidgetKind::Weather(Weather::new("20.0")),
-            UpdateFrequency::Never,
-            UpdateFrequency::Never,
-        ),
+        never_widget(5, WidgetKind::Twitch(Twitch::new(twitch_user))),
     ])
 }
 
@@ -231,38 +363,9 @@ pub async fn send_name(state: State<'_, AppState>, name: String) -> Result<(), S
 #[tauri::command]
 #[specta::specta]
 pub async fn send_temp(state: State<'_, AppState>, lat: f64, lon: f64) -> Result<String, String> {
-    #[derive(Deserialize, Debug)]
-    struct WeatherResponse {
-        main: Main,
-    }
-
-    #[derive(Deserialize, Debug)]
-    struct Main {
-        temp: f32,
-    }
-
-    let request_body = json!({
-        "provider": "weather",
-        "url": format!(
-            "https://api.openweathermap.org/data/2.5/weather?appid={{}}&lat={lat}&lon={lon}&units=metric"
-        ),
-        "lat": lat.to_string(),//lat.to_string().as_str(),
-        "lon": lon.to_string(),// lon.to_string().as_str(),
-    });
-    let response: WeatherResponse = call_api_json(request_body).await?;
-    let memori_state = MemoriState::new(
-        0,
-        vec![MemoriWidget::new(
-            WidgetId(0),
-            WidgetKind::Weather(Weather::new(response.main.temp.to_string())),
-            UpdateFrequency::Seconds(60),
-            UpdateFrequency::Seconds(60),
-        )],
-        vec![MemoriLayout::Full(WidgetId(0))],
-        5,
-    );
-    set_memori_state(&state, memori_state).await?;
-    Ok(format!("{:?}", response.main.temp))
+    let temp_celsius = fetch_weather_temp(lat, lon).await?;
+    set_memori_state(&state, build_weather_state(temp_celsius)).await?;
+    Ok(format!("{temp_celsius:?}"))
 }
 
 #[tauri::command]
@@ -272,104 +375,9 @@ pub async fn send_bustime(
     lat: f64,
     lon: f64,
 ) -> Result<String, String> {
-    #[derive(Debug, Deserialize)]
-    struct BustimeResponse<T> {
-        #[serde(rename = "bustime-response")]
-        bustime_response: T,
-    }
+    let all_stops = fetch_all_ucsc_stops().await?;
+    let nearest_stop = find_closest_stop(&all_stops, lat, lon)
+        .ok_or("No nearby bus stop was found".to_string())?;
 
-    #[derive(Debug, Deserialize)]
-    struct Routes {
-        routes: Vec<Route>,
-    }
-
-    #[derive(Debug, Deserialize)]
-    struct Route {
-        rt: String,
-        rtnm: String,
-    }
-
-    #[derive(Debug, Deserialize)]
-    struct Directions {
-        directions: Vec<Direction>,
-    }
-
-    #[derive(Debug, Deserialize)]
-    struct Direction {
-        id: String,
-    }
-
-    #[derive(Debug, Deserialize)]
-    struct Stops {
-        stops: Vec<Stop>,
-    }
-
-    #[derive(Debug, Deserialize)]
-    struct Stop {
-        stpid: String,
-        lat: f64,
-        lon: f64,
-    }
-
-    let request_body = json!({
-        "provider": "bustime",
-        "url": "https://rt.scmetro.org/bustime/api/v3/getroutes?key={}&format=json",
-    });
-    let response: BustimeResponse<Routes> = call_api_json(request_body).await?;
-
-    let routes: Vec<&Route> = response
-        .bustime_response
-        .routes
-        .iter()
-        .filter(|route| route.rtnm.contains("UCSC"))
-        .collect();
-
-    let mut stops = Vec::new();
-    for route in routes {
-        let directions_url = format!(
-            "https://rt.scmetro.org/bustime/api/v3/getdirections?key={{}}&rt={}&format=json",
-            route.rt
-        );
-        let args = json!({
-            "provider": "bustime",
-            "url": directions_url,
-        });
-        let response: BustimeResponse<Directions> = call_api_json(args).await?;
-        for direction in response.bustime_response.directions {
-            let stops_url = format!(
-                "https://rt.scmetro.org/bustime/api/v3/getstops?key={{}}&rt={}&dir={}&format=json",
-                route.rt, direction.id
-            );
-            let args2 = json!({
-                "provider": "bustime",
-                "url": stops_url,
-            });
-            let response: BustimeResponse<Stops> = call_api_json(args2).await?;
-            stops.extend(response.bustime_response.stops);
-        }
-    }
-
-    fn haversine_km(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
-        let earth_radius_km = 6371.0;
-        let dlat = (lat2 - lat1).to_radians();
-        let dlon = (lon2 - lon1).to_radians();
-        let a = (dlat / 2.0).sin().powi(2)
-            + lat1.to_radians().cos() * lat2.to_radians().cos() * (dlon / 2.0).sin().powi(2);
-        let c = 2.0 * a.sqrt().asin();
-        earth_radius_km * c
-    }
-
-    let closest_stop = stops.iter().min_by(|a, b| {
-        let a_dist = haversine_km(lat, lon, a.lat, a.lon);
-        let b_dist = haversine_km(lat, lon, b.lat, b.lon);
-        a_dist
-            .partial_cmp(&b_dist)
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
-
-    if let Some(stop) = closest_stop {
-        Ok(format!("closest stop: {}", stop.stpid))
-    } else {
-        Err("No nearby bus stop was found".into())
-    }
+    Ok(format!("closest stop: {}", nearest_stop.stpid))
 }
