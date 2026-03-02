@@ -4,7 +4,7 @@ export const sortableCardBaseClasses =
 export const sortableCardInteractiveClasses = 'hover:-translate-y-0.5 hover:shadow-md'
 
 export const sortableCardTitleClasses =
-	'mb-1 text-base font-semibold tracking-tight text-slate-900'
+	'text-base font-semibold tracking-tight text-slate-900'
 
 export const sortableCardContentClasses =
 	'text-sm leading-5 text-slate-600 whitespace-pre-line'

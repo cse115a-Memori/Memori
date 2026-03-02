@@ -10,7 +10,7 @@ const initialPrefsState: PrefsState = {
 	onboarded: false,
 	lastKnownDeviceId: null,
 	systemOptions: getSystemOptions(),
-	name: ""
+	name: '',
 }
 
 const prefsStore = new RuneStore<PrefsState>('prefs', initialPrefsState, {

@@ -11,17 +11,17 @@
 	interface Props {
 		id: GroupId
 		title: string
-		tasks: WidgetView[]
+		widgets: WidgetView[]
 		layout: LayoutVariant
 		frameContainerClass: string
 	}
 
-	let { id, title, tasks, layout, frameContainerClass }: Props = $props()
+	let { id, title, widgets, layout, frameContainerClass }: Props = $props()
 	const isFrameWidgets = $derived(id === 'frame-widgets')
 </script>
 
 <section class="bg-[#F9F9F9] rounded-3xl p-3 pt-6">
-	<p class="text-lg fw-bold pb-3">{title}</p>
+	<p class="text-lg font-bold pb-3">{title}</p>
 
 	<Droppable
 		class="min-h-24 rounded-3xl border border-slate-200/70 bg-white/55 p-2"
@@ -33,10 +33,10 @@
 		<div
 			class={isFrameWidgets ? ['grid gap-2 h-52', frameContainerClass] : 'flex flex-col gap-2'}
 		>
-			{#each tasks as task, index (task.id)}
+			{#each widgets as widget, index (widget.id)}
 				<SortableItem
-					widget={task}
-					id={task.id}
+					{widget}
+					id={widget.id}
 					cls={getSlotClassByIndex(layout, index)}
 					{index}
 					group={id}

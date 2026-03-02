@@ -14,12 +14,7 @@
 		onFlash: () => void
 	}
 
-	let {
-		layout,
-		isFlashing: isSettingWidget,
-		onLayoutChange,
-		onFlash: setWidget,
-	}: Props = $props()
+	let { layout, isFlashing, onLayoutChange, onFlash }: Props = $props()
 </script>
 
 <div class="flex justify-between">
@@ -27,7 +22,7 @@
 		type="single"
 		name="layoutSelector"
 		value={layout}
-		disabled={isSettingWidget}
+		disabled={isFlashing}
 		onValueChange={onLayoutChange}
 	>
 		<Select.Trigger class="">{layout}</Select.Trigger>
@@ -43,8 +38,8 @@
 		</Select.Content>
 	</Select.Root>
 
-	<Button onclick={setWidget}>
-		{#if isSettingWidget}
+	<Button onclick={onFlash}>
+		{#if isFlashing}
 			<div class="animate-spin"><LoaderCircle /></div>
 		{:else}
 			Update

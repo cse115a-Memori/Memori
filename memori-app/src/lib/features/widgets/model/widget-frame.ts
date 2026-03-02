@@ -103,10 +103,10 @@ export function initWidgetFrame(widgets: MemoriWidget[]): LayoutsInFrame {
 	}, {} as LayoutsInFrame)
 }
 
-export function poolChanged(pool: MemoriWidget[], data: MemoriWidget[]): boolean {
+export function poolChanged(pool: MemoriWidget[], widgetData: MemoriWidget[]): boolean {
 	return !hasSameWidgetIds(
 		pool.map(widget => widget.id),
-		data.map(widget => widget.id)
+		widgetData.map(widget => widget.id)
 	)
 }
 
@@ -153,6 +153,15 @@ export function kindToDisplay(kind: MemoriWidget['kind']): WidgetDisplay {
 
 	if ('Bus' in kind) {
 		return { name: `Bus ${kind.Bus.route}`, content: kind.Bus.prediction }
+	}
+
+	if ('Github' in kind) {
+		const repo = kind.Github.repo ? `/${kind.Github.repo}` : ''
+		return { name: 'GitHub', content: `${kind.Github.username}${repo}` }
+	}
+
+	if ('Twitch' in kind) {
+		return { name: 'Twitch', content: kind.Twitch.user }
 	}
 
 	return { name: 'Widget', content: '' }

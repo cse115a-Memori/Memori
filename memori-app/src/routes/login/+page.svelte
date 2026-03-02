@@ -7,13 +7,13 @@
 
 	type PendingAction = 'hydrating' | 'login' | 'send' | 'logout'
 
-	let errorMessage = $state('')
-	let statusMessage = $state('')
-	let pendingAction = $state<PendingAction | null>('hydrating')
+	let errMsg = $state('')
+	let statusMsg = $state('')
+	let pendingOp = $state<PendingAction | null>('hydrating')
 
-	let currentUser = $state<UserInfo | null>(null)
-	const isBusy = $derived(pendingAction !== null)
-	const accessToken = $derived(currentUser?.accessToken ?? null)
+	let user = $state<UserInfo | null>(null)
+	const isBusy = $derived(pendingOp !== null)
+	const accessToken = $derived(user?.accessToken ?? null)
 
 	onMount(() => {
 		void hydrateCurrentUser()
@@ -21,82 +21,82 @@
 
 	async function hydrateCurrentUser() {
 		await getUser('twitch').match(
-			user => {
-				currentUser = user
+			nextUser => {
+				user = nextUser
 			},
 			error => {
-				errorMessage = `Failed to restore session: ${error}`
+				errMsg = `Failed to restore session: ${error}`
 			}
 		)
-		pendingAction = null
+		pendingOp = null
 	}
 
 	async function loginTwitch() {
-		errorMessage = ''
-		statusMessage = ''
-		pendingAction = 'login'
+		errMsg = ''
+		statusMsg = ''
+		pendingOp = 'login'
 		await login('twitch').match(
-			user => {
-				currentUser = user
-				statusMessage = 'Logged in with Twitch'
+			nextUser => {
+				user = nextUser
+				statusMsg = 'Logged in with Twitch'
 			},
 			error => {
-				errorMessage = `Twitch login failed: ${error}`
+				errMsg = `Twitch login failed: ${error}`
 			}
 		)
-		pendingAction = null
+		pendingOp = null
 	}
 
 	async function sendTwitch() {
 		if (!accessToken) {
-			statusMessage = 'Missing OAuth access token'
+			statusMsg = 'Missing OAuth access token'
 			return
 		}
 
-		pendingAction = 'send'
+		pendingOp = 'send'
 		await tryCmd(commands.sendTwitch(accessToken)).match(
 			data => {
-				statusMessage = data ?? 'Twitch sent'
+				statusMsg = data ?? 'Twitch sent'
 			},
 			error => {
-				statusMessage = `Send twitch failed: ${error}`
+				statusMsg = `Send twitch failed: ${error}`
 			}
 		)
-		pendingAction = null
+		pendingOp = null
 	}
 
 	async function logoutTwitch() {
-		pendingAction = 'logout'
-		statusMessage = ''
-		errorMessage = ''
+		pendingOp = 'logout'
+		statusMsg = ''
+		errMsg = ''
 		await logout('twitch').match(
 			() => {
-				currentUser = null
-				statusMessage = 'Logged out'
+				user = null
+				statusMsg = 'Logged out'
 			},
 			error => {
-				errorMessage = `Logout failed: ${error}`
+				errMsg = `Logout failed: ${error}`
 			}
 		)
-		pendingAction = null
+		pendingOp = null
 	}
 </script>
 
 <main>
-	{#if pendingAction === 'hydrating'}
+	{#if pendingOp === 'hydrating'}
 		<p class="mt-4 text-center text-sm text-muted-foreground">
 			Loading your session...
 		</p>
 	{/if}
 
-	{#if errorMessage}
-		<p class="mt-4 text-center text-sm text-red-500">{errorMessage}</p>
+	{#if errMsg}
+		<p class="mt-4 text-center text-sm text-red-500">{errMsg}</p>
 	{/if}
 
-	{#if currentUser}
+	{#if user}
 		<div class="mt-4 text-center text-sm">
-			<p>Logged in as {currentUser.name} ({currentUser.provider})</p>
-			<p class="text-muted-foreground">{currentUser.email}</p>
+			<p>Logged in as {user.name} ({user.provider})</p>
+			<p class="text-muted-foreground">{user.email}</p>
 		</div>
 	{/if}
 
@@ -113,14 +113,14 @@
 	</div>
 
 	<div class="mt-4">
-		<Button variant="outline" onclick={logoutTwitch} disabled={isBusy || !currentUser}>
+		<Button variant="outline" onclick={logoutTwitch} disabled={isBusy || !user}>
 			Logout
 		</Button>
 	</div>
 
 	<p class="mt-4 text-center"><Button variant="link" href="/">Back Home</Button></p>
 
-	{#if statusMessage}
-		<p class="mt-4 text-center">{statusMessage}</p>
+	{#if statusMsg}
+		<p class="mt-4 text-center">{statusMsg}</p>
 	{/if}
 </main>
