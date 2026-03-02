@@ -40,7 +40,6 @@
 		{@render navLinks('/login', 'Login')}
 		{@render navLinks('/device', 'Device')}
 		{@render navLinks('/widgets', 'widgets')}
-		{@render navLinks('/single-list', 'single-list')}
 		{@render navLinks('/location', 'Location')}
 		{@render children?.()}
 	</div>
