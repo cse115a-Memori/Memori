@@ -2,6 +2,7 @@ use crate::simulator::request_handler;
 use crate::state::{AppState, DeviceConnection, DeviceMode};
 use ble_host::HostBLETransport;
 use memori_tcp::HostTcpTransport;
+use std::sync::Arc;
 use tauri::AppHandle;
 use tauri::State;
 // use tauri_plugin_svelte::ManagerExt;
@@ -39,7 +40,6 @@ pub async fn connect_device(
                 .map_err(|e| format!("Failed to connect to simulator: {e}"))?;
 
             *guard = DeviceConnection::Simulator(conn);
-
             tokio::spawn(async move {
                 request_handler(dev_req_rx, host_resp_tx).await;
             });

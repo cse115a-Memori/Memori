@@ -2847,10 +2847,12 @@ dependencies = [
  "embedded-graphics",
  "embedded-graphics-unicodefonts",
  "hashbrown 0.16.1",
+ "heapless 0.9.2",
  "log",
  "profont",
  "ratatui",
  "serde",
+ "serde_json",
  "specta",
 ]
 

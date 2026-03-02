@@ -5,6 +5,7 @@ pub mod ble_types;
 use memori_ui::MemoriState;
 use memori_ui::widgets::MemoriWidget;
 use memori_ui::widgets::WidgetId;
+use memori_ui::widgets::WidgetKind;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -80,10 +81,8 @@ pub trait HostTransport {
 
 pub trait DeviceTransport {
     /// Ask the host for a refresh of widget data.
-    fn refresh_data(
-        &mut self,
-        widget_id: WidgetId,
-    ) -> impl Future<Output = TransResult<MemoriWidget>>;
+    fn refresh_data(&mut self, kind: WidgetKind)
+    -> impl Future<Output = TransResult<MemoriWidget>>;
 
     /// Ping the host to ensure they are still connected.
     fn ping(&mut self) -> impl Future<Output = TransResult<()>>;

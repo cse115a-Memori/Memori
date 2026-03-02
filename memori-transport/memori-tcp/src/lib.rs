@@ -2,11 +2,11 @@ use std::io;
 
 use memori_ui::{
     MemoriState,
-    widgets::{MemoriWidget, WidgetId},
+    widgets::{MemoriWidget, WidgetId, WidgetKind},
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use transport::DeviceConfig;
+use transport::{ByteArray, DeviceConfig};
 
 pub mod device;
 pub mod host;
@@ -89,14 +89,15 @@ pub enum MessageKind {
 /// These are requests a device can send
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum DeviceRequest {
-    RefreshData(WidgetId),
+    RefreshData(WidgetKind),
     Ping,
 }
 
 /// These are responses a device can receive
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum HostResponse {
-    UpdatedWidget(Box<MemoriWidget>),
+    UpdatedWidget(Result<Box<MemoriWidget>, String>),
+    ByteArray(ByteArray),
     Pong,
 }
 

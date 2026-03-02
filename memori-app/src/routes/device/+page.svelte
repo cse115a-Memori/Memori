@@ -154,7 +154,26 @@
       pending = null
     }
   }
-
+  async function initBus() {
+    await tryCmd(commands.initBus()).match(
+      data => {
+        statusMessage = 'data'
+      },
+      error => {
+        statusMessage = `init bus failed: ${error}`
+      }
+    )
+  }
+  async function initTemp() {
+    await tryCmd(commands.initTemp()).match(
+      data => {
+        statusMessage = 'data'
+      },
+      error => {
+        statusMessage = `init temp failed: ${error}`
+      }
+    )
+  }
   async function sendTemp() {
     pending = 'temp'
     try {
@@ -165,7 +184,7 @@
       }
 
       await tryCmd(
-        commands.sendTemp(position.coords.latitude, position.coords.longitude)
+        commands.initTemp(position.coords.latitude, position.coords.longitude)
       ).match(
         () => {
           result = 'Weather sent'
@@ -218,6 +237,17 @@
 
 <main class="space-y-6">
   <h1 class="text-2xl font-semibold">Device Controls</h1>
+
+  <div class="mt-4">
+		<Button variant="outline" onclick={initTemp} disabled={isBusy}>
+			Init weather
+		</Button>
+	</div>
+  <div class="mt-4">
+		<Button variant="outline" onclick={initBus} disabled={isBusy}>
+			Init bus
+		</Button>
+	</div>
 
   <Field.Field orientation="horizontal" class="justify-center mx-auto max-w-xs">
     <Field.Label for="device-mode" class="sr-only">Device Mode</Field.Label>
