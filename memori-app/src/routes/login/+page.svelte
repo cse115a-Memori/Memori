@@ -56,7 +56,7 @@
 		pendingAction = 'send'
 		await tryCmd(commands.sendTwitch(accessToken)).match(
 			data => {
-				statusMessage = data
+				statusMessage = data ?? 'Twitch sent'
 			},
 			error => {
 				statusMessage = `Send twitch failed: ${error}`

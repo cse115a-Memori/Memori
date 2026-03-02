@@ -1,17 +1,8 @@
 use ble_host::HostBLETransport;
-use memori_tcp::{
-    host::{DeviceConnected, DeviceDisconnected},
-    HostTcpTransport,
-};
+use memori_tcp::{host::DeviceConnected, HostTcpTransport};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use tokio::sync::Mutex;
-
-#[derive(Debug)]
-pub(crate) enum TCPConnection {
-    Connected(HostTcpTransport<DeviceConnected>),
-    Disconnected(HostTcpTransport<DeviceDisconnected>),
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
 pub enum DeviceMode {
