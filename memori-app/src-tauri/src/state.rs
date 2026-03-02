@@ -26,14 +26,12 @@ pub(crate) enum DeviceConnection {
 }
 
 pub struct AppState {
-    pub(crate) tcp_conn: Mutex<TCPConnection>,
     pub(crate) conn: Mutex<DeviceConnection>,
 }
 
 impl AppState {
     pub fn new() -> Self {
         Self {
-            tcp_conn: Mutex::new(TCPConnection::Disconnected(HostTcpTransport::default())),
             conn: Mutex::new(DeviceConnection::Disconnected),
         }
     }
