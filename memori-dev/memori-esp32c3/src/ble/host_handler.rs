@@ -104,7 +104,8 @@ pub(super) async fn handle_host_cmd<P: PacketPool>(
 }
 
 /// Refreshes widget data from the host on the interval specified in the widget.
-#[embassy_executor::task]
+// #[embassy_executor::task]
+#[embassy_executor::task(pool_size = 8)]
 async fn refresh_widget_task(
     widget: MemoriWidget,
     transport: &'static Mutex<CriticalSectionRawMutex, DeviceBLETransport>,
@@ -121,6 +122,8 @@ async fn refresh_widget_task(
     loop {
         Timer::after(Duration::from_secs(update_frequency)).await;
 
+        info!("remote refresh widget {}: started", widget.id.0);
+
         // If the generation of tasks has passed the generation for this one, we just kill ourself lol.
         if REFRESH_GENERATION.load(Ordering::Relaxed) != my_generation {
             info!("Generation increased! killing myself!");
@@ -136,8 +139,11 @@ async fn refresh_widget_task(
             .await
             .inspect_err(|e| error!("Failed to refresh data for widget: {e:#?}"))
         else {
+            info!("remote refresh widget {}: failed", widget.id.0);
             continue;
         };
+
+        info!("remote refresh widget {}: complete", widget.id.0);
 
         // Drop guard as soon as possible.
         drop(transport);

@@ -4,7 +4,7 @@ use embassy_sync::mutex::Mutex;
 use memori_ui::MemoriState;
 use memori_ui::widgets::WidgetId;
 
-#[embassy_executor::task(pool_size = 4)]
+#[embassy_executor::task(pool_size = 8)]
 pub async fn widget_update_task(
     state: &'static Mutex<CriticalSectionRawMutex, MemoriState>,
     widget_id: WidgetId,

@@ -99,13 +99,13 @@ async fn main(spawner: Spawner) -> () {
         DeviceBLETransport::new(),
     ));
 
-    spawner
-      .spawn(hello_task())
-      .expect("Failed to begin hello_task");
+    // spawner
+    //   .spawn(hello_task())
+    //   .expect("Failed to begin hello_task");
 
-    spawner
-      .spawn(ui_task(spi_bus, term_init_pins, mem_state))
-      .expect("Failed to begin ui_task");
+    // spawner
+    //   .spawn(ui_task(spi_bus, term_init_pins, mem_state))
+    //   .expect("Failed to begin ui_task");
 
     spawner
         .spawn(ble_task(
