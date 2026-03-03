@@ -1,6 +1,8 @@
 use reqwest::Client;
 use serde::Deserialize;
 use chrono::{Local, Datelike};
+use tauri::AppHandle;
+use tauri_plugin_store::StoreExt;
 
 
 async fn get_num_prs(
@@ -145,7 +147,15 @@ pub async fn get_commit_frequency(
     Ok(commits_arr)
 }
 
-pub async fn refresh_github_widget(token: String, username: String, repo: String) -> Result<memori_ui::widgets::Github, String> {
+pub async fn refresh_github_widget(app: &AppHandle) -> Result<memori_ui::widgets::Github, String> {
+    let store = app.store("auth").map_err(|e| e.to_string())?;
+    let users = store.get("usersByProvider").ok_or("No authenticated users found")?;
+    let github_user = users["github"].as_object().ok_or("No GitHub user found".to_string())?;
+    
+    let token = github_user["accessToken"].as_str().ok_or("No access token found".to_string())?.to_string();
+    let username = github_user["username"].as_str().ok_or("No username found".to_string())?.to_string();
+    let repo = github_user["repo"].as_str().ok_or("No repo found".to_string())?.to_string();
+    
     Ok(memori_ui::widgets::Github {
         username: username.clone(),
         repo: repo.clone(),
