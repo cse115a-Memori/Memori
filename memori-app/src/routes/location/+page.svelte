@@ -22,6 +22,14 @@
 			try {
 				await startPrefsStore()
 				await refreshLocationState()
+        if (locationStatus === 'prompt' || locationStatus === 'prompt-with-rationale') {  
+          await requestLocationState()  
+        }
+        const pos = await getCurrentPosition()  
+        await invoke('update_location', {   
+            lat: pos.coords.latitude,   
+            lon: pos.coords.longitude   
+        })
 			} catch (error) {
 				errorMessage =
 					typeof error === 'string'

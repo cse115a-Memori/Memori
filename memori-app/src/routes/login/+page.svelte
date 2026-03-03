@@ -47,6 +47,22 @@
 		pendingAction = null
 	}
 
+  async function loginGithub() {
+    errorMessage = ''
+    statusMessage = ''
+    pendingAction = 'login'
+    await login('github').match(
+      user => {
+        currentUser = user
+        statusMessage = 'Logged in with Github'
+      },
+      error => {
+        errorMessage = `Github login failed: ${error}`
+      }
+    )
+    pendingAction = null
+  }
+
 	async function sendTwitch() {
 		if (!accessToken) {
 			statusMessage = 'Missing OAuth access token'
@@ -54,7 +70,7 @@
 		}
 
 		pendingAction = 'send'
-		await tryCmd(commands.sendTwitch(accessToken)).match(
+		await tryCmd(commands.initTwitch(accessToken)).match(
 			data => {
 				statusMessage = data
 			},
@@ -80,6 +96,23 @@
 		)
 		pendingAction = null
 	}
+
+  async function initGithub() {
+    if (!accessToken) {
+      statusMessage = 'Missing OAuth access token'
+      return
+    }
+    pendingAction = 'send'
+    await tryCmd(commands.initGithub(accessToken)).match(
+      data => {
+        statusMessage = 'data'
+      },
+      error => {
+        statusMessage = `Send github failed: ${error}`
+      }
+    )
+    pendingAction = null
+  }
 </script>
 
 <main>
@@ -117,6 +150,19 @@
 			Logout
 		</Button>
 	</div>
+
+  <div class="mt-4">
+		<Button variant="outline" onclick={loginGithub} disabled={isBusy}>
+			login github
+		</Button>
+	</div>
+
+  <div class="mt-4">
+		<Button variant="outline" onclick={initGithub} disabled={isBusy || !accessToken}>
+			Init github
+		</Button>
+	</div>
+
 
 	<p class="mt-4 text-center"><Button variant="link" href="/">Back Home</Button></p>
 

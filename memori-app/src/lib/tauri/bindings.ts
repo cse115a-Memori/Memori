@@ -53,9 +53,9 @@ async getWidgetKinds() : Promise<Result<[MemoriWidget, MemoriWidget, MemoriWidge
     else return { status: "error", error: e  as any };
 }
 },
-async sendTwitch(token: string) : Promise<Result<null, string>> {
+async initTwitch() : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("send_twitch", { token }) };
+    return { status: "ok", data: await TAURI_INVOKE("init_twitch") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -69,9 +69,9 @@ async flashMemoriState(memoriState: MemoriStateInput) : Promise<Result<null, str
     else return { status: "error", error: e  as any };
 }
 },
-async sendGithub(token: string) : Promise<Result<string, string>> {
+async initGithub() : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("send_github", { token }) };
+    return { status: "ok", data: await TAURI_INVOKE("init_github") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -85,17 +85,17 @@ async sendName(name: string) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async sendTemp(lat: number, lon: number) : Promise<Result<string, string>> {
+async initTemp() : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("send_temp", { lat, lon }) };
+    return { status: "ok", data: await TAURI_INVOKE("init_temp") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async sendBustime(lat: number, lon: number) : Promise<Result<string, string>> {
+async initBus() : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("send_bustime", { lat, lon }) };
+    return { status: "ok", data: await TAURI_INVOKE("init_bus") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -239,7 +239,7 @@ export type Name = { name: string }
 /**
  * Define a widget by its data
  */
-export type Twitch = { user: string }
+export type Twitch = { name: string }
 export type UpdateFrequency = { Seconds: number } | { Minutes: number } | { Hours: number } | "Never"
 export type UserInfo = { id: string; name: string; email: string; avatar: string | null; provider: string; accessToken: string }
 /**

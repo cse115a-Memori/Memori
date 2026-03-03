@@ -2,11 +2,11 @@ use std::io;
 
 use memori_ui::{
     MemoriState,
-    widgets::{MemoriWidget, WidgetId},
+    widgets::{MemoriWidget, WidgetId, WidgetKind},
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use transport::DeviceConfig;
+use transport::{ByteArray, DeviceConfig};
 
 pub mod device;
 pub mod host;
@@ -97,6 +97,7 @@ pub enum DeviceRequest {
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum HostResponse {
     UpdatedWidget(Box<MemoriWidget>),
+    ByteArray(ByteArray),
     Pong,
 }
 

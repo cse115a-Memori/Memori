@@ -1,5 +1,5 @@
 mod connection;
-mod data;
+pub mod data;
 
 pub use connection::*;
 pub use data::*;

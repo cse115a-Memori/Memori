@@ -1,4 +1,5 @@
 use memori_tcp::{DeviceRequest, HostResponse, Sequenced};
+use memori_ui::widgets::{MemoriWidget, Name, UpdateFrequency, WidgetId, WidgetKind};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 pub async fn request_handler(
@@ -9,8 +10,14 @@ pub async fn request_handler(
         println!("received request from device! {req:#?}");
 
         let resp = match req.msg_kind {
-            DeviceRequest::RefreshData(_id) => {
-                todo!()
+            DeviceRequest::RefreshData(_) => {
+                let data = Box::new(MemoriWidget::new(
+                    WidgetId(0),
+                    WidgetKind::Name(Name::new("name")),
+                    UpdateFrequency::Never,
+                    UpdateFrequency::Never,
+                ));
+                HostResponse::UpdatedWidget(data)
             }
             DeviceRequest::Ping => HostResponse::Pong,
         };

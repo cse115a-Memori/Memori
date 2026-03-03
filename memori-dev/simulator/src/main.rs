@@ -6,11 +6,11 @@ use memori_ui::layout::MemoriLayout;
 use memori_ui::widgets::{MemoriWidget, Name, UpdateFrequency, WidgetId, WidgetKind};
 use memori_ui::{Memori, MemoriState};
 use mousefood::{EmbeddedBackend, EmbeddedBackendConfig};
-use std::{sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration, time::Instant};
 use tokio::{sync::Mutex, time::sleep};
 use transport::DeviceTransport;
 
-use ratatui::Terminal;
+use ratatui::{Terminal, widgets};
 use tracing::{Level, error, info};
 
 #[tokio::main]
@@ -83,26 +83,26 @@ async fn main() -> Result<()> {
                     top: WidgetId(0),
                     bottom: WidgetId(0),
                 },
-                MemoriLayout::VSplitWithLeftHSplit { 
+                MemoriLayout::VSplitWithLeftHSplit {
                     left_top: WidgetId(0),
                     left_bottom: WidgetId(0),
-                    right: WidgetId(0)
+                    right: WidgetId(0),
                 },
-                MemoriLayout::VSplitWithRightHSplit { 
+                MemoriLayout::VSplitWithRightHSplit {
                     right_top: WidgetId(0),
                     right_bottom: WidgetId(0),
-                    left: WidgetId(0)
+                    left: WidgetId(0),
                 },
-                MemoriLayout::HSplitWithTopVSplit { 
+                MemoriLayout::HSplitWithTopVSplit {
                     top_left: WidgetId(0),
                     top_right: WidgetId(0),
-                    bottom: WidgetId(0)
+                    bottom: WidgetId(0),
                 },
-                MemoriLayout::HSplitWithBottomVSplit { 
+                MemoriLayout::HSplitWithBottomVSplit {
                     top: WidgetId(0),
                     bottom_left: WidgetId(0),
-                    bottom_right: WidgetId(0)
-                }
+                    bottom_right: WidgetId(0),
+                },
             ],
             5,
         );
@@ -126,10 +126,58 @@ async fn state_handler(state: Arc<Mutex<MemoriState>>) -> Result<()> {
     let transport = DeviceTcpTransport::default();
 
     let (mut conn, (mut host_req_rx, dev_resp_tx)) = transport.connect().await?;
+    let mut last_refresh: HashMap<WidgetId, Instant> = HashMap::new();
     loop {
         conn.ping().await?;
         info!("Connected!");
 
+        // refresh logic
+        let widgets_to_refresh: Vec<MemoriWidget> = {
+            let current_state = state.lock().await;
+            current_state
+                .widgets
+                .iter()
+                .filter(|(_, widget)| {
+                    widget.get_remote_update_frequency() != UpdateFrequency::Never
+                })
+                .map(|(_, widget)| widget.clone())
+                .collect()
+        };
+        let now = Instant::now();
+        println!("refresh map: ");
+        for (widget_id, last_time) in &last_refresh {
+            let elapsed = now.duration_since(*last_time).as_secs();
+            println!("  Widget {:?}: {} seconds ago", widget_id, elapsed);
+        }
+        if last_refresh.is_empty() {
+            println!("  (no widgets refreshed yet)");
+        }
+        if let Some(widget) = widgets_to_refresh.first() {
+            let should_refresh = match last_refresh.get(&widget.id) {
+                None => true,
+                Some(last_time) => {
+                    if let Some(freq_seconds) = widget.get_remote_update_frequency().to_seconds() {
+                        now.duration_since(*last_time).as_secs() >= freq_seconds as u64
+                    } else {
+                        false
+                    }
+                }
+            };
+            if should_refresh {
+                match conn.refresh_data(WidgetId(0)).await {
+                    Ok(updated_widget) => {
+                        let mut state = state.lock().await;
+                        state.widgets.insert(widget.id, updated_widget);
+                        last_refresh.insert(widget.id, now);
+                    }
+                    Err(_) => {
+                        // Continue without updating on error
+                    }
+                }
+            }
+        }
+
+        // request logic
         if let Ok(req) = host_req_rx.try_recv() {
             info!("received device request! {req:?}");
             let resp = match req.msg_kind {

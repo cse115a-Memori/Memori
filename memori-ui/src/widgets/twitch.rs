@@ -1,12 +1,10 @@
 use alloc::{format, string::String, vec, vec::Vec};
-use log::info;
 use ratatui::{
     layout::{Alignment, Rect},
     prelude::Buffer,
     style::Stylize,
-    text::Line,
-    text::Text,
-    widgets::{Block, Borders, Paragraph, Widget, Wrap},
+    text::{Line, Text},
+    widgets::{self, Block, Borders, Paragraph, Widget, Wrap},
 };
 use serde::{Deserialize, Serialize};
 
@@ -14,15 +12,15 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Eq, PartialEq, Clone, Debug)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct Twitch {
-    pub user: String,
+    pub name: String,
 }
 
 impl Twitch {
-    pub fn new(user: impl Into<String>) -> Self {
-        Self { user: user.into() }
+    pub fn new(name: impl Into<String>) -> Self {
+        Self { name: name.into() }
     }
     pub fn update(&mut self) {
-        info!("Updated name");
+        todo!()
     }
 }
 
@@ -30,7 +28,7 @@ impl Twitch {
 impl Widget for &Twitch {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let twitch_block = Block::default()
-            .title(Line::from(" Weather ").bold().centered())
+            .title(Line::from(" Twitch ").bold().centered())
             .borders(Borders::ALL)
             .border_style(ratatui::style::Style::default().fg(ratatui::style::Color::White));
 
@@ -45,7 +43,7 @@ impl Widget for &Twitch {
             .alignment(Alignment::Center)
             .wrap(Wrap { trim: false });
 
-        let user_text = format!("User: {}", self.user);
+        let user_text = format!("User: {}", self.name);
         let user_paragraph = Paragraph::new(Line::from(user_text))
             .alignment(Alignment::Center)
             .wrap(Wrap { trim: true });
@@ -72,27 +70,19 @@ enum TwitchIcon {
 }
 
 impl TwitchIcon {
-    fn to_ascii(&self) -> Vec<&'static str> {
+    pub fn to_ascii(&self) -> Vec<&'static str> {
         match self {
             TwitchIcon::Logo => vec![
-                "░░░███████████████████████████████████████",
-                "░▄████████████████████████████████████████",
-                "▄██████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░█████",
-                "███████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░█████",
-                "███████░░░░░░░░░▄▄▄▄▄░░░░░░░▄▄▄▄░░░░░█████",
-                "███████░░░░░░░░░█████░░░░░░░████░░░░░█████",
-                "███████░░░░░░░░░█████░░░░░░░████░░░░░█████",
-                "███████░░░░░░░░░█████░░░░░░░████░░░░░█████",
-                "███████░░░░░░░░░█████░░░░░░░████░░░░░█████",
-                "███████░░░░░░░░░▀▀▀▀▀░░░░░░░▀▀▀▀░░░░░█████",
-                "███████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░▄█████",
-                "███████░░░░░░░░░░░░░░░░░░░░░░░░░░▄██████▀",
-                "███████░░░░░░░░░░░░░░░░░░░░░░░░▄█████▀▀",
-                "██████████████░░░░░▄███████████████▀",
-                "██████████████░░▄███████████████▀▀",
-                "▀▀▀▀▀▀▀▀▀▀████████████▀▀▀▀▀▀▀▀▀",
-                "░░░░░░░░░░█████████▀▀",
-                "░░░░░░░░░░███████▀",
+                "███████████████",
+                "██░░░░░░░░░░░██",
+                "██░░░▄▄░░▄▄░░██",
+                "██░░░██░░██░░██",
+                "██░░░██░░██░░██",
+                "██░░░▀▀░░▀▀░░██",
+                "██░░░░░░░░░░▄██",
+                "████░░░░▄████▀ ",
+                "  ██░░▄████▀   ",
+                "  ▀▀▀▀▀▀▀▀     ",
             ],
         }
     }

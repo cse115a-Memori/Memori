@@ -2,16 +2,18 @@ mod commands;
 mod oauth;
 mod simulator;
 mod state;
+mod widget_data;
 
 use commands::{
     connect_device, disconnect_device, flash_memori_state, get_battery, get_device_mode,
-    get_widget_kinds, is_connected, send_bustime, send_github, send_name, send_temp, send_twitch,
+    get_widget_kinds, is_connected, send_name,
 };
 use memori_ui::{layout::MemoriLayout, widgets::MemoriWidget};
 use oauth::{login_with_provider, start_oauth_server};
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use state::AppState;
-use tauri_specta::{collect_commands, collect_events, Builder, Event};
+use tauri_specta::{collect_commands, Builder};
+use widget_data::{init_bus, init_github, init_temp, init_twitch};
 
 // use serde::{Deserialize, Serialize};
 // use specta::Type;
@@ -29,12 +31,12 @@ pub fn run() {
             is_connected,
             get_battery,
             get_widget_kinds,
-            send_twitch,
+            init_twitch,
             flash_memori_state,
-            send_github,
+            init_github,
             send_name,
-            send_temp,
-            send_bustime,
+            init_temp,
+            init_bus,
             start_oauth_server,
             login_with_provider,
         ])
