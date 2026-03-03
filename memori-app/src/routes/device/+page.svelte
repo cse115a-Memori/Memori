@@ -10,6 +10,7 @@
   import { Button } from '$lib/components/ui/button/index.js'
   import * as Field from '$lib/components/ui/field/index.js'
   import { Input } from '$lib/components/ui/input/index.js'
+  import { invoke } from '@tauri-apps/api/core';
 
   // events.updateIsConnected.listen((e) => {
   //   console.log('listening', e)
@@ -23,6 +24,7 @@
     | 'temp'
     | 'location'
     | 'bustime'
+    | 'github'
 
   type DeviceResult = number | string | null
 
@@ -179,6 +181,31 @@
     }
   }
 
+  async function testGithub() {
+      console.log("testGithub clicked")
+      pending = 'github'
+      try {
+          const token = authState.usersByProvider?.github?.accessToken
+          if (!token) {
+              result = 'No GitHub token found - please login first'
+              return
+          }
+          const username = authState.usersByProvider?.github?.name
+          if (!username) {
+              result = 'No GitHub username found - please login first'
+              return
+          }
+          const commits = await commands.testGithub(token, username)
+          result = `Commits: ${JSON.stringify(commits)}`
+          console.log("result:", result)
+      } catch (e) {
+          console.error("error:", e)
+          result = `Error: ${e}`
+      } finally {
+          pending = null
+      }
+  }
+
   async function sendBustime() {
     pending = 'bustime'
 
@@ -279,6 +306,12 @@
       {pending === 'bustime' ? 'Sending...' : 'Send Bustime'}
     </Button>
   </div>
+
+ <div class="flex justify-center gap-3">
+    <Button variant="outline" onclick={testGithub} disabled={isBusy}>
+        Test Github
+    </Button>
+</div>
 
   <section class="space-y-1 text-center text-sm">
     <p>Location Status: {locationStatus}</p>

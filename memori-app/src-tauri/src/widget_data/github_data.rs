@@ -1,52 +1,20 @@
-use memori_ui::widgets::Github;
 use reqwest::Client;
-use serde::{de::DeserializeOwned, Deserialize};
-use serde_json::json;
-use tauri::State;
+use serde::Deserialize;
+use chrono::{Local, Datelike};
 
-use tauri_plugin_store::StoreExt;
 
-fn get_github_token(app: &AppHandle) -> Result<String, String> {
-    let store = app.store("auth").map_err(|e| e.to_string())?;
-    let token = store
-        .get("usersByProvider")
-        .and_then(|v| v.get("github"))
-        .and_then(|u| u.get("access_token"))
-        .and_then(|t| t.as_str())
-        .ok_or("No GitHub token found".to_string())?
-        .to_string();
-    Ok(token)
-}
-
-fn get_github_username(app: &AppHandle) -> Result<String, String> {
-    let username = store
-        .get("usersByProvider")
-        .and_then(|v| v.get("github"))
-        .and_then(|u| u.get("username"))
-        .and_then(|t| t.as_str())
-        .ok_or("No GitHub username found".to_string())?
-        .to_string();
-    Ok(username)
-}
-
-fn get_github_repo(app: &AppHandle) -> Result<String, String> {
-    let repo = store
-        .get("usersByProvider")
-        .and_then(|v| v.get("github"))
-        .and_then(|u| u.get("repo"))
-        .and_then(|t| t.as_str())
-        .ok_or("No GitHub repo found".to_string())?
-        .to_string();
-    Ok(repo)
-}
-
-fn get_num_prs(app: &AppHandle) -> Result<u32, String> {
-    let token = get_github_token(app)?;
-    let owner = get_github_username(app)?;
-    let repo = get_github_repo(app)?;
+async fn get_num_prs(
+    token: &str,
+    username: &str,
+    repo: &str,
+) -> Result<u32, String> {
     let client = Client::new();
+    let url = format!(
+        "https://api.github.com/repos/{}/{}/pulls?state=open&per_page=100",
+        username, repo
+    );
     let response = client
-        .get("https://api.github.com/repos/{owner}/{repo}/pulls?state=open&per_page=100")
+        .get(&url)
         .bearer_auth(token)
         .send()
         .await
@@ -65,13 +33,18 @@ fn get_num_prs(app: &AppHandle) -> Result<u32, String> {
     Ok(prs.len() as u32)
 }
 
-fn get_num_stars(app: &AppHandle) -> Result<u32, String> {
-    let token = get_github_token(app)?;
-    let owner = get_github_username(app)?;
-    let repo = get_github_repo(app)?;
+async fn get_num_stars(
+    token: &str,
+    username: &str,
+    repo: &str,
+) -> Result<u32, String> {
     let client = Client::new();
+    let url = format!(
+        "https://api.github.com/repos/{}/{}",
+        username, repo
+    );
     let response = client
-        .get("https://api.github.com/repos/{owner}/{repo}")
+        .get(&url)
         .bearer_auth(token)
         .send()
         .await
@@ -87,9 +60,100 @@ fn get_num_stars(app: &AppHandle) -> Result<u32, String> {
     Ok(repo.stargazers_count)
 }
 
-pub async fn refresh_github_widget(app: &AppHandle) -> memori_ui::widgets::Github {
-    let num_prs = get_num_prs(app).await?;
-    let num_stars = get_num_stars(app).await?;
+async fn get_num_issues(token: &str, username: &str) -> Result<u32, String> {
+    let client = Client::new();
+    let url = format!(
+        "https://api.github.com/search/issues?q=is:open+is:issue+author:{}",
+        username
+    );
+    let response = client
+        .get(&url)
+        .bearer_auth(token)
+        .header("User-Agent", "my-app")
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
 
-    Ok(memori_ui::widgets::Github { num_prs, num_stars })
+    #[derive(Deserialize)]
+    struct SearchResult {
+        total_count: u32,
+    }
+
+    let result = response
+        .json::<SearchResult>()
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(result.total_count)
+}
+
+async fn get_num_notifications(token: &str) -> Result<u32, String> {
+    let client = Client::new();
+    let response = client
+        .get("https://api.github.com/notifications")
+        .bearer_auth(token)
+        .header("User-Agent", "my-app")
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    let notifications = response
+        .json::<serde_json::Value>()
+        .await
+        .map_err(|e| e.to_string())?;
+    let count = notifications
+        .as_array()
+        .map(|a| a.len() as u32)
+        .unwrap_or(0);
+    Ok(count)
+}
+
+pub async fn get_commit_frequency(
+    token: &str,
+    owner: &str,
+    repo: &str,
+) -> Result<[u32; 7], String> {
+    let client = Client::new();
+    let mut commits_per_day = Vec::new();
+
+    for i in 0..7 {
+        let since = (Local::now() - chrono::Duration::days(i + 1))
+            .format("%Y-%m-%dT%H:%M:%SZ")
+            .to_string();
+        let until = (Local::now() - chrono::Duration::days(i))
+            .format("%Y-%m-%dT%H:%M:%SZ")
+            .to_string();
+        let url = format!(
+            "https://api.github.com/repos/{}/{}/commits?since={}&until={}",
+            owner, repo, since, until
+        );
+        let response = client
+            .get(&url)
+            .bearer_auth(&token)
+            .header("User-Agent", "my-app")
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+        let commits = response
+            .json::<serde_json::Value>()
+            .await
+            .map_err(|e| e.to_string())?;
+        let count = commits.as_array().map(|a| a.len() as u32).unwrap_or(0);
+        commits_per_day.push(count);
+    }
+    
+    let commits_arr: [u32; 7] = commits_per_day.try_into().unwrap();
+    
+    Ok(commits_arr)
+}
+
+pub async fn refresh_github_widget(token: String, username: String, repo: String) -> Result<memori_ui::widgets::Github, String> {
+    Ok(memori_ui::widgets::Github {
+        username: username.clone(),
+        repo: repo.clone(),
+        open_issues: get_num_issues(&token, &username).await?,
+        open_prs: get_num_prs(&token, &username, &repo).await?,
+        stars: get_num_stars(&token, &username, &repo).await?,
+        notifications: get_num_notifications(&token).await?,
+        commits: get_commit_frequency(&token, &username, &repo).await?,
+        weekday: Local::now().weekday().num_days_from_sunday() as usize,
+    })
 }

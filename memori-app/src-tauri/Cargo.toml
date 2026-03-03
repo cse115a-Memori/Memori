@@ -48,6 +48,8 @@ memori-tcp = { path = "../../memori-transport/memori-tcp" }
 ble-host = { path = "../../memori-transport/ble-host" }
 url = "2.5.8"
 rand = "0.9.1"
+chrono = "0.4"
+
 
 [target."cfg(any(target_os = \"linux\"))".dependencies]
 tauri-plugin-single-instance = { version = "2.0.0", features = ["deep-link"] }

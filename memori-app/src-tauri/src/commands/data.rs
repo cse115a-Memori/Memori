@@ -7,10 +7,11 @@ use memori_ui::{
     },
     MemoriState,
 };
+use crate::widget_data::github_data::*;
 use reqwest::Client;
 use serde::{de::DeserializeOwned, Deserialize};
 use serde_json::json;
-use tauri::State;
+use tauri::{State, AppHandle};
 use transport::HostTransport as _;
 
 #[derive(Debug, Deserialize, specta::Type)]
@@ -263,6 +264,14 @@ pub async fn send_temp(state: State<'_, AppState>, lat: f64, lon: f64) -> Result
     );
     set_memori_state(&state, memori_state).await?;
     Ok(format!("{:?}", response.main.temp))
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn test_github(token: String, username: String, repo: String) -> Result<(), String> {
+    let commits = get_commit_frequency(&token, &username, &repo).await?;
+    println!("Commits per day: {:?}", commits);
+    Ok(())
 }
 
 #[tauri::command]

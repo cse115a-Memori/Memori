@@ -46,6 +46,22 @@
 		)
 		pendingAction = null
 	}
+	
+	async function loginGithub() {
+		errorMessage = ''
+		statusMessage = ''
+		pendingAction = 'login'
+		await login('github').match(
+			user => {
+				currentUser = user
+				statusMessage = 'Logged in with Github'
+			},
+			error => {
+				errorMessage = `Github login failed: ${error}`
+			}
+		)
+		pendingAction = null
+	}
 
 	async function sendTwitch() {
 		if (!accessToken) {
@@ -115,6 +131,12 @@
 	<div class="mt-4">
 		<Button variant="outline" onclick={logoutTwitch} disabled={isBusy || !currentUser}>
 			Logout
+		</Button>
+	</div>
+	
+	<div class="mt-4">
+		<Button variant="outline" onclick={loginGithub} disabled={isBusy}>
+			Connect to Github
 		</Button>
 	</div>
 
