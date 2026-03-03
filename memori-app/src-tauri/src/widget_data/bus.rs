@@ -8,7 +8,7 @@ use tauri::State;
 
 #[tauri::command]
 #[specta::specta]
-pub async fn send_bustime() -> Result<Box<MemoriWidget>, String> {
+pub async fn refresh_bustime() -> Result<Box<MemoriWidget>, String> {
     #[derive(Debug, Deserialize)]
     struct BustimeResponse<T> {
         #[serde(rename = "bustime-response")]

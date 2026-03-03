@@ -2,11 +2,8 @@ mod commands;
 mod oauth;
 mod simulator;
 mod state;
+mod widget_data;
 
-use commands::bus::init_bus;
-use commands::github::init_github;
-use commands::twitch::init_twitch;
-use commands::weather::init_temp;
 use commands::{
     connect_device, disconnect_device, flash_memori_state, get_battery, get_device_mode,
     get_widget_kinds, is_connected, send_name,
@@ -16,6 +13,7 @@ use oauth::{login_with_provider, start_oauth_server};
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use state::AppState;
 use tauri_specta::{collect_commands, Builder};
+use widget_data::{init_bus, init_github, init_temp, init_twitch};
 
 // use serde::{Deserialize, Serialize};
 // use specta::Type;

@@ -8,7 +8,7 @@ use tauri::State;
 
 #[tauri::command]
 #[specta::specta]
-pub async fn send_temp() -> Result<Box<MemoriWidget>, String> {
+pub async fn refresh_temp() -> Result<Box<MemoriWidget>, String> {
     let lat = "11.0";
     let lon = "11.0";
     #[derive(Deserialize, Debug)]

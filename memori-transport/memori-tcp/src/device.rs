@@ -253,23 +253,20 @@ impl DeviceTcpTransport<HostConnected> {
 }
 
 impl DeviceTransport for DeviceTcpTransport<HostConnected> {
-    async fn refresh_data(&mut self, kind: WidgetKind) -> transport::TransResult<MemoriWidget> {
+    async fn refresh_data(&mut self, id: WidgetId) -> transport::TransResult<MemoriWidget> {
         let resp = self
-            .send_request(MessageKind::DeviceRequest(DeviceRequest::RefreshData(kind)))
+            .send_request(MessageKind::DeviceRequest(DeviceRequest::RefreshData(id)))
             .await?
             .await
             .inspect_err(|e| error!("error receiving message: {e}"))
             .map_err(|_| TransError::InternalError)?;
 
-        match resp {
-            HostResponse::UpdatedWidget(Ok(widget)) => Ok(*widget),
-            HostResponse::UpdatedWidget(Err(error_msg)) => {
-                error!("Host returned error for widget refresh: {}", error_msg);
-                Err(TransError::InternalError)
-            }
-            _ => panic!(
+        if let HostResponse::UpdatedWidget(data) = resp {
+            Ok(*data)
+        } else {
+            panic!(
                 "Invariant failed! the same seq_num had a different response type than the request"
-            ),
+            );
         }
     }
 

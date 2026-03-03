@@ -89,14 +89,14 @@ pub enum MessageKind {
 /// These are requests a device can send
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum DeviceRequest {
-    RefreshData(WidgetKind),
+    RefreshData(WidgetId),
     Ping,
 }
 
 /// These are responses a device can receive
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum HostResponse {
-    UpdatedWidget(Result<Box<MemoriWidget>, String>),
+    UpdatedWidget(Box<MemoriWidget>),
     ByteArray(ByteArray),
     Pong,
 }

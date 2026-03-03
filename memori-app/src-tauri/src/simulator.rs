@@ -1,9 +1,5 @@
-use crate::commands::bus::send_bustime;
-use crate::commands::github::send_github;
-use crate::commands::twitch::send_twitch;
-use crate::commands::weather::send_temp;
 use memori_tcp::{DeviceRequest, HostResponse, Sequenced};
-use memori_ui::widgets::WidgetKind;
+use memori_ui::widgets::{MemoriWidget, Name, UpdateFrequency, WidgetId, WidgetKind};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 pub async fn request_handler(
@@ -14,14 +10,13 @@ pub async fn request_handler(
         println!("received request from device! {req:#?}");
 
         let resp = match req.msg_kind {
-            DeviceRequest::RefreshData(kind) => {
-                let data = match kind {
-                    WidgetKind::Twitch(_) => send_twitch().await,
-                    WidgetKind::Github(_) => send_github().await,
-                    WidgetKind::Bus(_) => send_bustime().await,
-                    WidgetKind::Weather(_) => send_temp().await,
-                    _ => Err("branch does not exist for refresh kind".to_string()),
-                };
+            DeviceRequest::RefreshData(_) => {
+                let data = Box::new(MemoriWidget::new(
+                    WidgetId(0),
+                    WidgetKind::Name(Name::new("name")),
+                    UpdateFrequency::Never,
+                    UpdateFrequency::Never,
+                ));
                 HostResponse::UpdatedWidget(data)
             }
             DeviceRequest::Ping => HostResponse::Pong,

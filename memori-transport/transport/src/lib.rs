@@ -81,8 +81,7 @@ pub trait HostTransport {
 
 pub trait DeviceTransport {
     /// Ask the host for a refresh of widget data.
-    fn refresh_data(&mut self, kind: WidgetKind)
-    -> impl Future<Output = TransResult<MemoriWidget>>;
+    fn refresh_data(&mut self, id: WidgetId) -> impl Future<Output = TransResult<MemoriWidget>>;
 
     /// Ping the host to ensure they are still connected.
     fn ping(&mut self) -> impl Future<Output = TransResult<()>>;

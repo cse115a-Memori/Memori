@@ -8,7 +8,7 @@ use tauri::State;
 
 #[tauri::command]
 #[specta::specta]
-pub async fn send_github() -> Result<Box<MemoriWidget>, String> {
+pub async fn refresh_github() -> Result<Box<MemoriWidget>, String> {
     /*
     let url = "https://api.github.com/user";
     let client = Client::new();

@@ -115,13 +115,13 @@ pub async fn get_widget_kinds() -> Result<[MemoriWidget; 4], String> {
         MemoriWidget::new(
             WidgetId(2),
             WidgetKind::Bus(Bus::new("9 min", "Route 19")),
-            UpdateFrequency::Never,
+            UpdateFrequency::Seconds(5),
             UpdateFrequency::Never,
         ),
         MemoriWidget::new(
             WidgetId(3),
             WidgetKind::Weather(Weather::new("20.0")),
-            UpdateFrequency::Never,
+            UpdateFrequency::Seconds(1),
             UpdateFrequency::Never,
         ),
     ])

@@ -164,7 +164,7 @@ async fn state_handler(state: Arc<Mutex<MemoriState>>) -> Result<()> {
                 }
             };
             if should_refresh {
-                match conn.refresh_data(widget.kind.clone()).await {
+                match conn.refresh_data(WidgetId(0)).await {
                     Ok(updated_widget) => {
                         let mut state = state.lock().await;
                         state.widgets.insert(widget.id, updated_widget);

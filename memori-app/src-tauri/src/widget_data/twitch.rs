@@ -25,7 +25,7 @@ pub async fn init_twitch(state: State<'_, AppState>) -> Result<(), String> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn send_twitch() -> Result<Box<MemoriWidget>, String> {
+pub async fn refresh_twitch() -> Result<Box<MemoriWidget>, String> {
     #[derive(Debug, Deserialize)]
     struct Broadcaster {
         broadcaster_type: String,
