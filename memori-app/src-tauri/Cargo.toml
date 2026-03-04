@@ -31,6 +31,7 @@ tauri-plugin-shell = "2"
 tauri-plugin-deep-link = "2"
 
 tauri-specta = { version = "=2.0.0-rc.21", features = ["derive", "typescript"] }
+tauri-store = "1.2.1"
 specta = { version = "=2.0.0-rc.22", features = ["derive"] }
 specta-typescript = "0.0.9"
 

@@ -13,6 +13,7 @@ use serde::{de::DeserializeOwned, Deserialize};
 use serde_json::json;
 use tauri::{State, AppHandle};
 use transport::HostTransport as _;
+use tauri_plugin_store::StoreExt;
 
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -268,8 +269,8 @@ pub async fn send_temp(state: State<'_, AppState>, lat: f64, lon: f64) -> Result
 
 #[tauri::command]
 #[specta::specta]
-pub async fn test_github() -> Result<(), String> {
-    let widget = refresh_github_widget(&AppHandle);
+pub async fn test_github(app: AppHandle) -> Result<(), String> {
+    let widget = refresh_github_widget(&app).await;
     println!("{:?}", widget);
     Ok(())
 }

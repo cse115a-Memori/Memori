@@ -117,9 +117,9 @@ async loginWithProvider(provider: string) : Promise<Result<UserInfo, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async testGithub(token: string, username: string) : Promise<Result<null, string>> {
+async testGithub() : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("test_github", { token, username }) };
+    return { status: "ok", data: await TAURI_INVOKE("test_github") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
