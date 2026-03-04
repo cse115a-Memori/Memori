@@ -184,19 +184,8 @@
       console.log("testGithub clicked")
       pending = 'github'
       try {
-          const token = authState.usersByProvider?.github?.accessToken
-          if (!token) {
-              result = 'No GitHub token found - please login first'
-              return
-          }
-          const username = authState.usersByProvider?.github?.name
-          if (!username) {
-              result = 'No GitHub username found - please login first'
-              return
-          }
-          const commits = await commands.testGithub(token, username)
-          result = `Commits: ${JSON.stringify(commits)}`
-          console.log("result:", result)
+          const widget = await commands.testGithub()
+          console.log("result:", widget)
       } catch (e) {
           console.error("error:", e)
           result = `Error: ${e}`

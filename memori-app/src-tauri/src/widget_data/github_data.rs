@@ -154,7 +154,7 @@ pub async fn refresh_github_widget(app: &AppHandle) -> Result<memori_ui::widgets
     
     let token = github_user["accessToken"].as_str().ok_or("No access token found".to_string())?.to_string();
     let username = github_user["username"].as_str().ok_or("No username found".to_string())?.to_string();
-    let repo = github_user["repo"].as_str().ok_or("No repo found".to_string())?.to_string();
+    let repo = "Memori".to_string();
     
     Ok(memori_ui::widgets::Github {
         username: username.clone(),

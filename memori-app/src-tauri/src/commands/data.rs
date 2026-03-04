@@ -268,9 +268,9 @@ pub async fn send_temp(state: State<'_, AppState>, lat: f64, lon: f64) -> Result
 
 #[tauri::command]
 #[specta::specta]
-pub async fn test_github(token: String, username: String, repo: String) -> Result<(), String> {
-    let commits = get_commit_frequency(&token, &username, &repo).await?;
-    println!("Commits per day: {:?}", commits);
+pub async fn test_github() -> Result<(), String> {
+    let widget = refresh_github_widget(&AppHandle);
+    println!("{:?}", widget);
     Ok(())
 }
 
