@@ -128,11 +128,11 @@ pub async fn get_commit_frequency(
     let client = Client::new();
     let mut commits_per_day = Vec::new();
 
-    for i in 0..7 {
-        let since = (Local::now() - chrono::Duration::days(i + 1))
+    for i in 7..0 {
+        let since = (Local::now() - chrono::Duration::days(i))
             .format("%Y-%m-%dT%H:%M:%SZ")
             .to_string();
-        let until = (Local::now() - chrono::Duration::days(i))
+        let until = (Local::now() - chrono::Duration::days(i - 1))
             .format("%Y-%m-%dT%H:%M:%SZ")
             .to_string();
         let url = format!(
