@@ -13,7 +13,6 @@ use serde::{de::DeserializeOwned, Deserialize};
 use serde_json::json;
 use tauri::{State, AppHandle};
 use transport::HostTransport as _;
-use tauri_plugin_store::StoreExt;
 
 #[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]

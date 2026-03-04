@@ -2,8 +2,9 @@ use reqwest::Client;
 use serde::Deserialize;
 use chrono::{Local, Datelike};
 use tauri::{AppHandle, Manager};
-use tauri_plugin_store::StoreExt;
-use tauri_store::ManagerExt;
+use tauri_plugin_svelte::ManagerExt;
+use crate::store_types::{AuthState, UserInfo};
+use std::collections::HashMap;
 
 async fn get_num_prs(
     token: &str,
@@ -18,6 +19,7 @@ async fn get_num_prs(
     let response = client
         .get(&url)
         .bearer_auth(token)
+        .header("User-Agent", "my-app")
         .send()
         .await
         .map_err(|e| e.to_string())?;
@@ -48,6 +50,7 @@ async fn get_num_stars(
     let response = client
         .get(&url)
         .bearer_auth(token)
+        .header("User-Agent", "my-app")
         .send()
         .await
         .map_err(|e| e.to_string())?;
@@ -62,11 +65,11 @@ async fn get_num_stars(
     Ok(repo.stargazers_count)
 }
 
-async fn get_num_issues(token: &str, username: &str) -> Result<u32, String> {
+async fn get_num_issues(token: &str, username: &str, repo: &str) -> Result<u32, String> {
     let client = Client::new();
     let url = format!(
-        "https://api.github.com/search/issues?q=is:open+is:issue+author:{}",
-        username
+        "https://api.github.com/repos/{}/{}/issues?state=open&per_page=100",
+        username, repo
     );
     let response = client
         .get(&url)
@@ -77,15 +80,24 @@ async fn get_num_issues(token: &str, username: &str) -> Result<u32, String> {
         .map_err(|e| e.to_string())?;
 
     #[derive(Deserialize)]
-    struct SearchResult {
-        total_count: u32,
+    struct Issue {
+        id: u64,
+        pull_request: Option<serde_json::Value>, // issues endpoint includes PRs too!
     }
-
-    let result = response
-        .json::<SearchResult>()
-        .await
-        .map_err(|e| e.to_string())?;
-    Ok(result.total_count)
+    
+    let status = response.status();
+    if !status.is_success() {
+        return Err(format!("Failed to fetch issues: status {}", status));
+    }
+    
+    let text = response.text().await.map_err(|e| e.to_string())?;
+    
+    let issues = serde_json::from_str::<Vec<Issue>>(&text)
+        .map_err(|e| format!("Failed to parse: {} — body: {}", e, text))?;
+    
+    // Filter out PRs since the issues endpoint returns both
+    let count = issues.iter().filter(|i| i.pull_request.is_none()).count() as u32;
+    Ok(count)
 }
 
 async fn get_num_notifications(token: &str) -> Result<u32, String> {
@@ -148,25 +160,22 @@ pub async fn get_commit_frequency(
 }
 
 pub async fn refresh_github_widget(app: &AppHandle) -> Result<memori_ui::widgets::Github, String> {
-    let collection = app.store_collection();
-    println!("Stores: {:?}", collection.ids());
-    let store = app.get_store("auth.dev.json").ok_or("No auth store found")?;
-    println!("Store keys: {:?}", store.keys());
-    let users = store.get("usersByProvider").ok_or("No authenticated users found")?;
-    let github_user = users["github"].as_object().ok_or("No GitHub user found".to_string())?;
+    let auth_users = app.svelte().get::<HashMap<String, UserInfo>>("auth", "usersByProvider").unwrap();
+    let github_user = auth_users.get("github").ok_or("No GitHub user found".to_string())?;
     
-    let token = github_user["accessToken"].as_str().ok_or("No access token found".to_string())?.to_string();
-    let username = github_user["username"].as_str().ok_or("No username found".to_string())?.to_string();
+    let token = &github_user.access_token;
+    let username = &github_user.name;
     let repo = "Memori".to_string();
+    let org = "cse115a-Memori";
     
     Ok(memori_ui::widgets::Github {
         username: username.clone(),
         repo: repo.clone(),
-        open_issues: get_num_issues(&token, &username).await?,
-        open_prs: get_num_prs(&token, &username, &repo).await?,
-        stars: get_num_stars(&token, &username, &repo).await?,
+        open_issues: get_num_issues(&token, &org, &repo).await?,
+        open_prs: get_num_prs(&token, &org, &repo).await?,
+        stars: get_num_stars(&token, &org, &repo).await?,
         notifications: get_num_notifications(&token).await?,
-        commits: get_commit_frequency(&token, &username, &repo).await?,
+        commits: get_commit_frequency(&token, &org, &repo).await?,
         weekday: Local::now().weekday().num_days_from_sunday() as usize,
     })
 }
