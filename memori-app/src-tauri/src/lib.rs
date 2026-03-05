@@ -2,10 +2,11 @@ mod commands;
 mod oauth;
 mod simulator;
 mod state;
+mod widget_data;
 
 use commands::{
     connect_device, disconnect_device, flash_memori_state, get_battery, get_device_mode,
-    get_widget_kinds, is_connected, send_bustime, send_github, send_name, send_temp, send_twitch,
+    get_widget_kinds, is_connected, send_bustime, send_github, send_name, send_temp, send_twitch, test_github,
 };
 use memori_ui::{layout::MemoriLayout, widgets::MemoriWidget};
 use oauth::{login_with_provider, start_oauth_server};
@@ -37,6 +38,7 @@ pub fn run() {
             send_bustime,
             start_oauth_server,
             login_with_provider,
+            test_github,
         ])
         // .events(collect_events![UpdateIsConnected])
         .typ::<MemoriLayout>()
@@ -52,6 +54,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .manage(AppState::new())
+        .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_geolocation::init())
         .plugin(tauri_plugin_svelte::init())

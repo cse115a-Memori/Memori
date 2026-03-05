@@ -10,11 +10,11 @@ use memori_ui::{
     },
     MemoriState,
 };
+use crate::widget_data::github_data::*;
+use reqwest::Client;
 use serde::{de::DeserializeOwned, Deserialize};
-use std::time::Duration;
-use tauri::{AppHandle, State};
-use tauri_plugin_svelte::ManagerExt;
-use tokio::time::timeout;
+use serde_json::json;
+use tauri::{State, AppHandle};
 use transport::HostTransport as _;
 
 const DEFAULT_WEATHER_TEXT: &str = "20.0";
@@ -368,6 +368,14 @@ pub async fn send_temp(state: State<'_, AppState>, lat: f64, lon: f64) -> Result
     let temp_celsius = fetch_weather_temp(lat, lon).await?;
     set_memori_state(&state, build_weather_state(temp_celsius)).await?;
     Ok(format!("{temp_celsius:?}"))
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn test_github(app: AppHandle) -> Result<(), String> {
+    let widget = refresh_github_widget(&app).await;
+    println!("{:?}", widget);
+    Ok(())
 }
 
 #[tauri::command]

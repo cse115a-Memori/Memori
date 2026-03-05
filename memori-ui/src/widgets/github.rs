@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct Github {
     pub username: String,
-    pub repo: Option<String>,
+    pub repo: String,
 
     // Cached stats (updated periodically)
     pub open_issues: u32,
@@ -25,17 +25,17 @@ pub struct Github {
     pub stars: u32,
     pub notifications: u32,
     pub commits: [u32; 7],
-    weekday: usize,
+    pub weekday: usize,
 }
 
 impl Default for Github {
     fn default() -> Self {
-        Self::new("CaiNann".to_string(), None)
+        Self::new("CaiNann".to_string(), "Memori".to_string())
     }
 }
 
 impl Github {
-    pub fn new(username: String, repo: Option<String>) -> Self {
+    pub fn new(username: String, repo: String) -> Self {
         Self {
             username,
             repo,
@@ -93,69 +93,57 @@ impl Widget for &Github {
         match (outer_inner.width, outer_inner.height) {
             // Small height, fourths or horizontal splits
             (w, h) if w < 30 && h < 6 => {
-                if let Some(ref repo) = self.repo {
-                    let chunks = Layout::default()
-                        .direction(Direction::Horizontal)
-                        .constraints([
-                            Constraint::Percentage(50), // username and repo
-                            Constraint::Percentage(50), // Stat list
-                        ])
-                        .split(outer_inner);
+                let chunks = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints([
+                        Constraint::Percentage(50), // username and repo
+                        Constraint::Percentage(50), // Stat list
+                    ])
+                    .split(outer_inner);
 
-                    // Left half: username and repo
-                    let left_text = format!("{}\n({})", self.username, repo);
-                    Paragraph::new(left_text)
-                        .alignment(Alignment::Center)
-                        .render(chunks[0], buf);
+                // Left half: username and repo
+                let left_text = format!("{}\n({})", self.username, self.repo);
+                Paragraph::new(left_text)
+                    .alignment(Alignment::Center)
+                    .render(chunks[0], buf);
 
-                    // Right half: stats list
-                    let stats = format!(
-                        "Issues: {}\nPRs: {}\nStars: {}\nNotifs: {}",
-                        self.open_issues, self.open_prs, self.stars, self.notifications
-                    );
-                    Paragraph::new(stats)
-                        .alignment(Alignment::Left)
-                        .render(chunks[1], buf);
-                } else {
-                    Paragraph::new(self.username.clone())
-                        .alignment(Alignment::Center)
-                        .render(outer_inner, buf);
-                }
+                // Right half: stats list
+                let stats = format!(
+                    "Issues: {}\nPRs: {}\nStars: {}\nNotifs: {}",
+                    self.open_issues, self.open_prs, self.stars, self.notifications
+                );
+                Paragraph::new(stats)
+                    .alignment(Alignment::Left)
+                    .render(chunks[1], buf);
             }
 
             (w, h) if h < 6 => {
-                if let Some(ref repo) = self.repo {
-                    let chunks = Layout::default()
-                        .direction(Direction::Horizontal)
-                        .constraints([
-                            Constraint::Percentage(25), // username and repo
-                            Constraint::Percentage(50), // Commit graph
-                            Constraint::Percentage(25), // other stats
-                        ])
-                        .split(outer_inner);
+                let chunks = Layout::default()
+                    .direction(Direction::Horizontal)
+                    .constraints([
+                        Constraint::Percentage(25), // username and repo
+                        Constraint::Percentage(50), // Commit graph
+                        Constraint::Percentage(25), // other stats
+                    ])
+                    .split(outer_inner);
 
-                    // Left half: username and repo
-                    let left_text = format!("{}\n({})", self.username, repo);
-                    Paragraph::new(left_text)
-                        .alignment(Alignment::Center)
-                        .render(chunks[0], buf);
+                // Left half: username and repo
+                let left_text = format!("{}\n({})", self.username, self.repo);
+                Paragraph::new(left_text)
+                    .alignment(Alignment::Center)
+                    .render(chunks[0], buf);
 
-                    // Middle: commit graph
-                    build_commit_graph(&self.commits, self.weekday).render(chunks[1], buf);
+                // Middle: commit graph
+                build_commit_graph(&self.commits, self.weekday).render(chunks[1], buf);
 
-                    // Right half: stats list
-                    let stats = format!(
-                        "Issues: {}\nPRs: {}\nStars: {}\nNotifs: {}",
-                        self.open_issues, self.open_prs, self.stars, self.notifications
-                    );
-                    Paragraph::new(stats)
-                        .alignment(Alignment::Left)
-                        .render(chunks[2], buf);
-                } else {
-                    Paragraph::new(self.username.clone())
-                        .alignment(Alignment::Center)
-                        .render(outer_inner, buf);
-                }
+                // Right half: stats list
+                let stats = format!(
+                    "Issues: {}\nPRs: {}\nStars: {}\nNotifs: {}",
+                    self.open_issues, self.open_prs, self.stars, self.notifications
+                );
+                Paragraph::new(stats)
+                    .alignment(Alignment::Left)
+                    .render(chunks[2], buf);
             }
 
             // Half vertical (narrow but tall) - stack everything vertically
@@ -174,26 +162,24 @@ impl Widget for &Github {
                 // Render graph
                 build_commit_graph(&self.commits, self.weekday).render(chunks[1], buf);
 
-                if let Some(ref repo) = self.repo {
-                    let repo_block = Block::default()
-                        .title(Line::from(format!(" {} ", repo)))
-                        .borders(Borders::ALL)
-                        .border_set(border_set)
-                        .padding(Padding::new(1, 1, 0, 0));
+                let repo_block = Block::default()
+                    .title(Line::from(format!(" {} ", self.repo)))
+                    .borders(Borders::ALL)
+                    .border_set(border_set)
+                    .padding(Padding::new(1, 1, 0, 0));
 
-                    let repo_inner = repo_block.inner(chunks[2]);
-                    repo_block.render(chunks[2], buf);
+                let repo_inner = repo_block.inner(chunks[2]);
+                repo_block.render(chunks[2], buf);
 
-                    // Compact stats for narrow space
-                    let stats = format!(
-                        "Issues: {}\nPRs: {}\nStars: {}\nNotifs: {}",
-                        self.open_issues, self.open_prs, self.stars, self.notifications
-                    );
+                // Compact stats for narrow space
+                let stats = format!(
+                    "Issues: {}\nPRs: {}\nStars: {}\nNotifs: {}",
+                    self.open_issues, self.open_prs, self.stars, self.notifications
+                );
 
-                    Paragraph::new(stats)
-                        .alignment(Alignment::Left)
-                        .render(repo_inner, buf);
-                }
+                Paragraph::new(stats)
+                    .alignment(Alignment::Left)
+                    .render(repo_inner, buf);
             }
 
             // Full screen or large - full nested layout
@@ -232,25 +218,23 @@ impl Widget for &Github {
                 let chart = build_commit_graph(&self.commits, self.weekday);
                 chart.render(graph_inner, buf);
 
-                if let Some(ref repo) = self.repo {
-                    let repo_block = Block::default()
-                        .title(Line::from(format!(" {} ", repo)))
-                        .borders(Borders::ALL)
-                        .border_set(border_set)
-                        .border_style(Style::default().fg(ratatui::style::Color::White));
+                let repo_block = Block::default()
+                    .title(Line::from(format!(" {} ", self.repo)))
+                    .borders(Borders::ALL)
+                    .border_set(border_set)
+                    .border_style(Style::default().fg(ratatui::style::Color::White));
 
-                    let repo_inner = repo_block.inner(repo_area);
-                    repo_block.render(repo_area, buf);
+                let repo_inner = repo_block.inner(repo_area);
+                repo_block.render(repo_area, buf);
 
-                    let stats = format!(
-                        "Issues: {}\nPRs: {}\nStars: {}\nNotifs: {}",
-                        self.open_issues, self.open_prs, self.stars, self.notifications
-                    );
+                let stats = format!(
+                    "Issues: {}\nPRs: {}\nStars: {}\nNotifs: {}",
+                    self.open_issues, self.open_prs, self.stars, self.notifications
+                );
 
-                    Paragraph::new(stats)
-                        .alignment(Alignment::Left)
-                        .render(repo_inner, buf);
-                }
+                Paragraph::new(stats)
+                    .alignment(Alignment::Left)
+                    .render(repo_inner, buf);
             }
         }
     }

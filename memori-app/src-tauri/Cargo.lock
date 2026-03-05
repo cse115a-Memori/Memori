@@ -731,8 +731,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fac4744fb15ae8337dc853fee7fb3f4e48c0fbaa23d0afe49c447b4fab126118"
 dependencies = [
  "iana-time-zone",
+ "js-sys",
  "num-traits",
  "serde",
+ "wasm-bindgen",
  "windows-link 0.2.1",
 ]
 
@@ -2797,6 +2799,7 @@ name = "memori-app"
 version = "0.1.0"
 dependencies = [
  "ble-host",
+ "chrono",
  "memori-tcp",
  "memori-ui",
  "rand 0.9.2",
@@ -2818,6 +2821,7 @@ dependencies = [
  "tauri-plugin-store",
  "tauri-plugin-svelte",
  "tauri-specta",
+ "tauri-store",
  "tokio",
  "transport",
  "url",
@@ -5384,9 +5388,9 @@ dependencies = [
 
 [[package]]
 name = "tauri-store"
-version = "1.1.1"
+version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c0cf1b1a3a5e7d100f57c3eccbf8d67e53cffc1598b787c628d809405d6de56"
+checksum = "9be9521d54e10be792f25be936805981d017d6047c3e41b5a76b612cc94d8d43"
 dependencies = [
  "dashmap 6.1.0",
  "futures",
@@ -5395,6 +5399,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tauri",
+ "tauri-plugin",
  "tauri-store-macros",
  "tauri-store-utils",
  "thiserror 2.0.18",
