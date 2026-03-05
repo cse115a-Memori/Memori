@@ -1,10 +1,11 @@
 use reqwest::Client;
 use serde::Deserialize;
 use chrono::{Local, Datelike};
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 use tauri_plugin_svelte::ManagerExt;
-use crate::store_types::{AuthState, UserInfo};
+use crate::auth_store_types::UserInfo;
 use std::collections::HashMap;
+use memori_ui::widgets::Github;
 
 async fn get_num_prs(
     token: &str,
@@ -68,7 +69,7 @@ async fn get_num_stars(
 async fn get_num_issues(token: &str, username: &str, repo: &str) -> Result<u32, String> {
     let client = Client::new();
     let url = format!(
-        "https://api.github.com/repos/{}/{}/issues?state=open&per_page=100",
+        "https://api.github.com/search/issues?q=repo:{}/{}+type:issue+state:open&per_page=1",
         username, repo
     );
     let response = client
@@ -80,9 +81,8 @@ async fn get_num_issues(token: &str, username: &str, repo: &str) -> Result<u32, 
         .map_err(|e| e.to_string())?;
 
     #[derive(Deserialize)]
-    struct Issue {
-        id: u64,
-        pull_request: Option<serde_json::Value>, // issues endpoint includes PRs too!
+    struct SearchResult {
+       total_count: u32, 
     }
     
     let status = response.status();
@@ -90,14 +90,8 @@ async fn get_num_issues(token: &str, username: &str, repo: &str) -> Result<u32, 
         return Err(format!("Failed to fetch issues: status {}", status));
     }
     
-    let text = response.text().await.map_err(|e| e.to_string())?;
-    
-    let issues = serde_json::from_str::<Vec<Issue>>(&text)
-        .map_err(|e| format!("Failed to parse: {} — body: {}", e, text))?;
-    
-    // Filter out PRs since the issues endpoint returns both
-    let count = issues.iter().filter(|i| i.pull_request.is_none()).count() as u32;
-    Ok(count)
+    let result = response.json::<SearchResult>().await.map_err(|e| e.to_string())?;
+    Ok(result.total_count)
 }
 
 async fn get_num_notifications(token: &str) -> Result<u32, String> {
@@ -128,7 +122,7 @@ pub async fn get_commit_frequency(
     let client = Client::new();
     let mut commits_per_day = Vec::new();
 
-    for i in 7..0 {
+    for i in (1..=7).rev() {
         let since = (Local::now() - chrono::Duration::days(i))
             .format("%Y-%m-%dT%H:%M:%SZ")
             .to_string();
@@ -159,23 +153,32 @@ pub async fn get_commit_frequency(
     Ok(commits_arr)
 }
 
-pub async fn refresh_github_widget(app: &AppHandle) -> Result<memori_ui::widgets::Github, String> {
+pub async fn refresh_github_widget(app: &AppHandle) -> Result<Github, String> {
     let auth_users = app.svelte().get::<HashMap<String, UserInfo>>("auth", "usersByProvider").unwrap();
     let github_user = auth_users.get("github").ok_or("No GitHub user found".to_string())?;
     
     let token = &github_user.access_token;
     let username = &github_user.name;
     let repo = "Memori".to_string();
-    let org = "cse115a-Memori";
+    let owner = "cse115a-Memori";
+    
+    // Call each async function concurrently
+    let (open_issues, open_prs, stars, notifications, commits) = tokio::join!(
+        get_num_issues(&token, &owner, &repo),
+        get_num_prs(&token, &owner, &repo),
+        get_num_stars(&token, &owner, &repo),
+        get_num_notifications(&token),
+        get_commit_frequency(&token, &owner, &repo),
+    );
     
     Ok(memori_ui::widgets::Github {
         username: username.clone(),
         repo: repo.clone(),
-        open_issues: get_num_issues(&token, &org, &repo).await?,
-        open_prs: get_num_prs(&token, &org, &repo).await?,
-        stars: get_num_stars(&token, &org, &repo).await?,
-        notifications: get_num_notifications(&token).await?,
-        commits: get_commit_frequency(&token, &org, &repo).await?,
+        open_issues: open_issues?,
+        open_prs: open_prs?,
+        stars: stars?,
+        notifications: notifications?,
+        commits: commits?,
         weekday: Local::now().weekday().num_days_from_sunday() as usize,
     })
 }
