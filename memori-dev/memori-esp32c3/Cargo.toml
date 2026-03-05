@@ -97,3 +97,6 @@ embassy-sync = "0.7.2"
 ble-device = { path = "../../memori-transport/ble-device" }
 transport = { path = "../../memori-transport/transport" }
 postcard = "1.1.3"
+
+[build-dependencies]
+nanoid = "0.4.0"

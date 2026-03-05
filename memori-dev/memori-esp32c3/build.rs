@@ -1,4 +1,15 @@
+use nanoid::nanoid;
+
+const ID_ALPHABET: [char; 26] = [
+    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's',
+    't', 'u', 'v', 'w', 'x', 'y', 'z',
+];
+
 fn main() {
+    let device_id = nanoid!(4, &ID_ALPHABET);
+    println!("cargo:rustc-env=DEVICE_ID={}", device_id);
+    println!("cargo:rerun-if-env-changed=RANDOM_SEED");
+
     linker_be_nice();
     // make sure linkall.x is the last linker script (otherwise might cause problems with flip-link)
     println!("cargo:rustc-link-arg=-Tlinkall.x");
