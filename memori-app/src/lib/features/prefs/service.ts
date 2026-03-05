@@ -4,8 +4,8 @@ import {
 	type Position,
 	requestPermissions,
 } from '@tauri-apps/plugin-geolocation'
-import { prefsState, startPrefsStore } from '@/features/prefs/store.ts'
-import { isMobilePlatform } from '@/utils.ts'
+import { prefsState, startPrefsStore } from '@/features/prefs/store'
+import { isMobilePlatform } from '@/utils'
 
 async function readLocation(requestAccess: boolean): Promise<Position | null> {
 	if (!isMobilePlatform()) {
@@ -13,17 +13,16 @@ async function readLocation(requestAccess: boolean): Promise<Position | null> {
 		return null
 	}
 
-	let permissions = await checkPermissions()
+	let perms = await checkPermissions()
 	if (
 		requestAccess &&
-		(permissions.location === 'prompt' ||
-			permissions.location === 'prompt-with-rationale')
+		(perms.location === 'prompt' || perms.location === 'prompt-with-rationale')
 	) {
-		permissions = await requestPermissions(['location'])
+		perms = await requestPermissions(['location'])
 	}
 
-	prefsState.locationStatus = permissions.location
-	if (permissions.location !== 'granted') {
+	prefsState.locationStatus = perms.location
+	if (perms.location !== 'granted') {
 		return null
 	}
 
@@ -38,13 +37,13 @@ async function readLocation(requestAccess: boolean): Promise<Position | null> {
 
 export async function refreshLocationState(): Promise<Position | null> {
 	await startPrefsStore()
-	const fallbackPosition = prefsState.lastKnownLocation
+	const fallbackPos = prefsState.lastKnownLocation
 
 	try {
-		const latestPosition = await readLocation(false)
-		return latestPosition ?? fallbackPosition
+		const latestPos = await readLocation(false)
+		return latestPos ?? fallbackPos
 	} catch {
-		return fallbackPosition
+		return fallbackPos
 	}
 }
 

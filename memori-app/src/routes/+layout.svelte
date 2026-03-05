@@ -1,37 +1,21 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
 	import { Button } from '@/components/ui/button'
-	import { startAuthStore } from '@/features/auth/store.ts'
-	import { startPrefsStore } from '@/features/prefs/store.ts'
-	import { startWidgetsEditorStore } from '@/features/widgets/editor-store.ts'
-	import { startMemoriDraftStore } from '@/features/widgets/memori-draft-store.ts'
-	import { onNavigate } from '$app/navigation'
+	import { startAuthStore } from '@/features/auth/store'
+	import { startPrefsStore } from '@/features/prefs/store'
+	import { startWidgetsStore } from '@/features/widgets/widgets-store'
 	import { page } from '$app/state'
 	import '../app.css'
 
 	const { children } = $props()
 
 	onMount(() => {
-		void Promise.all([
-			startPrefsStore(),
-			startWidgetsEditorStore(),
-			startMemoriDraftStore(),
-			startAuthStore(),
-		]).catch(error => {
-			console.error('Failed to start stores:', error)
-		})
+		void Promise.all([startPrefsStore(), startWidgetsStore(), startAuthStore()]).catch(
+			error => {
+				console.error('Failed to start stores:', error)
+			}
+		)
 	})
-
-	// onNavigate(navigation => {
-	// 	if (!document.startViewTransition) return
-
-	// 	return new Promise(resolve => {
-	// 		document.startViewTransition(async () => {
-	// 			resolve()
-	// 			await navigation.complete
-	// 		})
-	// 	})
-	// })
 </script>
 
 <div class="min-h-dvh">
@@ -39,8 +23,6 @@
 		{@render navLinks('/', 'Home')}
 		{@render navLinks('/login', 'Login')}
 		{@render navLinks('/device', 'Device')}
-		{@render navLinks('/widgets', 'widgets')}
-		{@render navLinks('/single-list', 'single-list')}
 		{@render navLinks('/location', 'Location')}
 		{@render children?.()}
 	</div>
@@ -51,6 +33,7 @@
 		variant="link"
 		href={route}
 		class={`${page.url.pathname === route ? 'font-bold' : ''} transition-all`}
-		>{name}</Button
 	>
+		{name}
+	</Button>
 {/snippet}

@@ -2,7 +2,7 @@ import {
 	getLayoutSlotCount,
 	LAYOUT_VARIANTS,
 	type LayoutVariant,
-} from '@/features/widgets/model/layout.ts'
+} from '@/features/widgets/model/layout'
 import type { MemoriWidget } from '@/tauri'
 import {
 	type Frame,
@@ -12,7 +12,7 @@ import {
 	type LayoutsInFrame,
 	type WidgetDisplay,
 	type WidgetView,
-} from './widget-frame.types.ts'
+} from './widget-frame.types'
 
 export const DEFAULT_LAYOUT: LayoutVariant = 'Full'
 export type {
@@ -23,8 +23,8 @@ export type {
 	LayoutsInFrame as WidgetFrame,
 	WidgetDisplay,
 	WidgetView,
-} from './widget-frame.types.ts'
-export { GROUP_IDS } from './widget-frame.types.ts'
+} from './widget-frame.types'
+export { GROUP_IDS } from './widget-frame.types'
 
 function createIdCountMap(ids: Memori.WidgetId[]): Map<Memori.WidgetId, number> {
 	const counts = new Map<Memori.WidgetId, number>()
@@ -103,10 +103,10 @@ export function initWidgetFrame(widgets: MemoriWidget[]): LayoutsInFrame {
 	}, {} as LayoutsInFrame)
 }
 
-export function poolChanged(pool: MemoriWidget[], data: MemoriWidget[]): boolean {
+export function poolChanged(pool: MemoriWidget[], widgetData: MemoriWidget[]): boolean {
 	return !hasSameWidgetIds(
 		pool.map(widget => widget.id),
-		data.map(widget => widget.id)
+		widgetData.map(widget => widget.id)
 	)
 }
 
@@ -153,6 +153,15 @@ export function kindToDisplay(kind: MemoriWidget['kind']): WidgetDisplay {
 
 	if ('Bus' in kind) {
 		return { name: `Bus ${kind.Bus.route}`, content: kind.Bus.prediction }
+	}
+
+	if ('Github' in kind) {
+		const repo = kind.Github.repo ? `/${kind.Github.repo}` : ''
+		return { name: 'GitHub', content: `${kind.Github.username}${repo}` }
+	}
+
+	if ('Twitch' in kind) {
+		return { name: 'Twitch', content: kind.Twitch.user }
 	}
 
 	return { name: 'Widget', content: '' }

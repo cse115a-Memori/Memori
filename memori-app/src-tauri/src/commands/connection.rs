@@ -2,7 +2,7 @@ use crate::simulator::request_handler;
 use crate::state::{AppState, DeviceConnection, DeviceMode};
 use ble_host::HostBLETransport;
 use memori_tcp::HostTcpTransport;
-use tauri::AppHandle;
+// use tauri::AppHandle;
 use tauri::State;
 // use tauri_plugin_svelte::ManagerExt;
 use transport::HostTransport as _;
@@ -10,7 +10,7 @@ use transport::HostTransport as _;
 #[tauri::command]
 #[specta::specta]
 pub async fn connect_device(
-    app: AppHandle,
+    // app: AppHandle,
     state: State<'_, AppState>,
     mode: DeviceMode,
 ) -> Result<(), String> {

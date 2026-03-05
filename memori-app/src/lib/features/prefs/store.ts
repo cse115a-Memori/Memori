@@ -1,8 +1,8 @@
 import { RuneStore } from '@tauri-store/svelte'
-import { getSystemOptions } from '@/features/prefs/system-options.ts'
-import type { PrefsState } from '@/features/prefs/types.ts'
+import { getSystemOptions } from '@/features/prefs/system-options'
+import type { PrefsState } from '@/features/prefs/types'
 
-export type { LocationStatus, PrefsState } from '@/features/prefs/types.ts'
+export type { LocationStatus, PrefsState } from '@/features/prefs/types'
 
 const initialPrefsState: PrefsState = {
 	locationStatus: 'prompt',
@@ -10,6 +10,7 @@ const initialPrefsState: PrefsState = {
 	onboarded: false,
 	lastKnownDeviceId: null,
 	systemOptions: getSystemOptions(),
+	name: '',
 }
 
 const prefsStore = new RuneStore<PrefsState>('prefs', initialPrefsState, {

@@ -1,13 +1,3 @@
-/* example entry from Memori.Layout type:
-{
-  variant: "VSplit"
-  widget: {
-    left: MemoriWidgetId
-    right: MemoriWidgetId
-  }
-}
-*/
-
 export type LayoutVariant = Memori.Layout['variant']
 
 type WidgetPayload<V extends LayoutVariant> = Extract<

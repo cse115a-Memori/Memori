@@ -6,23 +6,32 @@ import {
 	isGroupId,
 	type WidgetFrame,
 	type WidgetView,
-} from '@/features/widgets/model/widget-frame.ts'
+} from '@/features/widgets/model/widget-frame'
 
-type LayoutFrame = WidgetFrame[keyof WidgetFrame]
+type FrameState = WidgetFrame[keyof WidgetFrame]
+type PointerPos = { x?: number; y?: number }
 
 type DragItem = {
 	id?: unknown
 	data?: unknown
 	index?: unknown
 	shape?: {
-		center?: { y?: number }
-		boundingRectangle?: { top?: number; height?: number }
+		center?: PointerPos
+		boundingRectangle?: {
+			top?: number
+			left?: number
+			right?: number
+			bottom?: number
+			height: number
+			width: number
+		}
 	}
 	manager?: {
 		dragOperation?: {
-			shape?: { current?: { center?: { y?: number } } }
-			position?: { current?: { y?: number } }
+			shape?: { current?: { center?: PointerPos } }
+			position?: { current?: PointerPos }
 		}
+		registry?: { droppables?: Iterable<DragItem> }
 	}
 }
 
@@ -42,230 +51,339 @@ function getGroupFromData(data: unknown): GroupId | undefined {
 		: undefined
 }
 
+function getIndexFromData(data: unknown): number | undefined {
+	if (!data || typeof data !== 'object') return undefined
+	if (!('index' in data)) return undefined
+	const value = (data as { index?: unknown }).index
+	if (typeof value !== 'number' || !Number.isFinite(value)) return undefined
+	return Math.trunc(value)
+}
+
 function getGroupIdFromDragItem(
 	item: { id?: unknown; data?: unknown } | null | undefined
 ): GroupId | undefined {
-	const dataGroup = getGroupFromData(item?.data)
-	if (dataGroup) return dataGroup
+	const groupFromData = getGroupFromData(item?.data)
+	if (groupFromData) return groupFromData
 	return isGroupId(item?.id) ? item.id : undefined
 }
 
+function getSource(op: DragOperation | undefined): DragItem | undefined {
+	return op?.source as DragItem | undefined
+}
+
+function getTarget(op: DragOperation | undefined): DragItem | undefined {
+	return op?.target as DragItem | undefined
+}
+
+function getPointer(
+	source: DragItem | undefined,
+	target: DragItem | undefined
+): PointerPos | null {
+	const fromShape = source?.manager?.dragOperation?.shape?.current?.center
+	if (typeof fromShape?.x === 'number' && typeof fromShape?.y === 'number') {
+		return fromShape
+	}
+
+	const fromPos = source?.manager?.dragOperation?.position?.current
+	if (typeof fromPos?.x === 'number' && typeof fromPos?.y === 'number') {
+		return fromPos
+	}
+
+	const fromTarget = target?.shape?.center
+	if (typeof fromTarget?.x === 'number' && typeof fromTarget?.y === 'number') {
+		return fromTarget
+	}
+
+	return null
+}
+
 function isPoolSourceWithFullFrame(
-	layoutFrame: LayoutFrame,
+	frameState: FrameState,
 	source: DragItem | undefined,
 	frameSlotCount: number | undefined
 ): boolean {
 	if (typeof frameSlotCount !== 'number') return false
 
-	const sourceGroup = getGroupIdFromDragItem(source)
-	const isFrameFull = layoutFrame['frame-widgets'].length >= frameSlotCount
+	const srcGroup = getGroupIdFromDragItem(source)
+	const isFrameFull = frameState['frame-widgets'].length >= frameSlotCount
+	return isFrameFull && srcGroup === 'widgets'
+}
 
-	return isFrameFull && sourceGroup === 'widgets'
+function isPointInsideBounds(
+	boundingRectangle:
+		| {
+				top?: number
+				left?: number
+				right?: number
+				bottom?: number
+				height: number
+				width: number
+		  }
+		| undefined,
+	pointer: { x: number; y: number }
+): boolean {
+	if (!boundingRectangle) return false
+
+	const top = boundingRectangle.top
+	const left =
+		typeof boundingRectangle.left === 'number'
+			? boundingRectangle.left
+			: typeof boundingRectangle.right === 'number'
+				? boundingRectangle.right - boundingRectangle.width
+				: undefined
+	if (typeof top !== 'number' || typeof left !== 'number') return false
+
+	const right =
+		typeof boundingRectangle.right === 'number'
+			? boundingRectangle.right
+			: left + boundingRectangle.width
+	const bottom =
+		typeof boundingRectangle.bottom === 'number'
+			? boundingRectangle.bottom
+			: top + boundingRectangle.height
+
+	return (
+		pointer.x >= left && pointer.x <= right && pointer.y >= top && pointer.y <= bottom
+	)
+}
+
+function getNearestFrameWidgetIndex(
+	frameState: FrameState,
+	manager: DragItem['manager'] | undefined,
+	pointer: { x: number; y: number }
+): number {
+	const droppables = manager?.registry?.droppables
+	if (!droppables) return -1
+
+	const frameLen = frameState['frame-widgets'].length
+	const frameIdxById = new Map(
+		frameState['frame-widgets'].map((entry, idx) => [entry.id, idx] as const)
+	)
+
+	let sawFrameContainer = false
+	let pointerInsideFrameContainer = false
+
+	let nearestIdx = -1
+	let minDistSq = Number.POSITIVE_INFINITY
+	let nearestContainingIdx = -1
+	let minContainingDistSq = Number.POSITIVE_INFINITY
+
+	for (const droppable of droppables) {
+		const droppableGroup = getGroupIdFromDragItem(droppable)
+		if (droppableGroup !== 'frame-widgets') continue
+
+		const bounds = droppable.shape?.boundingRectangle
+		if (droppable.id === 'frame-widgets') {
+			sawFrameContainer = true
+			if (isPointInsideBounds(bounds, pointer)) {
+				pointerInsideFrameContainer = true
+			}
+			continue
+		}
+
+		const candidateIdxFromData = getIndexFromData(droppable.data)
+		const candidateIdx =
+			typeof candidateIdxFromData === 'number'
+				? candidateIdxFromData
+				: typeof droppable?.id === 'string'
+					? frameIdxById.get(droppable.id)
+					: undefined
+		if (candidateIdx === undefined || candidateIdx < 0 || candidateIdx >= frameLen)
+			continue
+
+		const center = droppable.shape?.center
+		if (typeof center?.x !== 'number' || typeof center?.y !== 'number') continue
+
+		const dx = center.x - pointer.x
+		const dy = center.y - pointer.y
+		const distSq = dx * dx + dy * dy
+		if (distSq < minDistSq) {
+			minDistSq = distSq
+			nearestIdx = candidateIdx
+		}
+
+		if (isPointInsideBounds(bounds, pointer) && distSq < minContainingDistSq) {
+			minContainingDistSq = distSq
+			nearestContainingIdx = candidateIdx
+		}
+	}
+
+	if (nearestContainingIdx >= 0) return nearestContainingIdx
+
+	if (sawFrameContainer && !pointerInsideFrameContainer) return -1
+
+	return nearestIdx
 }
 
 function getFrameTargetIndex(
-	layoutFrame: LayoutFrame,
+	frameState: FrameState,
 	target: DragItem | undefined,
-	event?: DragMutationEvent
+	evt?: DragMutationEvent
 ): number {
-	const frameLength = layoutFrame['frame-widgets'].length
+	const frameLen = frameState['frame-widgets'].length
 	const targetId = target?.id
 	if (targetId !== undefined) {
-		const explicitIndex = findIndexById(layoutFrame['frame-widgets'], String(targetId))
-		if (explicitIndex >= 0) return explicitIndex
+		const explicitIdx = findIndexById(frameState['frame-widgets'], String(targetId))
+		if (explicitIdx >= 0) return explicitIdx
 	}
 
-	const targetGroup = getGroupIdFromDragItem(target)
-	if (targetGroup !== 'frame-widgets') return -1
+	const tgtGroup = getGroupIdFromDragItem(target)
 
-	const targetIndexFromPayload =
-		typeof target?.index === 'number' ? target.index : undefined
-	if (typeof targetIndexFromPayload === 'number' && targetIndexFromPayload >= 0) {
-		if (frameLength <= 0) return -1
-		return Math.min(targetIndexFromPayload, frameLength - 1)
+	if (tgtGroup === 'frame-widgets') {
+		const targetIdxFromData = getIndexFromData(target?.data)
+		if (typeof targetIdxFromData === 'number' && targetIdxFromData >= 0) {
+			if (frameLen <= 0) return -1
+			return Math.min(targetIdxFromData, frameLen - 1)
+		}
+
+		const targetIdx = typeof target?.index === 'number' ? target.index : undefined
+		if (typeof targetIdx === 'number' && targetIdx >= 0) {
+			if (frameLen <= 0) return -1
+			return Math.min(targetIdx, frameLen - 1)
+		}
 	}
 
-	const source = event?.operation?.source as DragItem | undefined
-	const pointerY =
-		source?.manager?.dragOperation?.shape?.current?.center?.y ??
-		source?.manager?.dragOperation?.position?.current?.y ??
-		event?.operation?.source?.manager?.dragOperation?.position?.current?.y ??
-		event?.operation?.source?.manager?.dragOperation?.shape?.current?.center?.y ??
-		event?.operation?.target?.shape?.center?.y
-	const targetRect = target?.shape?.boundingRectangle
-
-	if (
-		frameLength === 0 ||
-		pointerY === undefined ||
-		!targetRect ||
-		typeof targetRect.top !== 'number' ||
-		typeof targetRect.height !== 'number' ||
-		targetRect.height <= 0
-	) {
-		return frameLength > 0 ? 0 : -1
+	const op = evt?.operation
+	const source = getSource(op)
+	const pointer = getPointer(source, getTarget(op))
+	if (!pointer || typeof pointer.x !== 'number' || typeof pointer.y !== 'number') {
+		return -1
 	}
 
-	const normalized = (pointerY - targetRect.top) / targetRect.height
-	if (!Number.isFinite(normalized)) return 0
-
-	const clamped = Math.min(Math.max(normalized, 0), 1)
-	return Math.min(frameLength - 1, Math.max(0, Math.floor(clamped * frameLength)))
+	return getNearestFrameWidgetIndex(frameState, source?.manager, {
+		x: pointer.x,
+		y: pointer.y,
+	})
 }
 
 export function findActiveWidget(
-	layoutFrame: LayoutFrame,
+	frameState: FrameState,
 	sourceId: string
 ): WidgetView | null {
 	return (
-		layoutFrame.widgets.find(entry => entry.id === sourceId) ??
-		layoutFrame['frame-widgets'].find(entry => entry.id === sourceId) ??
+		frameState.widgets.find(entry => entry.id === sourceId) ??
+		frameState['frame-widgets'].find(entry => entry.id === sourceId) ??
 		null
 	)
 }
 
-export function projectLayoutFrameOnDragOver(
-	layoutFrame: LayoutFrame,
-	event: DragMutationEvent,
+export function projectLayoutFrame(
+	frameState: FrameState,
+	evt: DragMutationEvent,
 	frameSlotCount?: number
-): LayoutFrame | null {
-	const source = event.operation.source as DragItem | undefined
+): FrameState | null {
+	const source = getSource(evt.operation)
 	if (!source) return null
 
 	const sourceId = String(source.id)
 	const hasSource =
-		findIndexById(layoutFrame.widgets, sourceId) >= 0 ||
-		findIndexById(layoutFrame['frame-widgets'], sourceId) >= 0
+		findIndexById(frameState.widgets, sourceId) >= 0 ||
+		findIndexById(frameState['frame-widgets'], sourceId) >= 0
 	if (!hasSource) return null
 
-	const target = event.operation.target as DragItem | undefined
+	const target = getTarget(evt.operation)
 
-	if (isPoolSourceWithFullFrame(layoutFrame, source, frameSlotCount)) {
-		const targetGroup = getGroupIdFromDragItem(target)
-		if (targetGroup !== 'frame-widgets') return null
+	if (isPoolSourceWithFullFrame(frameState, source, frameSlotCount)) {
+		const poolIdx = findIndexById(frameState.widgets, sourceId)
+		const frameIdx = getFrameTargetIndex(frameState, target, evt)
+		if (frameIdx < 0 || poolIdx < 0) return null
 
-		const poolIndex = findIndexById(layoutFrame.widgets, sourceId)
-		const frameIndex = getFrameTargetIndex(layoutFrame, target, event)
-		if (frameIndex < 0) return null
-		if (poolIndex < 0) return null
-
-		const sourceWidget = layoutFrame.widgets[poolIndex]
-		const replacedWidget = layoutFrame['frame-widgets'][frameIndex]
+		const srcWidget = frameState.widgets[poolIdx]
+		const replacedWidget = frameState['frame-widgets'][frameIdx]
 		const nextPool = [
-			...layoutFrame.widgets.slice(0, poolIndex),
-			...layoutFrame.widgets.slice(poolIndex + 1),
+			...frameState.widgets.slice(0, poolIdx),
+			...frameState.widgets.slice(poolIdx + 1),
 			replacedWidget,
 		]
-		const nextFrameWidgets = [...layoutFrame['frame-widgets']]
-		nextFrameWidgets[frameIndex] = sourceWidget
+		const nextFrameWidgets = [...frameState['frame-widgets']]
+		nextFrameWidgets[frameIdx] = srcWidget
 
 		return {
-			...layoutFrame,
+			...frameState,
 			widgets: nextPool,
 			'frame-widgets': nextFrameWidgets,
 		}
 	}
 
-	const moved = move(layoutFrame, event)
-	return moved === layoutFrame ? null : moved
+	const moved = move(frameState, evt)
+	return moved === frameState ? null : moved
 }
 
 export function shouldUseCommittedFrameForOverflowSwap(
-	layoutFrame: LayoutFrame,
-	event: DragMutationEvent,
+	frameState: FrameState,
+	evt: DragMutationEvent,
 	frameSlotCount: number
 ): boolean {
-	const source = event.operation.source as DragItem | undefined
-	const target = event.operation.target as DragItem | undefined
-	if (!isPoolSourceWithFullFrame(layoutFrame, source, frameSlotCount)) {
+	const source = getSource(evt.operation)
+	const target = getTarget(evt.operation)
+	if (!isPoolSourceWithFullFrame(frameState, source, frameSlotCount)) {
 		return false
 	}
 
-	return getGroupIdFromDragItem(target) === 'frame-widgets'
+	return getFrameTargetIndex(frameState, target, evt) >= 0
 }
 
 export function shouldCancelOverflowSwapPreview(
-	layoutFrame: LayoutFrame,
-	event: DragMutationEvent,
+	frameState: FrameState,
+	evt: DragMutationEvent,
 	frameSlotCount: number
 ): boolean {
-	return !shouldUseCommittedFrameForOverflowSwap(layoutFrame, event, frameSlotCount)
+	return !shouldUseCommittedFrameForOverflowSwap(frameState, evt, frameSlotCount)
 }
 
 export function shouldResetDragPreviewOnOverflowMiss(
-	layoutFrame: LayoutFrame,
-	event: DragMutationEvent,
+	frameState: FrameState,
+	evt: DragMutationEvent,
 	frameSlotCount: number
 ): boolean {
-	const target = event.operation.target as DragItem | undefined
-	if (
-		!isPoolSourceWithFullFrame(
-			layoutFrame,
-			event.operation.source as DragItem | undefined,
-			frameSlotCount
-		)
-	) {
+	const source = getSource(evt.operation)
+	const target = getTarget(evt.operation)
+	if (!isPoolSourceWithFullFrame(frameState, source, frameSlotCount)) {
 		return false
 	}
 
-	const targetGroup = getGroupIdFromDragItem(target)
-	if (targetGroup === 'widgets') return true
-	if (targetGroup !== 'frame-widgets') return false
-	return getFrameTargetIndex(layoutFrame, target, event) < 0
+	return getFrameTargetIndex(frameState, target, evt) < 0
 }
 
-export function resolveOverlaySize(
-	operation: DragOperation | undefined
-): { width: number; height: number } | null {
-	const targetId = operation?.target?.id
-	const isItemTarget =
+function isItemTarget(op: DragOperation | undefined): boolean {
+	const targetId = op?.target?.id
+	return (
 		targetId !== undefined && !isGroupId(typeof targetId === 'string' ? targetId : '')
-	const targetRect = isItemTarget
-		? operation?.target?.shape?.boundingRectangle
-		: undefined
-	const dragRect = operation?.shape?.current?.boundingRectangle
-	const nextRect = targetRect ?? dragRect
-	if (!nextRect) return null
-
-	return { width: nextRect.width, height: nextRect.height }
+	)
 }
 
 export function getOverlaySize(
-	operation: DragOperation | undefined
+	op: DragOperation | undefined
 ): { width: number; height: number } | null {
-	const targetId = operation?.target?.id
-	const isItemTarget =
-		targetId !== undefined && !isGroupId(typeof targetId === 'string' ? targetId : '')
-	const targetRect = isItemTarget
-		? operation?.target?.shape?.boundingRectangle
-		: undefined
-	const dragRect = operation?.shape?.current?.boundingRectangle
+	const targetRect = isItemTarget(op) ? op?.target?.shape?.boundingRectangle : undefined
+	const dragRect = op?.shape?.current?.boundingRectangle
 	const nextRect = targetRect ?? dragRect
 	if (!nextRect) return null
 
 	return { width: nextRect.width, height: nextRect.height }
 }
 
-export function getDragOverKey(operation: DragOperation | undefined): string | null {
-	const source = operation?.source as DragItem | undefined
-	const target = operation?.target as DragItem | undefined
-	const sourceGroup = getGroupIdFromDragItem(source)
-	const targetGroup = getGroupIdFromDragItem(target)
+export function getDragOverKey(op: DragOperation | undefined): string | null {
+	const source = getSource(op)
+	const target = getTarget(op)
+	if (!source || !target) return null
 
-	if (!source || !target || !sourceGroup || !targetGroup) return null
+	const srcGroup = getGroupIdFromDragItem(source) ?? 'unknown'
+	const tgtGroup = getGroupIdFromDragItem(target) ?? 'unknown'
+	const srcIdxFromData = getIndexFromData(source.data)
+	const tgtIdxFromData = getIndexFromData(target.data)
+	const srcIdx =
+		typeof srcIdxFromData === 'number'
+			? srcIdxFromData
+			: typeof source.index === 'number'
+				? source.index
+				: -1
+	const tgtIdx =
+		typeof tgtIdxFromData === 'number'
+			? tgtIdxFromData
+			: typeof target.index === 'number'
+				? target.index
+				: -1
 
-	const sourceIndex = typeof source.index === 'number' ? source.index : -1
-	const targetIndex = typeof target.index === 'number' ? target.index : -1
-
-	const operationShape = source.manager?.dragOperation?.shape?.current
-	const operationPosition = source.manager?.dragOperation?.position?.current
-	const pointerY = operationShape?.center?.y ?? operationPosition?.y
-	const targetY = target.shape?.center?.y
-	const side =
-		pointerY !== undefined && targetY !== undefined
-			? pointerY > targetY
-				? 'after'
-				: 'before'
-			: 'none'
-
-	return `${String(source.id)}:${sourceGroup}:${sourceIndex}->${String(target.id)}:${targetGroup}:${targetIndex}:${side}`
+	return `${String(source.id)}:${srcGroup}:${srcIdx}->${String(target.id)}:${tgtGroup}:${tgtIdx}`
 }

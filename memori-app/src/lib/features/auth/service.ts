@@ -1,5 +1,5 @@
 import { ResultAsync } from 'neverthrow'
-import { type AuthProvider, authState, startAuthStore } from '@/features/auth/store.ts'
+import { type AuthProvider, authState, startAuthStore } from '@/features/auth/store'
 import { type AppError, commands, toCmdError, tryCmd, type UserInfo } from '@/tauri'
 
 export type { AuthProvider }

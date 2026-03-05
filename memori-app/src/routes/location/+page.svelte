@@ -1,19 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
 	import { Button } from '@/components/ui/button'
-	import {
-		refreshLocationState,
-		requestLocationState,
-	} from '@/features/prefs/service.ts'
-	import { prefsState, startPrefsStore } from '@/features/prefs/store.ts'
+	import { refreshLocationState, requestLocationState } from '@/features/prefs/service'
+	import { prefsState, startPrefsStore } from '@/features/prefs/store'
 
-	let errorMessage = $state('')
+	let errMsg = $state('')
 	let isRequesting = $state(false)
-	let hasCheckedPermission = $state(false)
+	let hasCheckedPerm = $state(false)
 	const locationStatus = $derived(prefsState.locationStatus)
-	const lastKnownLocation = $derived(prefsState.lastKnownLocation)
+	const lastKnownPos = $derived(prefsState.lastKnownLocation)
 	const canEnableLocation = $derived(
-		hasCheckedPermission &&
+		hasCheckedPerm &&
 			(locationStatus === 'prompt' || locationStatus === 'prompt-with-rationale')
 	)
 
@@ -23,25 +20,25 @@
 				await startPrefsStore()
 				await refreshLocationState()
 			} catch (error) {
-				errorMessage =
+				errMsg =
 					typeof error === 'string'
 						? error
 						: error instanceof Error
 							? error.message
 							: String(error)
 			} finally {
-				hasCheckedPermission = true
+				hasCheckedPerm = true
 			}
 		})()
 	})
 
 	async function enableLocation() {
 		isRequesting = true
-		errorMessage = ''
+		errMsg = ''
 		try {
 			await requestLocationState()
 		} catch (error) {
-			errorMessage =
+			errMsg =
 				typeof error === 'string'
 					? error
 					: error instanceof Error
@@ -65,14 +62,14 @@
 		{#if locationStatus === 'not-available'}
 			<p class="text-muted-foreground">Location is not available on this platform.</p>
 		{:else}
-			{#if locationStatus === 'granted' || lastKnownLocation}
-				<p>Lat: {lastKnownLocation?.coords.latitude?.toFixed(6) ?? 'None'}</p>
-				<p>Long: {lastKnownLocation?.coords.longitude?.toFixed(6) ?? 'None'}</p>
+			{#if locationStatus === 'granted' || lastKnownPos}
+				<p>Lat: {lastKnownPos?.coords.latitude?.toFixed(6) ?? 'None'}</p>
+				<p>Long: {lastKnownPos?.coords.longitude?.toFixed(6) ?? 'None'}</p>
 			{:else}
 				<p class="text-muted-foreground">No location sample available yet.</p>
 			{/if}
 
-			{#if locationStatus !== 'granted' && lastKnownLocation}
+			{#if locationStatus !== 'granted' && lastKnownPos}
 				<p class="text-amber-600">
 					Showing last known location from a previous session. Enable location for live
 					updates.
@@ -93,7 +90,7 @@
 		{/if}
 	</section>
 
-	{#if errorMessage}
-		<p class="text-red-500 text-sm">{errorMessage}</p>
+	{#if errMsg}
+		<p class="text-red-500 text-sm">{errMsg}</p>
 	{/if}
 </main>

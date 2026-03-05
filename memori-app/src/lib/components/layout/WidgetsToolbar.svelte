@@ -1,10 +1,7 @@
 <script lang="ts">
 	import { LoaderCircle } from '@lucide/svelte'
-	import { Button } from '@/components/ui/button/index.ts'
-	import {
-		LAYOUT_VARIANTS,
-		type LayoutVariant,
-	} from '@/features/widgets/model/layout.ts'
+	import { Button } from '@/components/ui/button/index'
+	import { LAYOUT_VARIANTS, type LayoutVariant } from '@/features/widgets/model/layout'
 	import * as Select from '$lib/components/ui/select/index.js'
 
 	interface Props {
@@ -14,12 +11,7 @@
 		onFlash: () => void
 	}
 
-	let {
-		layout,
-		isFlashing: isSettingWidget,
-		onLayoutChange,
-		onFlash: setWidget,
-	}: Props = $props()
+	let { layout, isFlashing, onLayoutChange, onFlash }: Props = $props()
 </script>
 
 <div class="flex justify-between">
@@ -27,7 +19,7 @@
 		type="single"
 		name="layoutSelector"
 		value={layout}
-		disabled={isSettingWidget}
+		disabled={isFlashing}
 		onValueChange={onLayoutChange}
 	>
 		<Select.Trigger class="">{layout}</Select.Trigger>
@@ -43,8 +35,8 @@
 		</Select.Content>
 	</Select.Root>
 
-	<Button onclick={setWidget}>
-		{#if isSettingWidget}
+	<Button onclick={onFlash}>
+		{#if isFlashing}
 			<div class="animate-spin"><LoaderCircle /></div>
 		{:else}
 			Update

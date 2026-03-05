@@ -1,4 +1,4 @@
-import type { LayoutSlotPos as MemoriLayoutSlot } from '@/features/widgets/model/layout.ts'
+import type { LayoutSlotPos as MemoriLayoutSlot } from '@/features/widgets/model/layout'
 import type {
 	MemoriLayout,
 	MemoriWidget,

@@ -1,23 +1,26 @@
 <script lang="ts">
 	import type { Data, Type, UniqueIdentifier } from '@dnd-kit/abstract'
 	import { useSortable } from '@dnd-kit-svelte/svelte/sortable'
+	import { EllipsisVertical } from '@lucide/svelte'
 	import { onMount } from 'svelte'
 	import type { ClassValue } from 'svelte/elements'
-	import { prefsState } from '@/features/prefs/store.ts'
+	import { Button } from '@/components/ui/button'
+	import * as Drawer from '@/components/ui/drawer'
+	import { Input } from '@/components/ui/input'
+	import { prefsState } from '@/features/prefs/store'
+	import { kindToDisplay, type WidgetView } from '@/features/widgets/model/widget-frame'
+	import { updateWidgetKind } from '@/features/widgets/widgets-store'
+	import { cn } from '@/utils'
+	import { cardCls } from './sortable-item-classes'
 	import {
-		kindToDisplay,
-		type WidgetView,
-	} from '@/features/widgets/model/widget-frame.ts'
-	import { cn } from '@/utils.ts'
-	import {
-		sortableCardBaseClasses,
-		sortableCardContentClasses,
-		sortableCardInteractiveClasses,
-		sortableCardPlaceholderClasses,
-		sortableCardPlaceholderTextClasses,
-		sortableCardTitleClasses,
-	} from './sortable-item-classes.ts'
-	import { formatCompactClock } from './widget-clock.ts'
+		buildKindFromDraft,
+		createDraftFromKind,
+		isDraftPersistable,
+		isKindEditable,
+		kindSignature,
+		type SortableItemDraft,
+	} from './sortable-item-domain'
+	import { formatCompactClock } from './widget-clock'
 
 	interface Props {
 		id: UniqueIdentifier
@@ -30,10 +33,30 @@
 		isOverlay?: boolean
 	}
 
-	let { id, index, group, type, data, widget, cls, isOverlay = false }: Props = $props()
+	let {
+		id,
+		index,
+		group,
+		type,
+		data,
+		widget = $bindable(),
+		cls,
+		isOverlay = false,
+	}: Props = $props()
+
 	const display = $derived(kindToDisplay(widget.kind))
 	const isClock = $derived('Clock' in widget.kind)
 	let now = $state(new Date())
+	let isEditorOpen = $state(false)
+	let editorState: {
+		draft: SortableItemDraft
+		sourceKindSignature: string
+	} = $state({
+		draft: createDraftFromKind(widget.kind),
+		sourceKindSignature: kindSignature(widget.kind),
+	})
+	const isEditable = $derived(isKindEditable(widget.kind))
+	const kindSignatureNow = $derived(kindSignature(widget.kind))
 
 	const compactClock = $derived(
 		formatCompactClock(now, prefsState.systemOptions.timeZone ?? undefined)
@@ -60,34 +83,188 @@
 
 		return () => clearInterval(intervalId)
 	})
+
+	let wasEditorOpen = false
+
+	function loadDraftFromKind(kind: WidgetView['kind']): void {
+		editorState.draft = createDraftFromKind(kind)
+		editorState.sourceKindSignature = kindSignature(kind)
+	}
+
+	function openEditor(): void {
+		const currentKindSignature = kindSignature(widget.kind)
+		if (editorState.sourceKindSignature !== currentKindSignature) {
+			loadDraftFromKind(widget.kind)
+		}
+		isEditorOpen = true
+	}
+
+	const canSave = $derived(
+		isEditable &&
+			isDraftPersistable(widget.kind, editorState.draft) &&
+			kindSignatureNow === editorState.sourceKindSignature
+	)
+
+	function applyDraftChanges(): void {
+		if (!canSave) return
+		const nextKind = buildKindFromDraft(widget.kind, editorState.draft)
+		if (!nextKind) return
+
+		updateWidgetKind(widget.widgetId, nextKind)
+		widget = { ...widget, kind: nextKind }
+		loadDraftFromKind(nextKind)
+	}
+
+	function handleSave(event: SubmitEvent): void {
+		event.preventDefault()
+		if (!canSave) {
+			return
+		}
+		applyDraftChanges()
+		isEditorOpen = false
+	}
+
+	$effect(() => {
+		const currentlyOpen = isEditorOpen
+		if (wasEditorOpen && !currentlyOpen) {
+			const nextKind = buildKindFromDraft(widget.kind, editorState.draft)
+			if (
+				nextKind &&
+				isEditable &&
+				kindSignatureNow === editorState.sourceKindSignature
+			) {
+				updateWidgetKind(widget.widgetId, nextKind)
+				widget = { ...widget, kind: nextKind }
+				loadDraftFromKind(nextKind)
+			}
+		}
+		wasEditorOpen = currentlyOpen
+	})
 </script>
 
-<div class={cn('relative select-none', cls)} {@attach ref}>
-	<div
-		class={[
-      sortableCardBaseClasses,
-      sortableCardInteractiveClasses,
-      { 'cursor-grabbing': isDragging.current || isOverlay },
-      { invisible: isDragging.current && !isOverlay },
-      'w-full h-full',
-    ]}
-	>
-		<div class={sortableCardTitleClasses}>{display.name}</div>
-		{#if isClock}
-			<p class="text-sm font-semibold tabular-nums text-slate-700">
-				{compactClock.time}
-			</p>
-			<p class="text-xs text-slate-500">{compactClock.zone}</p>
-		{:else}
-			<p class={sortableCardContentClasses}>{display.content}</p>
+<Drawer.Root bind:open={isEditorOpen}>
+	<div class={cn('relative select-none', cls)} {@attach ref}>
+		<div
+			class={[
+				cardCls.Base,
+				cardCls.Interactive,
+				{ 'cursor-grabbing': isDragging.current || isOverlay },
+				{ invisible: isDragging.current && !isOverlay },
+				'w-full h-full',
+			]}
+		>
+			<section class="flex justify-between items-center mb-2">
+				<div class={cardCls.Title}>{display.name}</div>
+				<Drawer.Trigger class="cursor-pointer" onclick={openEditor}>
+					<EllipsisVertical size={16} />
+				</Drawer.Trigger>
+			</section>
+			{#if isClock}
+				<p class="text-sm font-semibold tabular-nums text-slate-700">
+					{compactClock.time}
+				</p>
+				<p class="text-xs text-slate-500">{compactClock.zone}</p>
+			{:else}
+				<p class={cardCls.Content}>{display.content}</p>
+			{/if}
+		</div>
+
+		{#if !isOverlay && isDragging.current}
+			<div class="absolute inset-0 flex items-center justify-center h-full w-full">
+				<div class={cardCls.Placeholder}>
+					<span class={cardCls.PlaceholderText}>Moving: {display.name}</span>
+				</div>
+			</div>
 		{/if}
 	</div>
 
-	{#if !isOverlay && isDragging.current}
-		<div class="absolute inset-0 flex items-center justify-center h-full w-full">
-			<div class={sortableCardPlaceholderClasses}>
-				<span class={sortableCardPlaceholderTextClasses}>Moving: {display.name}</span>
+	<Drawer.Content>
+		<form class="mx-auto w-full max-w-sm p-4 pt-3 space-y-4" onsubmit={handleSave}>
+			<Drawer.Header>
+				<Drawer.Title>Editing {display.name}</Drawer.Title>
+				<Drawer.Description>
+					Changes are applied automatically when you close this editor.
+				</Drawer.Description>
+			</Drawer.Header>
+
+			{#if 'Name' in widget.kind}
+				<label class="space-y-1 block">
+					<span class="text-sm font-medium text-slate-700">Name</span>
+					<Input bind:value={editorState.draft.name} placeholder="Display name" />
+				</label>
+			{:else if 'Clock' in widget.kind}
+				<div class="grid grid-cols-3 gap-2">
+					<label class="space-y-1 block">
+						<span class="text-sm font-medium text-slate-700">Hours</span>
+						<Input
+							type="number"
+							min="0"
+							max="23"
+							bind:value={editorState.draft.clockHours}
+						/>
+					</label>
+					<label class="space-y-1 block">
+						<span class="text-sm font-medium text-slate-700">Minutes</span>
+						<Input
+							type="number"
+							min="0"
+							max="59"
+							bind:value={editorState.draft.clockMinutes}
+						/>
+					</label>
+					<label class="space-y-1 block">
+						<span class="text-sm font-medium text-slate-700">Seconds</span>
+						<Input
+							type="number"
+							min="0"
+							max="59"
+							bind:value={editorState.draft.clockSeconds}
+						/>
+					</label>
+				</div>
+			{:else if 'Weather' in widget.kind}
+				<div class="space-y-3">
+					<label class="space-y-1 block">
+						<span class="text-sm font-medium text-slate-700">Temp</span>
+						<Input bind:value={editorState.draft.weatherTemp} placeholder="24" />
+					</label>
+					<label class="space-y-1 block">
+						<span class="text-sm font-medium text-slate-700">Icon</span>
+						<Input bind:value={editorState.draft.weatherIcon} placeholder="sunny" />
+					</label>
+				</div>
+			{:else if 'Bus' in widget.kind}
+				<div class="space-y-3">
+					<label class="space-y-1 block">
+						<span class="text-sm font-medium text-slate-700">Route</span>
+						<Input bind:value={editorState.draft.busRoute} placeholder="15A" />
+					</label>
+					<label class="space-y-1 block">
+						<span class="text-sm font-medium text-slate-700">Prediction</span>
+						<Input bind:value={editorState.draft.busPrediction} placeholder="7 mins" />
+					</label>
+				</div>
+			{:else if 'Twitch' in widget.kind}
+				<label class="space-y-1 block">
+					<span class="text-sm font-medium text-slate-700">User</span>
+					<Input bind:value={editorState.draft.twitchUser} placeholder="streamer" />
+				</label>
+			{:else}
+				<p class="text-sm text-slate-500">
+					{display.name}
+					is currently read-only in this editor.
+				</p>
+			{/if}
+
+			<div class="flex justify-end gap-2 pt-1">
+				<Button
+					type="button"
+					variant="ghost"
+					onclick={() => loadDraftFromKind(widget.kind)}
+				>
+					Reset
+				</Button>
 			</div>
-		</div>
-	{/if}
-</div>
+		</form>
+	</Drawer.Content>
+</Drawer.Root>

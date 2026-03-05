@@ -1,3 +1,3 @@
-export * from './layout.ts'
-export * from './widget-dnd.ts'
-export * from './widget-frame.ts'
+export * from './layout'
+export * from './widget-dnd'
+export * from './widget-frame'

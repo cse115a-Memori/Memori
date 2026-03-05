@@ -1,8 +1,8 @@
 import { RuneStore } from '@tauri-store/svelte'
 
-import type { AuthState } from '@/features/auth/types.ts'
+import type { AuthState } from '@/features/auth/types'
 
-export type { AuthProvider, AuthState } from '@/features/auth/types.ts'
+export type { AuthProvider, AuthState } from '@/features/auth/types'
 
 const initialAuthState: AuthState = {
 	usersByProvider: {},

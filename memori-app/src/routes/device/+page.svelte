@@ -1,329 +1,290 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
-  import { authState } from '@/features/auth/store.ts'
-  import {
-    refreshLocationState,
-    requestLocationState,
-  } from '@/features/prefs/service.ts'
-  import { prefsState } from '@/features/prefs/store.ts'
-  import { commands, type DeviceMode, tryCmd } from '@/tauri'
-  import { Button } from '$lib/components/ui/button/index.js'
-  import * as Field from '$lib/components/ui/field/index.js'
-  import { Input } from '$lib/components/ui/input/index.js'
+	import { onMount } from 'svelte'
 
-  // events.updateIsConnected.listen((e) => {
-  //   console.log('listening', e)
-  // })
+	import WidgetEditor from '@/components/layout/WidgetEditor.svelte'
+	import { authState } from '@/features/auth/store'
+	// import { connState } from '@/features/connection'
+	import { refreshLocationState, requestLocationState } from '@/features/prefs/service'
+	import { prefsState } from '@/features/prefs/store'
+	import { playFailedSound, playSuccessSound } from '@/features/sound'
+	import { commands, type DeviceMode, tryCmd } from '@/tauri'
+	import { Button } from '$lib/components/ui/button/index.js'
+	import * as Field from '$lib/components/ui/field/index.js'
+	import { Input } from '$lib/components/ui/input/index.js'
 
-  type PendingAction =
-    | 'connect'
-    | 'disconnect'
-    | 'battery'
-    | 'name'
-    | 'temp'
-    | 'location'
-    | 'bustime'
-    | 'github'
+	const connState = $state({
+		isConnected: false,
+	})
 
-  type DeviceResult = number | string | null
+	type PendingAction =
+		| 'connect'
+		| 'disconnect'
+		| 'battery'
+		| 'name'
+		| 'temp'
+		| 'location'
+		| 'bustime'
 
-  let connected = $state(false)
-  let pending = $state<PendingAction | null>(null)
-  let result = $state<DeviceResult>(null)
+	type DeviceResult = number | string | null
 
-  let name = $state('')
-  let city = $state('')
-  let selectedMode: DeviceMode = $state('RealDevice')
-  const isBusy = $derived(pending !== null)
-  const locationStatus = $derived(prefsState.locationStatus)
+	let pendingOp = $state<PendingAction | null>(null)
+	let actionResult = $state<DeviceResult>(null)
 
-  async function syncConnectionState() {
-    await tryCmd(commands.isConnected()).match(
-      (isConnected) => {
-        connected = isConnected
-      },
-      (error) => {
-        result = `Failed to read connection state: ${error}`
-      }
-    )
-  }
+	$inspect(connState?.isConnected)
 
-  onMount(() => {
-    void initializePage()
-  })
+	let name = $state('')
+	let city = $state('')
+	let deviceMode: DeviceMode = $state('RealDevice')
+	const isBusy = $derived(pendingOp !== null)
+	const locationStatus = $derived(prefsState.locationStatus)
 
-  async function initializePage() {
-    try {
-      await Promise.all([syncConnectionState(), refreshLocationState()])
-    } catch (error) {
-      result = `Initialization failed: ${
-        typeof error === 'string'
-          ? error
-          : error instanceof Error
-            ? error.message
-            : String(error)
-      }`
-    }
-  }
+	function toErrMessage(err: unknown): string {
+		if (typeof err === 'string') return err
+		if (err instanceof Error) return err.message
+		return String(err)
+	}
 
-  $inspect(authState)
+	async function runPendingAction(
+		action: PendingAction,
+		task: () => Promise<void>
+	): Promise<void> {
+		pendingOp = action
+		try {
+			await task()
+		} finally {
+			pendingOp = null
+		}
+	}
 
-  async function enableLocationAccess() {
-    pending = 'location'
-    try {
-      const position = await requestLocationState()
-      if (!position) {
-        result = 'Location access was not granted'
-        return
-      }
-      result = `Location updated: ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`
-    } catch (error) {
-      result = `Location update failed: ${
-        typeof error === 'string'
-          ? error
-          : error instanceof Error
-            ? error.message
-            : String(error)
-      }`
-    } finally {
-      pending = null
-    }
-  }
+	async function withCurrentLocation(
+		onSuccess: (lat: number, lon: number) => Promise<void>
+	): Promise<void> {
+		const pos = await requestLocationState()
+		if (!pos) {
+			actionResult = 'Location permission is required'
+			return
+		}
 
-  async function connect() {
-    pending = 'connect'
-    try {
-      await tryCmd(commands.connectDevice(selectedMode)).match(
-        () => {
-          connected = true
-          result = `Connected to ${selectedMode}`
-        },
-        (error) => {
-          result = `Connection failed: ${error}`
-        }
-      )
-    } finally {
-      pending = null
-    }
-  }
+		await onSuccess(pos.coords.latitude, pos.coords.longitude)
+	}
 
-  async function disconnect() {
-    pending = 'disconnect'
-    try {
-      await tryCmd(commands.disconnectDevice()).match(
-        () => {
-          connected = false
-          result = 'Disconnected'
-        },
-        (error) => {
-          result = `Disconnect failed: ${error}`
-        }
-      )
-    } finally {
-      pending = null
-    }
-  }
+	async function syncConnState() {
+		await tryCmd(commands.isConnected()).match(
+			nextIsConnected => {
+				connState.isConnected = nextIsConnected
+			},
+			error => {
+				actionResult = `Failed to read connection state: ${error}`
+			}
+		)
+	}
 
-  async function getBattery() {
-    pending = 'battery'
-    try {
-      await tryCmd(commands.getBattery()).match(
-        (level) => {
-          result = level
-        },
-        (error) => {
-          result = `Battery request failed: ${error}`
-        }
-      )
-    } finally {
-      pending = null
-    }
-  }
+	onMount(() => {
+		void initPage()
+	})
 
-  async function sendName() {
-    pending = 'name'
-    try {
-      await tryCmd(commands.sendName(name)).match(
-        () => {
-          result = 'Name sent'
-        },
-        (error) => {
-          result = `Send name failed: ${error}`
-        }
-      )
-    } finally {
-      pending = null
-    }
-  }
+	async function initPage() {
+		try {
+			await Promise.all([syncConnState(), refreshLocationState()])
+		} catch (err) {
+			actionResult = `Initialization failed: ${toErrMessage(err)}`
+		}
+	}
 
-  async function sendTemp() {
-    pending = 'temp'
-    try {
-      const position = await requestLocationState()
-      if (!position) {
-        result = 'Location permission is required'
-        return
-      }
+	$inspect(authState)
 
-      await tryCmd(
-        commands.sendTemp(position.coords.latitude, position.coords.longitude)
-      ).match(
-        () => {
-          result = 'Weather sent'
-        },
-        (error) => {
-          result = `Send weather failed: ${error}`
-        }
-      )
-    } finally {
-      pending = null
-    }
-  }
+	async function requestLocationAccess() {
+		await runPendingAction('location', async () => {
+			try {
+				const pos = await requestLocationState()
+				if (!pos) {
+					actionResult = 'Location access was not granted'
+					return
+				}
+				actionResult = `Location updated: ${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`
+			} catch (err) {
+				actionResult = `Location update failed: ${toErrMessage(err)}`
+			}
+		})
+	}
 
-  async function testGithub() {
-      console.log("testGithub clicked")
-      pending = 'github'
-      try {
-          const widget = await commands.testGithub()
-          console.log("result:", widget)
-      } catch (e) {
-          console.error("error:", e)
-          result = `Error: ${e}`
-      } finally {
-          pending = null
-      }
-  }
+	async function connect() {
+		await runPendingAction('connect', async () => {
+			await tryCmd(commands.connectDevice(deviceMode)).match(
+				() => {
+					connState.isConnected = true
+					playSuccessSound()
+					actionResult = `Connected to ${deviceMode}`
+				},
+				error => {
+					playFailedSound()
+					actionResult = `Connection failed: ${error}`
+				}
+			)
+		})
+	}
 
-  async function sendBustime() {
-    pending = 'bustime'
+	async function disconnect() {
+		await runPendingAction('disconnect', async () => {
+			await tryCmd(commands.disconnectDevice()).match(
+				() => {
+					connState.isConnected = false
+					actionResult = 'Disconnected'
+				},
+				error => {
+					actionResult = `Disconnect failed: ${error}`
+				}
+			)
+		})
+	}
 
-    try {
-      const position = await requestLocationState()
-      if (!position) {
-        result = 'Location permission is required'
-        return
-      }
+	async function getBattery() {
+		await runPendingAction('battery', async () => {
+			await tryCmd(commands.getBattery()).match(
+				level => {
+					actionResult = level
+				},
+				error => {
+					actionResult = `Battery request failed: ${error}`
+				}
+			)
+		})
+	}
 
-      await tryCmd(
-        commands.sendBustime(
-          position.coords.latitude,
-          position.coords.longitude
-        )
-      ).match(
-        (data) => {
-          result = data
-        },
-        (error) => {
-          result = `Bustime request failed: ${error}`
-        }
-      )
-    } catch (error) {
-      result = `Bustime request failed: ${
-        typeof error === 'string'
-          ? error
-          : error instanceof Error
-            ? error.message
-            : String(error)
-      }`
-    } finally {
-      pending = null
-    }
-  }
+	async function sendName() {
+		await runPendingAction('name', async () => {
+			await tryCmd(commands.sendName(name)).match(
+				() => {
+					actionResult = 'Name sent'
+				},
+				error => {
+					actionResult = `Send name failed: ${error}`
+				}
+			)
+		})
+	}
+
+	async function sendTemp() {
+		await runPendingAction('temp', async () => {
+			await withCurrentLocation(async (lat, lon) => {
+				await tryCmd(commands.sendTemp(lat, lon)).match(
+					() => {
+						actionResult = 'Weather sent'
+					},
+					error => {
+						actionResult = `Send weather failed: ${error}`
+					}
+				)
+			})
+		})
+	}
+
+	async function sendBustime() {
+		await runPendingAction('bustime', async () => {
+			try {
+				await withCurrentLocation(async (lat, lon) => {
+					await tryCmd(commands.sendBustime(lat, lon)).match(
+						data => {
+							actionResult = data
+						},
+						error => {
+							actionResult = `Bustime request failed: ${error}`
+						}
+					)
+				})
+			} catch (err) {
+				actionResult = `Bustime request failed: ${toErrMessage(err)}`
+			}
+		})
+	}
 </script>
 
-<main class="space-y-6">
-  <h1 class="text-2xl font-semibold">Device Controls</h1>
+<Button onclick={()=> connState.isConnected = !connState.isConnected}
+	>Dev Toggle</Button
+>
 
-  <Field.Field orientation="horizontal" class="justify-center mx-auto max-w-xs">
-    <Field.Label for="device-mode" class="sr-only">Device Mode</Field.Label>
-    <select
-      id="device-mode"
-      bind:value={selectedMode}
-      disabled={isBusy || connected}
-      class="border rounded px-3 py-2"
-    >
-      <option value="RealDevice">Real Device (Bluetooth)</option>
-      <option value="Simulator">Simulator (TCP)</option>
-    </select>
+{#if !connState.isConnected}
+	<section class="space-y-6">
+		<h1 class="text-2xl font-semibold">Device Controls</h1>
 
-    <Button
-      variant="outline"
-      onclick={connected ? disconnect : connect}
-      disabled={isBusy}
-    >
-      {#if pending === 'connect'}
-        Connecting...
-      {:else if pending === 'disconnect'}
-        Disconnecting...
-      {:else}
-        {connected ? 'Disconnect' : 'Connect'}
-      {/if}
-    </Button>
-  </Field.Field>
+		<Field.Field orientation="horizontal" class="justify-center mx-auto max-w-xs">
+			<Field.Label for="device-mode" class="sr-only">Device Mode</Field.Label>
+			<select
+				id="device-mode"
+				bind:value={deviceMode}
+				disabled={isBusy || connState.isConnected}
+				class="border rounded px-3 py-2"
+			>
+				<option value="RealDevice">Real Device (Bluetooth)</option>
+				<option value="Simulator">Simulator (TCP)</option>
+			</select>
 
-  <Field.Field orientation="horizontal" class="justify-center mx-auto max-w-xs">
-    <Field.Label for="name-input" class="sr-only">Name</Field.Label>
-    <Input id="name-input" placeholder="Enter a name..." bind:value={name} />
-    <Button
-      variant="outline"
-      onclick={sendName}
-      disabled={isBusy || !name.trim()}
-    >
-      {pending === 'name' ? 'Sending...' : 'Send Name'}
-    </Button>
-  </Field.Field>
+			<Button
+				variant="outline"
+				onclick={connState.isConnected ? disconnect : connect}
+				disabled={isBusy}
+			>
+				{#if pendingOp === 'connect'}
+					Connecting...
+				{:else if pendingOp === 'disconnect'}
+					Disconnecting...
+				{:else}
+					{connState.isConnected ? 'Disconnect' : 'Connect'}
+				{/if}
+			</Button>
+			<Button variant="outline" onclick={disconnect} disabled={isBusy}>
+				Disconnect
+			</Button>
+		</Field.Field>
 
-  <Field.Field orientation="horizontal" class="justify-center mx-auto max-w-xs">
-    <Field.Label for="city-input" class="sr-only">City</Field.Label>
-    <Input id="city-input" placeholder="Enter a city..." bind:value={city} />
-    <Button
-      variant="outline"
-      onclick={sendTemp}
-      disabled={isBusy || !city.trim()}
-    >
-      {pending === 'temp' ? 'Sending...' : 'Send Weather'}
-    </Button>
-  </Field.Field>
+		<Field.Field orientation="horizontal" class="justify-center mx-auto max-w-xs">
+			<Field.Label for="name-input" class="sr-only">Name</Field.Label>
+			<Input id="name-input" placeholder="Enter a name..." bind:value={name} />
+			<Button variant="outline" onclick={sendName} disabled={isBusy || !name.trim()}>
+				{pendingOp === 'name' ? 'Sending...' : 'Send Name'}
+			</Button>
+		</Field.Field>
 
-  <div class="flex justify-center gap-3">
-    <Button variant="outline" onclick={getBattery} disabled={isBusy}>
-      {pending === 'battery' ? 'Checking...' : 'Device Battery'}
-    </Button>
+		<Field.Field orientation="horizontal" class="justify-center mx-auto max-w-xs">
+			<Field.Label for="city-input" class="sr-only">City</Field.Label>
+			<Input id="city-input" placeholder="Enter a city..." bind:value={city} />
+			<Button variant="outline" onclick={sendTemp} disabled={isBusy || !city.trim()}>
+				{pendingOp === 'temp' ? 'Sending...' : 'Send Weather'}
+			</Button>
+		</Field.Field>
 
-    <Button variant="outline" onclick={sendBustime} disabled={isBusy}>
-      {pending === 'bustime' ? 'Sending...' : 'Send Bustime'}
-    </Button>
-  </div>
+		<div class="flex justify-center gap-3">
+			<Button variant="outline" onclick={getBattery} disabled={isBusy}>
+				{pendingOp === 'battery' ? 'Checking...' : 'Device Battery'}
+			</Button>
 
- <div class="flex justify-center gap-3">
-    <Button variant="outline" onclick={testGithub} disabled={isBusy}>
-        Test Github
-    </Button>
-</div>
+			<Button variant="outline" onclick={sendBustime} disabled={isBusy}>
+				{pendingOp === 'bustime' ? 'Sending...' : 'Send Bustime'}
+			</Button>
+		</div>
 
-  <section class="space-y-1 text-center text-sm">
-    <p>Location Status: {locationStatus}</p>
-    <p>
-      Last Known Location:
-      {prefsState.lastKnownLocation
-        ? `${prefsState.lastKnownLocation.coords.latitude.toFixed(6)}, ${prefsState.lastKnownLocation.coords.longitude.toFixed(6)}`
-        : 'None'}
-    </p>
-  </section>
+		<section class="space-y-1 text-center text-sm">
+			<p>Location Status: {locationStatus}</p>
+			<p>
+				Last Known Location:
+				{prefsState.lastKnownLocation
+				? `${prefsState.lastKnownLocation.coords.latitude.toFixed(6)}, ${prefsState.lastKnownLocation.coords.longitude.toFixed(6)}`
+				: 'None'}
+			</p>
+		</section>
 
-  {#if locationStatus !== 'granted' && locationStatus !== 'not-available'}
-    <div class="flex justify-center">
-      <Button
-        variant="outline"
-        onclick={enableLocationAccess}
-        disabled={isBusy}
-      >
-        {pending === 'location' ? 'Requesting...' : 'Enable Location Access'}
-      </Button>
-    </div>
-  {/if}
+		{#if locationStatus !== 'granted' && locationStatus !== 'not-available'}
+			<div class="flex justify-center">
+				<Button variant="outline" onclick={requestLocationAccess} disabled={isBusy}>
+					{pendingOp === 'location' ? 'Requesting...' : 'Enable Location Access'}
+				</Button>
+			</div>
+		{/if}
 
-  {#if result !== null}
-    <p class="text-center text-sm">{result}</p>
-  {/if}
-</main>
+		{#if actionResult !== null}
+			<p class="text-center text-sm">{actionResult}</p>
+		{/if}
+	</section>
+{:else}
+	<WidgetEditor />
+{/if}

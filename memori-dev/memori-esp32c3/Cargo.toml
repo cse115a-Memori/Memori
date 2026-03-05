@@ -1,16 +1,16 @@
 [package]
-edition      = "2024"
-name         = "memori-esp32c3"
+edition = "2024"
+name = "memori-esp32c3"
 rust-version = "1.88"
-version      = "0.1.0"
+version = "0.1.0"
 
 [[bin]]
 name = "memori-esp32c3"
 path = "./src/bin/main.rs"
 
 [[bin]]
-name = "ble_echo"
-path = "./src/bin/ble_echo.rs"
+name = "ble"
+path = "./src/bin/ble.rs"
 
 [dependencies]
 esp-hal = { version = "~1.0", features = ["esp32c3", "log-04", "unstable"] }
@@ -24,7 +24,7 @@ esp-rtos = { version = "0.2.0", features = [
 ] }
 
 esp-bootloader-esp-idf = { version = "0.4.0", features = ["esp32c3", "log-04"] }
-log                    = "0.4.27"
+log = "0.4.27"
 
 embassy-net = { version = "0.7.1", features = [
   "dhcpv4",
@@ -72,13 +72,18 @@ smoltcp = { version = "0.12.0", default-features = false, features = [
 trouble-host = { version = "0.5.0", features = ["gatt"] }
 
 critical-section = "1.2.0"
-static_cell      = "2.1.1"
+static_cell = "2.1.1"
 
 
-ratatui = { version = "0.30.0" ,default-features = false, features=["portable-atomic"] }
-mousefood = { git="https://github.com/j-g00da/mousefood.git", rev="693d82ae9482c32be6363e72474faeb7d962cb1b", features = ["epd-weact","framebuffer"] }
+ratatui = { version = "0.30.0", default-features = false, features = [
+  "portable-atomic",
+] }
+mousefood = { git = "https://github.com/j-g00da/mousefood.git", rev = "693d82ae9482c32be6363e72474faeb7d962cb1b", features = [
+  "epd-weact",
+  "framebuffer",
+] }
 
-memori-ui = {path="../../memori-ui", default-features = false}
+memori-ui = { path = "../../memori-ui", default-features = false }
 
 # needed to drive the display
 display-interface-spi = "0.5.0"
@@ -92,6 +97,3 @@ embassy-sync = "0.7.2"
 ble-device = { path = "../../memori-transport/ble-device" }
 transport = { path = "../../memori-transport/transport" }
 postcard = "1.1.3"
-
-
-

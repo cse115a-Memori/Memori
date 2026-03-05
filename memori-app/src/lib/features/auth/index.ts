@@ -1,3 +1,3 @@
-export * from './service.ts'
-export * from './store.ts'
-export type * from './types.ts'
+export * from './service'
+export * from './store'
+export type * from './types'
