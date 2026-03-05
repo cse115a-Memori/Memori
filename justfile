@@ -22,7 +22,7 @@ android-sim:
 [working-directory('memori-app')]
 desktop:
     bun install
-    bun tauri dev 
+    bun tauri dev
 
 typ FILE="":
     typst watch {{ FILE }}

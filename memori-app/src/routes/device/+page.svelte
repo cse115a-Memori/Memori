@@ -23,6 +23,7 @@
     | 'temp'
     | 'location'
     | 'bustime'
+    | 'github'
 
   type DeviceResult = number | string | null
 
@@ -179,6 +180,20 @@
     }
   }
 
+  async function testGithub() {
+      console.log("testGithub clicked")
+      pending = 'github'
+      try {
+          const widget = await commands.testGithub()
+          console.log("result:", widget)
+      } catch (e) {
+          console.error("error:", e)
+          result = `Error: ${e}`
+      } finally {
+          pending = null
+      }
+  }
+
   async function sendBustime() {
     pending = 'bustime'
 
@@ -279,6 +294,12 @@
       {pending === 'bustime' ? 'Sending...' : 'Send Bustime'}
     </Button>
   </div>
+
+ <div class="flex justify-center gap-3">
+    <Button variant="outline" onclick={testGithub} disabled={isBusy}>
+        Test Github
+    </Button>
+</div>
 
   <section class="space-y-1 text-center text-sm">
     <p>Location Status: {locationStatus}</p>

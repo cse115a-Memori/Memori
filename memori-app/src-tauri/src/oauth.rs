@@ -25,7 +25,7 @@ pub struct OAuthConfigs {
     pub twitch: OAuthConfig,
 }
 
-#[derive(Serialize, Type)]
+#[derive(Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 #[specta(rename_all = "camelCase")]
 pub struct UserInfo {
