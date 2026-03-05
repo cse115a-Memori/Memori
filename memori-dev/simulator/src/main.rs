@@ -42,7 +42,7 @@ async fn main() -> Result<()> {
         font_bold: memori_ui::FONT_BOLD,
         font_italic: memori_ui::FONT_ITALIC,
         // Define how to display newly rendered widgets to the simulator window
-        flush_callback: Box::new(move |display| {
+        flush_callback: Box::new(move |display: &mut SimulatorDisplay<BinaryColor>| {
             simulator_window.update(display);
             if simulator_window.events().any(|e| e == SimulatorEvent::Quit) {
                 panic!("simulator window closed");
@@ -83,26 +83,26 @@ async fn main() -> Result<()> {
                     top: WidgetId(0),
                     bottom: WidgetId(0),
                 },
-                MemoriLayout::VSplitWithLeftHSplit { 
+                MemoriLayout::VSplitWithLeftHSplit {
                     left_top: WidgetId(0),
                     left_bottom: WidgetId(0),
-                    right: WidgetId(0)
+                    right: WidgetId(0),
                 },
-                MemoriLayout::VSplitWithRightHSplit { 
+                MemoriLayout::VSplitWithRightHSplit {
                     right_top: WidgetId(0),
                     right_bottom: WidgetId(0),
-                    left: WidgetId(0)
+                    left: WidgetId(0),
                 },
-                MemoriLayout::HSplitWithTopVSplit { 
+                MemoriLayout::HSplitWithTopVSplit {
                     top_left: WidgetId(0),
                     top_right: WidgetId(0),
-                    bottom: WidgetId(0)
+                    bottom: WidgetId(0),
                 },
-                MemoriLayout::HSplitWithBottomVSplit { 
+                MemoriLayout::HSplitWithBottomVSplit {
                     top: WidgetId(0),
                     bottom_left: WidgetId(0),
-                    bottom_right: WidgetId(0)
-                }
+                    bottom_right: WidgetId(0),
+                },
             ],
             5,
         );

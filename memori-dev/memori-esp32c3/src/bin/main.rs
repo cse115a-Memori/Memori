@@ -28,11 +28,14 @@ use weact_studio_epd::graphics::Display290BlackWhite;
 
 extern crate alloc;
 
+// communications infrastructure
 static RADIO: StaticCell<esp_radio::Controller<'static>> = StaticCell::new();
-
-static MEMORI_STATE: StaticCell<Mutex<CriticalSectionRawMutex, MemoriState>> = StaticCell::new();
 static BLE_TRANSPORT: StaticCell<Mutex<CriticalSectionRawMutex, DeviceBLETransport>> =
     StaticCell::new();
+
+static MEMORI_STATE: StaticCell<Mutex<CriticalSectionRawMutex, MemoriState>> = StaticCell::new();
+
+const DEVICE_ID: &str = env!("DEVICE_ID");
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
@@ -89,9 +92,15 @@ async fn main(spawner: Spawner) -> () {
         busy_pin: peripherals.GPIO5,
     };
 
-    let mem_state = MEMORI_STATE.init_with(|| {
-        let mem_state = MemoriState::default();
+    info!("My id: {DEVICE_ID}");
 
+    // at build time we can set a random string as this devices "connection-id"
+    // that then gets picked up by the phone.
+    let mem_state = MEMORI_STATE.init_with(|| {
+        // in this function it would be nice if we stored something
+        // in flash that told us if it was already onboarded or if its
+        // a new device.
+        let mem_state = MemoriState::default();
         Mutex::new(mem_state)
     });
 
@@ -99,15 +108,11 @@ async fn main(spawner: Spawner) -> () {
         DeviceBLETransport::new(),
     ));
 
-    spawner
-      .spawn(hello_task())
-      .expect("Failed to begin hello_task");
-
     // Temporarily disable the e-paper UI task while validating BLE advertising.
     // The display driver performs blocking operations that can starve async BLE startup.
     spawner
-      .spawn(ui_task(spi_bus, term_init_pins, mem_state))
-      .expect("Failed to begin ui_task");
+        .spawn(ui_task(spi_bus, term_init_pins, mem_state))
+        .expect("Failed to begin ui_task");
 
     spawner
         .spawn(ble_task(
@@ -118,15 +123,6 @@ async fn main(spawner: Spawner) -> () {
             spawner,
         ))
         .expect("Failed to start ble_task");
-}
-
-// This is an example of how to create a task.
-#[embassy_executor::task]
-pub async fn hello_task() {
-    loop {
-        info!("Hello everyone!");
-        Timer::after(Duration::from_secs(1)).await;
-    }
 }
 
 #[embassy_executor::task]
@@ -145,7 +141,7 @@ pub async fn ui_task(
     let mut display = Display290BlackWhite::new();
     let term = setup_term(spi, &mut display, term_init_pins);
 
-    debug!("initialized terminal");
+    info!("initialized terminal");
     let mut memori = Memori::new(term);
 
     loop {
