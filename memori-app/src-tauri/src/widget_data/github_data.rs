@@ -3,7 +3,7 @@ use serde::Deserialize;
 use chrono::{Local, Datelike};
 use tauri::AppHandle;
 use tauri_plugin_svelte::ManagerExt;
-use crate::auth_store_types::UserInfo;
+use crate::oauth::UserInfo;
 use std::collections::HashMap;
 use memori_ui::widgets::Github;
 
