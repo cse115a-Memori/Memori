@@ -15,6 +15,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
+#[serde(rename_all = "camelCase")]
+#[specta(rename_all = "camelCase")]
 pub struct Github {
     pub username: String,
     pub repo: String,

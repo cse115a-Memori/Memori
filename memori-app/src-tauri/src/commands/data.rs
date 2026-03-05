@@ -2,6 +2,7 @@ use super::fetch::{
     fetch_all_ucsc_stops, fetch_github_widget, fetch_twitch_display_name, fetch_weather_temp, Stop,
 };
 use crate::state::{AppState, DeviceConnection};
+use crate::widget_data::github_data::*;
 use memori_ui::{
     layout::MemoriLayout,
     widgets::{
@@ -10,15 +11,16 @@ use memori_ui::{
     },
     MemoriState,
 };
-use crate::widget_data::github_data::*;
-use reqwest::Client;
 use serde::{de::DeserializeOwned, Deserialize};
-use serde_json::json;
-use tauri::{State, AppHandle};
+use std::time::Duration;
+use tauri::{AppHandle, State};
+use tauri_plugin_svelte::ManagerExt;
+use tokio::time::timeout;
 use transport::HostTransport as _;
 
 const DEFAULT_WEATHER_TEXT: &str = "20.0";
 const DEFAULT_GITHUB_USERNAME: &str = "CaiNann";
+const DEFAULT_GITHUB_REPO: &str = "Memori";
 const DEFAULT_TWITCH_USER: &str = "twitch_user";
 const DEFAULT_BUS_PREDICTION: &str = "9 min";
 const DEFAULT_BUS_ROUTE: &str = "Route 19";
@@ -184,16 +186,17 @@ fn fallback_twitch_user(auth: &AuthState) -> String {
 
 async fn resolve_github_data(auth: &AuthState) -> (String, Option<String>) {
     let fallback_username = fallback_github_username(auth);
+    let fallback_repo = DEFAULT_GITHUB_REPO.to_string();
 
     match auth.users_by_provider.github.as_ref() {
         Some(user) => match non_empty(&user.access_token) {
             Some(token) => fetch_github_widget(&token)
                 .await
-                .map(|github| (github.username, github.repo))
-                .unwrap_or_else(|_| (fallback_username.clone(), None)),
-            None => (fallback_username, None),
+                .map(|github| (github.username, Some(github.repo)))
+                .unwrap_or_else(|_| (fallback_username.clone(), Some(fallback_repo.clone()))),
+            None => (fallback_username, Some(fallback_repo)),
         },
-        None => (fallback_username, None),
+        None => (fallback_username, Some(fallback_repo)),
     }
 }
 
@@ -334,7 +337,10 @@ pub async fn get_widget_kinds(app: AppHandle) -> Result<[MemoriWidget; 6], Strin
         never_widget(3, WidgetKind::Weather(Weather::new(temp_text))),
         never_widget(
             4,
-            WidgetKind::Github(Github::new(github_username, github_repo)),
+            WidgetKind::Github(Github::new(
+                github_username,
+                github_repo.unwrap_or_else(|| DEFAULT_GITHUB_REPO.to_string()),
+            )),
         ),
         never_widget(5, WidgetKind::Twitch(Twitch::new(twitch_user))),
     ])
