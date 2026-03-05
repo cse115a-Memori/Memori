@@ -1,33 +1,20 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
-	import { Sound } from 'svelte-sound'
+
 	import WidgetEditor from '@/components/layout/WidgetEditor.svelte'
 	import { authState } from '@/features/auth/store'
+	// import { connState } from '@/features/connection'
 	import { refreshLocationState, requestLocationState } from '@/features/prefs/service'
 	import { prefsState } from '@/features/prefs/store'
+	import { playFailedSound, playSuccessSound } from '@/features/sound'
 	import { commands, type DeviceMode, tryCmd } from '@/tauri'
-	import alarm_wav from '$lib/assets/alarm.wav'
-	import retro_wav from '$lib/assets/retro.wav'
 	import { Button } from '$lib/components/ui/button/index.js'
 	import * as Field from '$lib/components/ui/field/index.js'
 	import { Input } from '$lib/components/ui/input/index.js'
 
-	let sound_playing = $state(false)
-
-	const click_sound = new Sound(retro_wav)
-	const alarm_sound = new Sound(alarm_wav, {
-		onend: () => (sound_playing = false),
+	const connState = $state({
+		isConnected: false,
 	})
-
-	function playSuccessSound() {
-		sound_playing = true
-		click_sound.play()
-	} // playSound can be called anywhere in the code
-
-	function playFailedSound() {
-		sound_playing = true
-		alarm_sound.play()
-	} // playSound can be called anywhere in the code
 
 	type PendingAction =
 		| 'connect'
@@ -40,11 +27,10 @@
 
 	type DeviceResult = number | string | null
 
-	let isConnected = $state(false)
 	let pendingOp = $state<PendingAction | null>(null)
 	let actionResult = $state<DeviceResult>(null)
 
-	$inspect(isConnected, sound_playing)
+	$inspect(connState?.isConnected)
 
 	let name = $state('')
 	let city = $state('')
@@ -85,7 +71,7 @@
 	async function syncConnState() {
 		await tryCmd(commands.isConnected()).match(
 			nextIsConnected => {
-				isConnected = nextIsConnected
+				connState.isConnected = nextIsConnected
 			},
 			error => {
 				actionResult = `Failed to read connection state: ${error}`
@@ -126,7 +112,7 @@
 		await runPendingAction('connect', async () => {
 			await tryCmd(commands.connectDevice(deviceMode)).match(
 				() => {
-					isConnected = true
+					connState.isConnected = true
 					playSuccessSound()
 					actionResult = `Connected to ${deviceMode}`
 				},
@@ -142,7 +128,7 @@
 		await runPendingAction('disconnect', async () => {
 			await tryCmd(commands.disconnectDevice()).match(
 				() => {
-					isConnected = false
+					connState.isConnected = false
 					actionResult = 'Disconnected'
 				},
 				error => {
@@ -213,9 +199,11 @@
 	}
 </script>
 
-<Button onclick={()=> isConnected = !isConnected}>Dev Toggle</Button>
+<Button onclick={()=> connState.isConnected = !connState.isConnected}
+	>Dev Toggle</Button
+>
 
-{#if !isConnected}
+{#if !connState.isConnected}
 	<section class="space-y-6">
 		<h1 class="text-2xl font-semibold">Device Controls</h1>
 
@@ -224,7 +212,7 @@
 			<select
 				id="device-mode"
 				bind:value={deviceMode}
-				disabled={isBusy || isConnected}
+				disabled={isBusy || connState.isConnected}
 				class="border rounded px-3 py-2"
 			>
 				<option value="RealDevice">Real Device (Bluetooth)</option>
@@ -233,7 +221,7 @@
 
 			<Button
 				variant="outline"
-				onclick={isConnected ? disconnect : connect}
+				onclick={connState.isConnected ? disconnect : connect}
 				disabled={isBusy}
 			>
 				{#if pendingOp === 'connect'}
@@ -241,7 +229,7 @@
 				{:else if pendingOp === 'disconnect'}
 					Disconnecting...
 				{:else}
-					{isConnected ? 'Disconnect' : 'Connect'}
+					{connState.isConnected ? 'Disconnect' : 'Connect'}
 				{/if}
 			</Button>
 			<Button variant="outline" onclick={disconnect} disabled={isBusy}>

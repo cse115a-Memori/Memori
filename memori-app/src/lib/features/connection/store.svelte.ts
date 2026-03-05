@@ -4,7 +4,7 @@ const initialConnectionState: ConnectionState = {
 	isConnected: false,
 }
 
-export const connectionState = $state<ConnectionState>(initialConnectionState)
+export const connState = $state<ConnectionState>(initialConnectionState)
 
 // export const connectionState = connectionStore.state
 
