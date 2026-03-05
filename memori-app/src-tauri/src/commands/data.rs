@@ -308,11 +308,14 @@ pub async fn send_twitch(state: State<'_, AppState>, token: String) -> Result<()
 pub async fn get_widget_kinds(app: AppHandle) -> Result<[MemoriWidget; 6], String> {
     let prefs: PrefsState = read_store_state(&app, "prefs");
     let auth: AuthState = read_store_state(&app, "auth");
+    let github: Github = app.svelte().state_or_default("github").unwrap_or_default();
+    let username = github.username;
     let temp_text = resolve_weather_text(&prefs).await;
     let (bus_prediction, bus_route) = resolve_bus_data(&prefs).await;
     let github = refresh_github_widget(&app).await.unwrap_or_default();
     println!("github widget: {:?}", github);
     let twitch_user = fallback_twitch_user(&auth);
+    let asdf = username;
     let name = prefs.name;
 
     Ok([

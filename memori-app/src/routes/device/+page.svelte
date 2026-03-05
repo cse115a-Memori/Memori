@@ -2,19 +2,15 @@
 	import { onMount } from 'svelte'
 
 	import WidgetEditor from '@/components/layout/WidgetEditor.svelte'
-	import { authState } from '@/features/auth/store'
-	// import { connState } from '@/features/connection'
+	import { connState, connectDevice, disconnectDevice, syncConnectionState } from '@/features/connection'
 	import { refreshLocationState, requestLocationState } from '@/features/prefs/service'
 	import { prefsState } from '@/features/prefs/store'
 	import { playFailedSound, playSuccessSound } from '@/features/sound'
-	import { commands, type DeviceMode, tryCmd } from '@/tauri'
+	import { commands, toCmdError, type DeviceMode, tryCmd } from '@/tauri'
 	import { Button } from '$lib/components/ui/button/index.js'
 	import * as Field from '$lib/components/ui/field/index.js'
 	import { Input } from '$lib/components/ui/input/index.js'
-
-	const connState = $state({
-		isConnected: false,
-	})
+	import * as NativeSelect from '$lib/components/ui/native-select/index.js'
 
 	type PendingAction =
 		| 'connect'
@@ -30,19 +26,10 @@
 	let pendingOp = $state<PendingAction | null>(null)
 	let actionResult = $state<DeviceResult>(null)
 
-	$inspect(connState?.isConnected)
-
 	let name = $state('')
-	let city = $state('')
 	let deviceMode: DeviceMode = $state('RealDevice')
 	const isBusy = $derived(pendingOp !== null)
 	const locationStatus = $derived(prefsState.locationStatus)
-
-	function toErrMessage(err: unknown): string {
-		if (typeof err === 'string') return err
-		if (err instanceof Error) return err.message
-		return String(err)
-	}
 
 	async function runPendingAction(
 		action: PendingAction,
@@ -69,10 +56,8 @@
 	}
 
 	async function syncConnState() {
-		await tryCmd(commands.isConnected()).match(
-			nextIsConnected => {
-				connState.isConnected = nextIsConnected
-			},
+		await syncConnectionState().match(
+			() => undefined,
 			error => {
 				actionResult = `Failed to read connection state: ${error}`
 			}
@@ -84,14 +69,13 @@
 	})
 
 	async function initPage() {
-		try {
-			await Promise.all([syncConnState(), refreshLocationState()])
-		} catch (err) {
-			actionResult = `Initialization failed: ${toErrMessage(err)}`
-		}
+		await Promise.allSettled([
+			syncConnState(),
+			refreshLocationState().catch(error => {
+				actionResult = `Location refresh failed: ${toCmdError(error)}`
+			}),
+		])
 	}
-
-	$inspect(authState)
 
 	async function requestLocationAccess() {
 		await runPendingAction('location', async () => {
@@ -103,16 +87,15 @@
 				}
 				actionResult = `Location updated: ${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`
 			} catch (err) {
-				actionResult = `Location update failed: ${toErrMessage(err)}`
+				actionResult = `Location update failed: ${toCmdError(err)}`
 			}
 		})
 	}
 
 	async function connect() {
 		await runPendingAction('connect', async () => {
-			await tryCmd(commands.connectDevice(deviceMode)).match(
+			await connectDevice(deviceMode).match(
 				() => {
-					connState.isConnected = true
 					playSuccessSound()
 					actionResult = `Connected to ${deviceMode}`
 				},
@@ -126,9 +109,8 @@
 
 	async function disconnect() {
 		await runPendingAction('disconnect', async () => {
-			await tryCmd(commands.disconnectDevice()).match(
+			await disconnectDevice().match(
 				() => {
-					connState.isConnected = false
 					actionResult = 'Disconnected'
 				},
 				error => {
@@ -193,51 +175,62 @@
 					)
 				})
 			} catch (err) {
-				actionResult = `Bustime request failed: ${toErrMessage(err)}`
+				actionResult = `Bustime request failed: ${toCmdError(err)}`
 			}
 		})
 	}
 </script>
 
-<Button onclick={()=> connState.isConnected = !connState.isConnected}
-	>Dev Toggle</Button
->
-
 {#if !connState.isConnected}
 	<section class="space-y-6">
-		<h1 class="text-2xl font-semibold">Device Controls</h1>
+		<header class="space-y-2">
+			<h1 class="text-2xl font-semibold tracking-tight">Device Controls</h1>
+			<p class="text-sm text-muted-foreground">
+				Use this screen as the operational fallback after onboarding or whenever you need to
+				reconnect and resend payloads.
+			</p>
+		</header>
 
-		<Field.Field orientation="horizontal" class="justify-center mx-auto max-w-xs">
-			<Field.Label for="device-mode" class="sr-only">Device Mode</Field.Label>
-			<select
-				id="device-mode"
-				bind:value={deviceMode}
-				disabled={isBusy || connState.isConnected}
-				class="border rounded px-3 py-2"
-			>
-				<option value="RealDevice">Real Device (Bluetooth)</option>
-				<option value="Simulator">Simulator (TCP)</option>
-			</select>
+		<section class="rounded-2xl border bg-card p-4 shadow-sm">
+			<div class="flex items-center justify-between gap-3">
+				<div>
+					<p class="text-sm font-medium text-foreground">Connection</p>
+					<p class="text-sm text-muted-foreground">
+						{connState.isConnected ? 'Connected and ready.' : 'Waiting for device.'}
+					</p>
+				</div>
+				<div class="text-sm text-muted-foreground">Mode</div>
+			</div>
 
-			<Button
-				variant="outline"
-				onclick={connState.isConnected ? disconnect : connect}
-				disabled={isBusy}
-			>
-				{#if pendingOp === 'connect'}
-					Connecting...
-				{:else if pendingOp === 'disconnect'}
-					Disconnecting...
-				{:else}
-					{connState.isConnected ? 'Disconnect' : 'Connect'}
-				{/if}
-			</Button>
-			<Button variant="outline" onclick={disconnect} disabled={isBusy}>
-				Disconnect
-			</Button>
-		</Field.Field>
+			<div class="mt-4 flex flex-col gap-3 sm:flex-row">
+				<NativeSelect.Root
+					id="device-mode"
+					bind:value={deviceMode}
+					disabled={isBusy || connState.isConnected}
+					class="h-11 flex-1"
+				>
+					<NativeSelect.Option value="RealDevice">Real Device (Bluetooth)</NativeSelect.Option>
+					<NativeSelect.Option value="Simulator">Simulator (TCP)</NativeSelect.Option>
+				</NativeSelect.Root>
 
-		<Field.Field orientation="horizontal" class="justify-center mx-auto max-w-xs">
+				<Button
+					variant="outline"
+					class="h-11"
+					onclick={connState.isConnected ? disconnect : connect}
+					disabled={isBusy}
+				>
+					{#if pendingOp === 'connect'}
+						Connecting...
+					{:else if pendingOp === 'disconnect'}
+						Disconnecting...
+					{:else}
+						{connState.isConnected ? 'Disconnect' : 'Connect'}
+					{/if}
+				</Button>
+			</div>
+		</section>
+
+		<Field.Field orientation="horizontal" class="mx-auto max-w-xl justify-center">
 			<Field.Label for="name-input" class="sr-only">Name</Field.Label>
 			<Input id="name-input" placeholder="Enter a name..." bind:value={name} />
 			<Button variant="outline" onclick={sendName} disabled={isBusy || !name.trim()}>
@@ -245,17 +238,13 @@
 			</Button>
 		</Field.Field>
 
-		<Field.Field orientation="horizontal" class="justify-center mx-auto max-w-xs">
-			<Field.Label for="city-input" class="sr-only">City</Field.Label>
-			<Input id="city-input" placeholder="Enter a city..." bind:value={city} />
-			<Button variant="outline" onclick={sendTemp} disabled={isBusy || !city.trim()}>
-				{pendingOp === 'temp' ? 'Sending...' : 'Send Weather'}
-			</Button>
-		</Field.Field>
-
-		<div class="flex justify-center gap-3">
+		<div class="grid gap-3 sm:grid-cols-3">
 			<Button variant="outline" onclick={getBattery} disabled={isBusy}>
 				{pendingOp === 'battery' ? 'Checking...' : 'Device Battery'}
+			</Button>
+
+			<Button variant="outline" onclick={sendTemp} disabled={isBusy}>
+				{pendingOp === 'temp' ? 'Sending...' : 'Send Weather'}
 			</Button>
 
 			<Button variant="outline" onclick={sendBustime} disabled={isBusy}>
@@ -263,26 +252,26 @@
 			</Button>
 		</div>
 
-		<section class="space-y-1 text-center text-sm">
+		<section class="space-y-2 rounded-2xl border bg-card p-4 text-sm shadow-sm">
 			<p>Location Status: {locationStatus}</p>
 			<p>
 				Last Known Location:
 				{prefsState.lastKnownLocation
-				? `${prefsState.lastKnownLocation.coords.latitude.toFixed(6)}, ${prefsState.lastKnownLocation.coords.longitude.toFixed(6)}`
-				: 'None'}
+					? `${prefsState.lastKnownLocation.coords.latitude.toFixed(6)}, ${prefsState.lastKnownLocation.coords.longitude.toFixed(6)}`
+					: 'None'}
 			</p>
-		</section>
 
-		{#if locationStatus !== 'granted' && locationStatus !== 'not-available'}
-			<div class="flex justify-center">
+			{#if locationStatus !== 'granted' && locationStatus !== 'not-available'}
 				<Button variant="outline" onclick={requestLocationAccess} disabled={isBusy}>
 					{pendingOp === 'location' ? 'Requesting...' : 'Enable Location Access'}
 				</Button>
-			</div>
-		{/if}
+			{/if}
+		</section>
 
 		{#if actionResult !== null}
-			<p class="text-center text-sm">{actionResult}</p>
+			<p class="text-sm text-muted-foreground">
+				{typeof actionResult === 'number' ? `Battery: ${actionResult}%` : actionResult}
+			</p>
 		{/if}
 	</section>
 {:else}

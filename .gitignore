@@ -6,6 +6,8 @@ target
 ./memori-hw/memori-hw-backups/*
 ./memori-hw/fp-info-cache
 
+.helix/
+
 *.step
 *.png
 
