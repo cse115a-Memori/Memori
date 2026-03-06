@@ -3,9 +3,11 @@ use memori_tcp::{
     host::{DeviceConnected, DeviceDisconnected},
     HostTcpTransport,
 };
+use memori_ui::{Memori, MemoriState};
 use serde::{Deserialize, Serialize};
 use specta::Type;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
+use std::sync::{Arc};
 
 #[derive(Debug)]
 pub(crate) enum TCPConnection {
@@ -28,6 +30,7 @@ pub(crate) enum DeviceConnection {
 pub struct AppState {
     pub(crate) tcp_conn: Mutex<TCPConnection>,
     pub(crate) conn: Mutex<DeviceConnection>,
+    pub(crate) memori: Arc<RwLock<Option<MemoriState>>>
 }
 
 impl AppState {
@@ -35,6 +38,7 @@ impl AppState {
         Self {
             tcp_conn: Mutex::new(TCPConnection::Disconnected(HostTcpTransport::default())),
             conn: Mutex::new(DeviceConnection::Disconnected),
+            memori: Arc::new(RwLock::new(None))
         }
     }
 }

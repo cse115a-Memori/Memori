@@ -54,17 +54,30 @@ pub async fn flash_memori_state(
     let memori_state = memori_state.into_memori_state()?;
     let mut guard = state.conn.lock().await;
 
-    match &mut *guard {
-        DeviceConnection::RealDevice(transport) => transport
-            .set_state(memori_state)
-            .await
-            .map_err(|e| format!("Failed to set state: {e}")),
-        DeviceConnection::Simulator(transport) => transport
-            .set_state(memori_state)
-            .await
-            .map_err(|e| format!("Failed to set state: {e}")),
-        DeviceConnection::Disconnected => Err("Device is not connected".to_string()),
+    let result = match &mut *guard {
+        DeviceConnection::RealDevice(transport) => {
+            transport
+                .set_state(memori_state.clone())
+                .await
+                .map_err(|e| format!("Failed to set state: {e}"))
+        }
+        DeviceConnection::Simulator(transport) => {
+            transport
+                .set_state(memori_state.clone())
+                .await
+                .map_err(|e| format!("Failed to set state: {e}"))
+        }
+        DeviceConnection::Disconnected => {
+            return Err("Device is not connected".to_string());
+        }
+    };
+
+    if result.is_ok() {
+        let mut memori_guard = state.memori.write().await;
+        *memori_guard = Some(memori_state);
     }
+
+    result
 }
 
 pub async fn set_memori_state(
