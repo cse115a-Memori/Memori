@@ -8,6 +8,7 @@
 #![deny(clippy::large_stack_frames)]
 
 use ble_device::DeviceBLETransport;
+use bt_hci::uuid::units::ACTIVITY_REFERRED_TO_A_RADIONUCLIDE_BECQUEREL;
 use embassy_executor::Spawner;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::mutex::Mutex;
@@ -22,6 +23,7 @@ use esp_hal::{Blocking, clock::CpuClock};
 use log::{debug, info};
 use memori_esp32c3::ble::ble_task;
 use memori_esp32c3::{MemTermInitPins, setup_term};
+use memori_ui::widgets::{MemoriWidget, Pair, WidgetId, WidgetKind};
 use memori_ui::{Memori, MemoriState};
 use static_cell::StaticCell;
 use weact_studio_epd::graphics::Display290BlackWhite;
@@ -101,6 +103,17 @@ async fn main(spawner: Spawner) -> () {
         // in flash that told us if it was already onboarded or if its
         // a new device.
         // let mem_state = MemoriState::default();
+        //
+        let pair_widget = MemoriWidget::new(
+            WidgetId(0),
+            WidgetKind::Pair(Pair::new(alloc::string::String::from(DEVICE_ID))),
+            memori_ui::widgets::UpdateFrequency::Never,
+            memori_ui::widgets::UpdateFrequency::Never,
+        );
+
+        let frame = memori_ui::layout::MemoriLayout::Full(WidgetId(0));
+
+        let mem_state = MemoriState::new(0, [pair_widget], alloc::vec![frame], 0);
 
         Mutex::new(mem_state)
     });

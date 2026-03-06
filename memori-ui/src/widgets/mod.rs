@@ -2,12 +2,14 @@ mod bus;
 mod clock;
 mod github;
 mod name;
+mod pair;
 mod twitch;
 mod weather;
 pub use bus::*;
 pub use clock::*;
 pub use github::*;
 pub use name::*;
+pub use pair::*;
 pub use twitch::*;
 pub use weather::*;
 
@@ -91,6 +93,7 @@ pub enum WidgetKind {
     Weather(Weather),
     Bus(Bus),
     Twitch(Twitch),
+    Pair(Pair),
 }
 
 impl WidgetKind {
@@ -102,6 +105,7 @@ impl WidgetKind {
             Self::Bus(b) => b.update(),
             Self::Twitch(t) => t.update(),
             Self::Github(g) => g.update(),
+            Self::Pair(_) => {}
         }
     }
 }
@@ -118,6 +122,7 @@ impl Widget for &MemoriWidget {
             WidgetKind::Weather(w) => w.render(area, buf),
             WidgetKind::Bus(b) => b.render(area, buf),
             WidgetKind::Twitch(t) => t.render(area, buf),
+            WidgetKind::Pair(p) => p.render(area, buf),
         }
     }
 }

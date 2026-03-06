@@ -1,7 +1,0 @@
-src/lib/components/ui
-src-tauri/gen/apple
-src-tauri/icons
-
-!src-tauri/gen/apple/project.yml
-
-.vscode/
