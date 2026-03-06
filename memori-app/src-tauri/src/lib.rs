@@ -1,6 +1,7 @@
 mod commands;
 mod oauth;
 mod simulator;
+mod ble;
 mod state;
 mod widget_data;
 
