@@ -28,6 +28,8 @@ use memori_ui::{Memori, MemoriState};
 use static_cell::StaticCell;
 use weact_studio_epd::graphics::Display290BlackWhite;
 
+use memori_esp32c3::DEVICE_ID;
+
 extern crate alloc;
 
 // communications infrastructure
@@ -36,8 +38,6 @@ static BLE_TRANSPORT: StaticCell<Mutex<CriticalSectionRawMutex, DeviceBLETranspo
     StaticCell::new();
 
 static MEMORI_STATE: StaticCell<Mutex<CriticalSectionRawMutex, MemoriState>> = StaticCell::new();
-
-const DEVICE_ID: &str = env!("DEVICE_ID");
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>

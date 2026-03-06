@@ -21,6 +21,8 @@ use weact_studio_epd::{
     graphics::{Display, DisplayRotation},
 };
 
+pub const DEVICE_ID: &str = env!("DEVICE_ID");
+
 /// Helper type for the WeActStudio display.
 pub type MemDisplay = Display<128, 296, 4736, weact_studio_epd::Color>;
 

@@ -20,8 +20,8 @@ const CONNECTIONS_MAX: usize = 1;
 const L2CAP_CHANNELS_MAX: usize = 1;
 const MAX_INFLIGHT: usize = 4;
 
-const PERIPHERAL_NAME: &str = "memori";
-
+const PERIPHERAL_NAME: &str = concat!("memori-", env!("DEVICE_ID"));
+//
 /// Functionality to send messages to host.
 mod sender;
 
@@ -216,12 +216,17 @@ async fn advertise<'values, 'server, C: Controller>(
     peripheral: &mut Peripheral<'values, C, DefaultPacketPool>,
     server: &'server Server<'values>,
 ) -> Result<GattConnection<'values, 'server, DefaultPacketPool>, BleHostError<C::Error>> {
+    let mut scan_data = [0; 31];
+    let scan_len = AdStructure::encode_slice(
+        &[AdStructure::CompleteLocalName(name.as_bytes())],
+        &mut scan_data[..],
+    )?;
+
     let mut advertiser_data = [0; 31];
     let len = AdStructure::encode_slice(
         &[
             AdStructure::Flags(LE_GENERAL_DISCOVERABLE | BR_EDR_NOT_SUPPORTED),
             AdStructure::ServiceUuids128(&[NUS_SERVICE_UUID.to_le_bytes()]),
-            AdStructure::CompleteLocalName(name.as_bytes()),
         ],
         &mut advertiser_data[..],
     )?;
@@ -230,7 +235,7 @@ async fn advertise<'values, 'server, C: Controller>(
             &Default::default(),
             Advertisement::ConnectableScannableUndirected {
                 adv_data: &advertiser_data[..len],
-                scan_data: &[],
+                scan_data: &scan_data[0..scan_len],
             },
         )
         .await?;
