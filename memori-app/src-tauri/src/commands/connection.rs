@@ -13,6 +13,7 @@ pub async fn connect_device(
     // app: AppHandle,
     state: State<'_, AppState>,
     mode: DeviceMode,
+    code: &str,
 ) -> Result<(), String> {
     let mut guard = state.conn.lock().await;
 
@@ -22,7 +23,7 @@ pub async fn connect_device(
 
     match mode {
         DeviceMode::RealDevice => {
-            let (conn, _) = HostBLETransport::connect()
+            let (conn, _) = HostBLETransport::connect(code)
                 .await
                 .map_err(|e| format!("Failed to connect to device: {e}"))?;
 
