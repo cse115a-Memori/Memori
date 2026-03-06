@@ -16,10 +16,10 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 #[serde(rename_all = "camelCase")]
-#[specta(rename_all = "camelCase")]
+#[cfg_attr(feature = "specta", specta(rename_all = "camelCase"))]
 pub struct Github {
     pub username: String,
-    pub repo: String,
+    pub repo: Option<String>,
 
     // Cached stats (updated periodically)
     pub open_issues: u32,
@@ -30,14 +30,8 @@ pub struct Github {
     pub weekday: usize,
 }
 
-impl Default for Github {
-    fn default() -> Self {
-        Self::new("CaiNann".to_string(), "Memori".to_string())
-    }
-}
-
 impl Github {
-    pub fn new(username: String, repo: String) -> Self {
+    pub fn new(username: String, repo: Option<String>) -> Self {
         Self {
             username,
             repo,
@@ -45,8 +39,8 @@ impl Github {
             open_prs: 0,
             stars: 0,
             notifications: 0,
-            commits: [0, 10, 0, 8, 5, 7, 0],
-            weekday: 3,
+            commits: [0, 0, 0, 0, 0, 0, 0],
+            weekday: 0,
         }
     }
 
@@ -90,6 +84,14 @@ impl Widget for &Github {
 
         let outer_inner = outer_block.inner(area);
         outer_block.render(area, buf);
+        
+        if self.repo.is_none() {
+            Paragraph::new("No repo selected...")
+                .style(Style::default().fg(Color::DarkGray))
+                .alignment(Alignment::Center)
+                .render(outer_inner, buf);
+            return;
+        }
 
         // Determine layout based on available space
         match (outer_inner.width, outer_inner.height) {
@@ -104,7 +106,7 @@ impl Widget for &Github {
                     .split(outer_inner);
 
                 // Left half: username and repo
-                let left_text = format!("{}\n({})", self.username, self.repo);
+                let left_text = format!("{}\n({})", self.username, self.repo.as_deref().unwrap());
                 Paragraph::new(left_text)
                     .alignment(Alignment::Center)
                     .render(chunks[0], buf);
@@ -130,7 +132,7 @@ impl Widget for &Github {
                     .split(outer_inner);
 
                 // Left half: username and repo
-                let left_text = format!("{}\n({})", self.username, self.repo);
+                let left_text = format!("{}\n({})", self.username, self.repo.as_deref().unwrap());
                 Paragraph::new(left_text)
                     .alignment(Alignment::Center)
                     .render(chunks[0], buf);
@@ -165,7 +167,7 @@ impl Widget for &Github {
                 build_commit_graph(&self.commits, self.weekday).render(chunks[1], buf);
 
                 let repo_block = Block::default()
-                    .title(Line::from(format!(" {} ", self.repo)))
+                    .title(Line::from(format!(" {} ", self.repo.as_deref().unwrap())))
                     .borders(Borders::ALL)
                     .border_set(border_set)
                     .padding(Padding::new(1, 1, 0, 0));
@@ -221,7 +223,7 @@ impl Widget for &Github {
                 chart.render(graph_inner, buf);
 
                 let repo_block = Block::default()
-                    .title(Line::from(format!(" {} ", self.repo)))
+                    .title(Line::from(format!(" {} ", self.repo.as_deref().unwrap())))
                     .borders(Borders::ALL)
                     .border_set(border_set)
                     .border_style(Style::default().fg(ratatui::style::Color::White));

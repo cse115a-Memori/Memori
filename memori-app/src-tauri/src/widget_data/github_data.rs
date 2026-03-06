@@ -5,6 +5,7 @@ use tauri_plugin_svelte::ManagerExt;
 use crate::oauth::UserInfo;
 use std::collections::HashMap;
 use memori_ui::widgets::Github;
+use crate::commands::data::AuthState;
 
 async fn github_get(client: &Client, url: &str, token: &str) -> Result<serde_json::Value, String> {
     client
@@ -89,12 +90,15 @@ async fn get_commit_frequency(token: &str, owner: &str, repo: &str) -> Result<[u
     Ok(commits_arr)
 }
 
-pub async fn refresh_github_widget(app: &AppHandle) -> Result<Github, String> {
-    let auth_users = app.svelte().get::<HashMap<String, UserInfo>>("auth", "usersByProvider").unwrap();
-    let github_user = auth_users.get("github").ok_or("No GitHub user found".to_string())?;
+pub async fn refresh_github_widget(auth_store: &AuthState) -> Result<Github, String> {
+    let github_user = &auth_store.users_by_provider.github;
     
-    let token = &github_user.access_token;
-    let username = &github_user.name;
+    if github_user.is_none() {
+        return Ok(Github::new("Not logged in...".to_string(), None))
+    }
+    
+    let token = &github_user.as_ref().unwrap().access_token;
+    let username = &github_user.as_ref().unwrap().name;
     let repo = "Memori".to_string();
     let owner = "cse115a-Memori";
     
@@ -109,7 +113,7 @@ pub async fn refresh_github_widget(app: &AppHandle) -> Result<Github, String> {
     
     Ok(memori_ui::widgets::Github {
         username: username.clone(),
-        repo: repo.clone(),
+        repo: Some(repo.clone()),
         open_issues: open_issues?,
         open_prs: open_prs?,
         stars: stars?,

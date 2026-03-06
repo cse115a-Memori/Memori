@@ -8,8 +8,8 @@ export type { GitHub }
 const initialGitHubState: GitHub = {
 	init: false,
 
-	username: '',
-	repo: '',
+	username: 'Not logged in...',
+	repo: null,
 	openIssues: 0,
 	openPrs: 0,
 	stars: 0,

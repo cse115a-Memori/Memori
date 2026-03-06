@@ -142,7 +142,7 @@ pub(crate) async fn fetch_github_widget(token: &str) -> Result<Github, String> {
         .await
         .map_err(|err| err.to_string())?;
 
-    Ok(Github::new(user.login, DEFAULT_GITHUB_REPO.to_string()))
+    Ok(Github::new(user.login, Some(DEFAULT_GITHUB_REPO.to_string())))
 }
 
 fn twitch_client_id() -> Result<String, String> {
