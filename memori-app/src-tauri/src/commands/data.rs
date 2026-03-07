@@ -311,6 +311,7 @@ pub async fn get_widget_kinds(app: AppHandle) -> Result<[MemoriWidget; 6], Strin
     let temp_text = resolve_weather_text(&prefs).await;
     let (bus_prediction, bus_route) = resolve_bus_data(&prefs).await;
     let github = refresh_github_widget(&auth).await;
+    println!("github widget: {:?}", github);
     let twitch_user = fallback_twitch_user(&auth);
     let name = prefs.name;
 

@@ -41,6 +41,7 @@
 		flashErr = ''
 		isFlashing = true
 		const payload = selectFlashPayload(snapshot)
+		console.log("payload: ", payload)
 
 		await tryCmd(commands.flashMemoriState(payload)).match(
 			() => {

@@ -91,9 +91,11 @@ async fn get_commit_frequency(token: &str, owner: &str, repo: &str) -> Result<[u
 }
 
 pub async fn refresh_github_widget(auth_store: &AuthState) -> Result<Github, String> {
+    println!("Refresh github widget called");
     let github_user = &auth_store.users_by_provider.github;
     
     if github_user.is_none() {
+        println!("Github user is none");
         return Ok(Github::new("Not logged in...".to_string(), None))
     }
     
@@ -110,6 +112,8 @@ pub async fn refresh_github_widget(auth_store: &AuthState) -> Result<Github, Str
         get_num_notifications(&token),
         get_commit_frequency(&token, &owner, &repo),
     );
+    
+    println!("Refresh github widget done");
     
     Ok(memori_ui::widgets::Github {
         username: username.clone(),
