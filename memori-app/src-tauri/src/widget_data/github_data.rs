@@ -45,8 +45,9 @@ pub async fn get_github_repos(app: AppHandle) -> Result<Vec<String>, String> {
 pub async fn get_user_repos(token: &str) -> Result<Vec<String>, String> {
     let client = Client::new();
     let mut repos = Vec::new();
-    let mut page = 1;
 
+    // Fetch user's own repos
+    let mut page = 1;
     loop {
         let url = format!(
             "https://api.github.com/user/repos?per_page=100&page={}&sort=updated",
@@ -57,17 +58,43 @@ pub async fn get_user_repos(token: &str) -> Result<Vec<String>, String> {
             Some(a) if !a.is_empty() => a,
             _ => break,
         };
-
         for repo in arr {
             if let Some(name) = repo["full_name"].as_str() {
                 repos.push(name.to_string());
             }
         }
-
-        if arr.len() < 100 {
-            break;
-        }
+        if arr.len() < 100 { break; }
         page += 1;
+    }
+
+    // Fetch user's orgs
+    let orgs_data = github_get(&client, "https://api.github.com/user/orgs", token).await?;
+    if let Some(orgs) = orgs_data.as_array() {
+        for org in orgs {
+            if let Some(org_login) = org["login"].as_str() {
+                let mut page = 1;
+                loop {
+                    let url = format!(
+                        "https://api.github.com/orgs/{}/repos?per_page=100&page={}",
+                        org_login, page
+                    );
+                    let data = github_get(&client, &url, token).await?;
+                    let arr = match data.as_array() {
+                        Some(a) if !a.is_empty() => a,
+                        _ => break,
+                    };
+                    for repo in arr {
+                        if let Some(name) = repo["full_name"].as_str() {
+                            if !repos.contains(&name.to_string()) {
+                                repos.push(name.to_string());
+                            }
+                        }
+                    }
+                    if arr.len() < 100 { break; }
+                    page += 1;
+                }
+            }
+        }
     }
 
     Ok(repos)

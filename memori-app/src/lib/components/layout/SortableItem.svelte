@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Data, Type, UniqueIdentifier } from '@dnd-kit/abstract'
 	import { useSortable } from '@dnd-kit-svelte/svelte/sortable'
+	import { commands, tryCmd } from '@/tauri'
 	import { EllipsisVertical } from '@lucide/svelte'
 	import { onMount } from 'svelte'
 	import type { ClassValue } from 'svelte/elements'
@@ -21,6 +22,9 @@
 		type SortableItemDraft,
 	} from './sortable-item-domain'
 	import { formatCompactClock } from './widget-clock'
+	import { githubState } from '@/features/github'
+    import { getWidgetKinds } from '@/features/widgets/service'
+    import { syncWidgets } from '@/features/widgets/widgets-store'
 
 	interface Props {
 		id: UniqueIdentifier
@@ -84,7 +88,7 @@
 		return () => clearInterval(intervalId)
 	})
 
-	let wasEditorOpen = false
+	let wasEditorOpen = $state(false)
 
 	function loadDraftFromKind(kind: WidgetView['kind']): void {
 		editorState.draft = createDraftFromKind(kind)
@@ -97,6 +101,9 @@
 			loadDraftFromKind(widget.kind)
 		}
 		isEditorOpen = true
+		if ('Github' in widget.kind) {
+			void loadRepos()
+		}
 	}
 
 	const canSave = $derived(
@@ -123,23 +130,41 @@
 		applyDraftChanges()
 		isEditorOpen = false
 	}
+	
+	let repos = $state<string[]>([])
+    let reposLoading = $state(false)
+    
+    async function loadRepos(): Promise<void> {
+        reposLoading = true
+        await tryCmd(commands.getGithubRepos()).match(
+            result => { repos = result },
+            error => { console.error('Failed to load repos:', error) }
+        )
+        reposLoading = false
+    }
 
-	$effect(() => {
-		const currentlyOpen = isEditorOpen
-		if (wasEditorOpen && !currentlyOpen) {
-			const nextKind = buildKindFromDraft(widget.kind, editorState.draft)
-			if (
-				nextKind &&
-				isEditable &&
-				kindSignatureNow === editorState.sourceKindSignature
-			) {
-				updateWidgetKind(widget.widgetId, nextKind)
-				widget = { ...widget, kind: nextKind }
-				loadDraftFromKind(nextKind)
-			}
-		}
-		wasEditorOpen = currentlyOpen
-	})
+    $effect(() => {
+        const currentlyOpen = isEditorOpen
+        if (wasEditorOpen && !currentlyOpen) {
+            const nextKind = buildKindFromDraft(widget.kind, editorState.draft)
+            if (nextKind && isEditable && kindSignatureNow === editorState.sourceKindSignature) {
+                if ('Github' in nextKind && editorState.draft.githubRepo) {
+                    githubState.repo = editorState.draft.githubRepo
+                    void getWidgetKinds().then(result => {
+                        result.match(
+                            widgets => syncWidgets(widgets),
+                            error => console.error('Failed to refresh widgets:', error)
+                        )
+                    })
+                } else {
+                    updateWidgetKind(widget.widgetId, nextKind)
+                    widget = { ...widget, kind: nextKind }
+                    loadDraftFromKind(nextKind)
+                }
+            }
+        }
+        wasEditorOpen = currentlyOpen
+    })
 </script>
 
 <Drawer.Root bind:open={isEditorOpen}>
@@ -249,7 +274,41 @@
 					<span class="text-sm font-medium text-slate-700">User</span>
 					<Input bind:value={editorState.draft.twitchUser} placeholder="streamer" />
 				</label>
-			{:else}
+			{:else if 'Github' in widget.kind}
+                <div class="space-y-1">
+                    <span class="text-sm font-medium text-slate-700">Repository</span>
+                    {#if reposLoading}
+                        <p class="text-sm text-slate-500">Loading repos...</p>
+                    {:else}
+                        <div class="flex flex-col gap-2 max-h-64 overflow-y-auto">
+                            {#each repos as repo (repo)}
+                                {@const owner = repo.split('/')[0]}
+                                {@const repoName = repo.split('/')[1]}
+                                <button
+                                    type="button"
+                                    onclick={() => { editorState.draft.githubRepo = repo }}
+                                    class={[
+                                        'flex items-center gap-3 p-2 rounded-lg border text-left transition-colors',
+                                        editorState.draft.githubRepo === repo
+                                            ? 'border-sky-400 bg-sky-50'
+                                            : 'border-slate-200 hover:bg-slate-50'
+                                    ]}
+                                >
+                                    <img
+                                        src={`https://github.com/${owner}.png?size=32`}
+                                        alt={owner}
+                                        class="w-8 h-8 rounded-full"
+                                    />
+                                    <div class="flex flex-col">
+                                        <span class="text-sm font-medium text-slate-700">{repoName}</span>
+                                        <span class="text-xs text-slate-400">{owner}</span>
+                                    </div>
+                                </button>
+                            {/each}
+                        </div>
+                    {/if}
+                </div>
+ 			{:else}
 				<p class="text-sm text-slate-500">
 					{display.name}
 					is currently read-only in this editor.

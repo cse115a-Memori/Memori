@@ -112,7 +112,8 @@ export function buildKindFromDraft(
 }
 
 export function isKindEditable(kind: WidgetView['kind']): boolean {
-	return !('Github' in kind)
+  return 'Name' in kind || 'Clock' in kind || 'Weather' in kind ||
+    'Bus' in kind || 'Twitch' in kind || 'Github' in kind
 }
 
 export type SortableItemKindVariant =
