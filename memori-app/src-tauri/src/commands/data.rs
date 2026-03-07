@@ -152,7 +152,7 @@ async fn set_memori_state(
     }
 }
 
-fn read_store_state<T>(app: &AppHandle, store_id: &str) -> T
+pub fn read_store_state<T>(app: &AppHandle, store_id: &str) -> T
 where
     T: DeserializeOwned + Default,
 {
@@ -310,7 +310,7 @@ pub async fn get_widget_kinds(app: AppHandle) -> Result<[MemoriWidget; 6], Strin
     let auth: AuthState = read_store_state(&app, "auth");
     let temp_text = resolve_weather_text(&prefs).await;
     let (bus_prediction, bus_route) = resolve_bus_data(&prefs).await;
-    let github = refresh_github_widget(&auth).await;
+    let github = refresh_github_widget(&app).await;
     println!("github widget: {:?}", github);
     let twitch_user = fallback_twitch_user(&auth);
     let name = prefs.name;
@@ -361,8 +361,7 @@ pub async fn send_temp(state: State<'_, AppState>, lat: f64, lon: f64) -> Result
 #[tauri::command]
 #[specta::specta]
 pub async fn test_github(app: AppHandle) -> Result<(), String> {
-    let auth_state = read_store_state(&app, "auth");
-    let widget = refresh_github_widget(&auth_state).await;
+    let widget = refresh_github_widget(&app).await;
     println!("{:?}", widget);
     Ok(())
 }
