@@ -55,7 +55,7 @@
     "@tauri-apps/cli": "^2.10.1",
     "@types/node": "^25.3.3",
     "@typescript/native-preview": "^7.0.0-dev.20260304.1",
-    "bits-ui": "^2.16.3",
+    "bits-ui": "2.16.2",
     "dprint": "^0.51.1",
     "embla-carousel-svelte": "^8.6.0",
     "formsnap": "^2.0.1",

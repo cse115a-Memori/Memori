@@ -48,20 +48,20 @@
 	}
 	
 	async function loginGithub() {
-		errorMessage = ''
-		statusMessage = ''
-		pendingAction = 'login'
+		errMsg = ''
+		statusMsg = ''
+		pendingOp = 'login'
 		await login('github').match(
-			user => {
-				currentUser = user
-				statusMessage = 'Logged in with Github'
-			},
-			error => {
-				errorMessage = `Github login failed: ${error}`
-			}
-		)
-		pendingAction = null
-	}
+		nextUser => {
+			user = nextUser
+			statusMsg = 'Logged in with Github'
+		},
+		error => {
+			errMsg = `Github login failed: ${error}`
+		}
+	)
+	pendingOp = null
+}
 
 	async function sendTwitch() {
 		if (!accessToken) {
