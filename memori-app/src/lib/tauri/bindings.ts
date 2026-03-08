@@ -124,6 +124,14 @@ async testGithub() : Promise<Result<null, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async getGithubRepos() : Promise<Result<string[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_github_repos") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -143,7 +151,7 @@ async testGithub() : Promise<Result<null, string>> {
 export type Bus = { route: string; prediction: string }
 export type Clock = { seconds: number; minutes: number; hours: number }
 export type DeviceMode = "RealDevice" | "Simulator"
-export type Github = { username: string; repo: string; openIssues: number; openPrs: number; stars: number; notifications: number; commits: [number, number, number, number, number, number, number]; weekday: number }
+export type Github = { username: string; repo: string | null; openIssues: number; openPrs: number; stars: number; notifications: number; commits: [number, number, number, number, number, number, number]; weekday: number }
 export type MemoriLayout = 
 /**
  * ┌─────────────────┐
