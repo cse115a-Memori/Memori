@@ -1,10 +1,19 @@
+use crate::oauth::UserInfo;
+use chrono::{Datelike, Local};
+use memori_ui::widgets::Github;
 use reqwest::Client;
-use chrono::{Local, Datelike};
+use serde::Deserialize;
+use std::{collections::HashMap, time::Duration};
 use tauri::AppHandle;
 use tauri_plugin_svelte::ManagerExt;
-use crate::oauth::UserInfo;
-use std::collections::HashMap;
-use memori_ui::widgets::Github;
+
+pub const GITHUB_TIMEOUT_SECS: u64 = 3;
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct GithubUser {
+    login: String,
+}
 
 async fn github_get(client: &Client, url: &str, token: &str) -> Result<serde_json::Value, String> {
     client
@@ -21,18 +30,16 @@ async fn github_get(client: &Client, url: &str, token: &str) -> Result<serde_jso
         .map_err(|e| e.to_string())
 }
 
-async fn get_num_prs(
-    token: &str,
-    username: &str,
-    repo: &str,
-) -> Result<u32, String> {
+async fn get_num_prs(token: &str, username: &str, repo: &str) -> Result<u32, String> {
     let client = Client::new();
     let url = format!(
         "https://api.github.com/search/issues?q=repo:{}/{}+type:pr+state:open&per_page=1",
         username, repo
     );
     let data = github_get(&client, &url, token).await?;
-    let count = data["total_count"].as_u64().ok_or_else(|| "total_count not found".to_string())? as u32;
+    let count = data["total_count"]
+        .as_u64()
+        .ok_or_else(|| "total_count not found".to_string())? as u32;
 
     Ok(count)
 }
@@ -55,7 +62,6 @@ async fn get_num_issues(token: &str, username: &str, repo: &str) -> Result<u32, 
     let count = data["total_count"].as_u64().unwrap_or(0) as u32;
     Ok(count)
 }
-
 
 async fn get_num_notifications(token: &str) -> Result<u32, String> {
     let client = Client::new();
@@ -90,14 +96,19 @@ async fn get_commit_frequency(token: &str, owner: &str, repo: &str) -> Result<[u
 }
 
 pub async fn refresh_github_widget(app: &AppHandle) -> Result<Github, String> {
-    let auth_users = app.svelte().get::<HashMap<String, UserInfo>>("auth", "usersByProvider").unwrap();
-    let github_user = auth_users.get("github").ok_or("No GitHub user found".to_string())?;
-    
+    let auth_users = app
+        .svelte()
+        .get::<HashMap<String, UserInfo>>("auth", "usersByProvider")
+        .unwrap();
+    let github_user = auth_users
+        .get("github")
+        .ok_or("No GitHub user found".to_string())?;
+
     let token = &github_user.access_token;
     let username = &github_user.name;
     let repo = "Memori".to_string();
     let owner = "cse115a-Memori";
-    
+
     // Call each async function concurrently
     let (open_issues, open_prs, stars, notifications, commits) = tokio::join!(
         get_num_issues(&token, &owner, &repo),
@@ -106,7 +117,7 @@ pub async fn refresh_github_widget(app: &AppHandle) -> Result<Github, String> {
         get_num_notifications(&token),
         get_commit_frequency(&token, &owner, &repo),
     );
-    
+
     Ok(memori_ui::widgets::Github {
         username: username.clone(),
         repo: repo.clone(),
@@ -117,4 +128,28 @@ pub async fn refresh_github_widget(app: &AppHandle) -> Result<Github, String> {
         commits: commits?,
         weekday: Local::now().weekday().num_days_from_sunday() as usize,
     })
+}
+
+pub(crate) async fn fetch_github_widget(token: &str) -> Result<Github, String> {
+    let url = "https://api.github.com/user";
+    let client = Client::builder()
+        .timeout(Duration::from_secs(GITHUB_TIMEOUT_SECS))
+        .build()
+        .map_err(|err| err.to_string())?;
+    let response = client
+        .get(url)
+        .header("Authorization", format!("Bearer {token}"))
+        .header("Accept", "application/vnd.github.v3+json")
+        .header("User-Agent", "tauri-app")
+        .send()
+        .await
+        .map_err(|err| err.to_string())?
+        .error_for_status()
+        .map_err(|err| err.to_string())?;
+    let user = response
+        .json::<GithubUser>()
+        .await
+        .map_err(|err| err.to_string())?;
+
+    Ok(Github::new(user.login, "".to_string()))
 }

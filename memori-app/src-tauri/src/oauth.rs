@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use specta::Type;
 use std::sync::mpsc;
-use tauri::{path::BaseDirectory, Emitter, Manager, Window};
+use tauri::{Emitter, Window};
 use tauri_plugin_oauth::OauthConfig;
 use tauri_plugin_opener::OpenerExt;
 use url::Url;

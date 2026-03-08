@@ -7,8 +7,7 @@ export interface SortableItemDraft {
 	clockSeconds: number | undefined
 	weatherTemp: string
 	weatherIcon: string
-	busRoute: string
-	busPrediction: string
+	busStop: string
 	twitchUser: string
 }
 
@@ -19,8 +18,7 @@ const EMPTY_DRAFT: SortableItemDraft = {
 	clockSeconds: undefined,
 	weatherTemp: '',
 	weatherIcon: '',
-	busRoute: '',
-	busPrediction: '',
+	busStop: '',
 	twitchUser: '',
 }
 
@@ -47,10 +45,9 @@ export function createDraftFromKind(kind: WidgetView['kind']): SortableItemDraft
 		draft.weatherTemp = kind.Weather.temp
 		draft.weatherIcon = kind.Weather.icon
 	} else if ('Bus' in kind) {
-		draft.busRoute = kind.Bus.route
-		draft.busPrediction = kind.Bus.prediction
+		draft.busStop = 'a'// kind.Bus.stop[1]
 	} else if ('Twitch' in kind) {
-		draft.twitchUser = kind.Twitch.user
+		draft.twitchUser = kind.Twitch.username
 	}
 
 	return draft
@@ -84,16 +81,19 @@ export function buildKindFromDraft(
 	}
 
 	if ('Bus' in kind) {
-		const route = draft.busRoute.trim()
-		const prediction = draft.busPrediction.trim()
-		if (!hasText(route) || !hasText(prediction)) return null
-		return { Bus: { route, prediction } }
+		// const route = draft.busRoute.trim()
+		// const stop = draft.busStop.trim()
+		// if (!hasText(stop) || !hasText(stop)) return null
+		const stop: [string, string] = ['a', 'a']
+		const predictions: [string, string, number][] = [['a', 'b', 6]]
+		return { Bus: { stop, predictions } }
 	}
 
 	if ('Twitch' in kind) {
-		const user = draft.twitchUser.trim()
-		if (!hasText(user)) return null
-		return { Twitch: { user } }
+		const username = draft.twitchUser.trim()
+		if (!hasText(username)) return null
+		const live_channels: [string, string, string, string][] = [['a', 'b', 'c', 'd']]
+		return { Twitch: { username, live_channels } }
 	}
 
 	return null

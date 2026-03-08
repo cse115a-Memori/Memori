@@ -152,7 +152,8 @@ export function kindToDisplay(kind: MemoriWidget['kind']): WidgetDisplay {
 	}
 
 	if ('Bus' in kind) {
-		return { name: `Bus ${kind.Bus.route}`, content: kind.Bus.prediction }
+		// const predictions = kind.Bus.predictions ? `/${kind.Bus.predictions}` : ''
+		return { name: `Bus`, content: `${kind.Bus.stop}` }
 	}
 
 	if ('Github' in kind) {
@@ -161,7 +162,7 @@ export function kindToDisplay(kind: MemoriWidget['kind']): WidgetDisplay {
 	}
 
 	if ('Twitch' in kind) {
-		return { name: 'Twitch', content: kind.Twitch.user }
+		return { name: 'Twitch', content: kind.Twitch.username }
 	}
 
 	return { name: 'Widget', content: '' }

@@ -6,13 +6,14 @@ mod widget_data;
 
 use commands::{
     connect_device, disconnect_device, flash_memori_state, get_battery, get_device_mode,
-    get_widget_kinds, is_connected, send_bustime, send_github, send_name, send_temp, send_twitch, test_github,
+    get_widget_kinds, is_connected, send_bustime, send_github, send_name, send_temp, send_twitch,
+    test_github, test_twitch,
 };
 use memori_ui::{layout::MemoriLayout, widgets::MemoriWidget};
 use oauth::{login_with_provider, start_oauth_server};
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use state::AppState;
-use tauri_specta::{collect_commands, collect_events, Builder, Event};
+use tauri_specta::{collect_commands, Builder};
 
 // use serde::{Deserialize, Serialize};
 // use specta::Type;
@@ -39,6 +40,7 @@ pub fn run() {
             start_oauth_server,
             login_with_provider,
             test_github,
+            test_twitch,
         ])
         // .events(collect_events![UpdateIsConnected])
         .typ::<MemoriLayout>()

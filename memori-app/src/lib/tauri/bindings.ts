@@ -53,7 +53,7 @@ async getWidgetKinds() : Promise<Result<[MemoriWidget, MemoriWidget, MemoriWidge
     else return { status: "error", error: e  as any };
 }
 },
-async sendTwitch(token: string) : Promise<Result<null, string>> {
+async sendTwitch(token: string) : Promise<Result<string, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("send_twitch", { token }) };
 } catch (e) {
@@ -124,6 +124,14 @@ async testGithub() : Promise<Result<null, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async testTwitch() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("test_twitch") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -140,7 +148,7 @@ async testGithub() : Promise<Result<null, string>> {
 /**
  * Define a widget by its data
  */
-export type Bus = { route: string; prediction: string }
+export type Bus = { stop: [string, string]; predictions: ([string, string, number])[] }
 export type Clock = { seconds: number; minutes: number; hours: number }
 export type DeviceMode = "RealDevice" | "Simulator"
 export type Github = { username: string; repo: string; open_issues: number; open_prs: number; stars: number; notifications: number; commits: [number, number, number, number, number, number, number]; weekday: number }
@@ -247,13 +255,13 @@ export type Name = { name: string }
 /**
  * Define a widget by its data
  */
-export type Twitch = { user: string }
+export type Twitch = { username: string; live_channels: ([string, string, string, string])[] }
 export type UpdateFrequency = { Seconds: number } | { Minutes: number } | { Hours: number } | "Never"
 export type UserInfo = { id: string; name: string; email: string; avatar: string | null; provider: string; accessToken: string }
 /**
  * Define a widget by its data
  */
-export type Weather = { temp: string; icon: string }
+export type Weather = { city: string; temp: string; humidity: string; clouds: string; wind: string }
 export type WidgetId = number
 export type WidgetKind = { Name: Name } | { Clock: Clock } | { Github: Github } | { Weather: Weather } | { Bus: Bus } | { Twitch: Twitch }
 
