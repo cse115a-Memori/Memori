@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use specta::Type;
 use std::sync::mpsc;
-use tauri::{path::BaseDirectory, Emitter, Manager, Window};
+use tauri::{Emitter, Window};
 use tauri_plugin_oauth::OauthConfig;
 use tauri_plugin_opener::OpenerExt;
 use url::Url;
@@ -25,7 +25,7 @@ pub struct OAuthConfigs {
     pub twitch: OAuthConfig,
 }
 
-#[derive(Serialize, Deserialize, Type)]
+#[derive(Serialize, Type, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[specta(rename_all = "camelCase")]
 pub struct UserInfo {
@@ -56,11 +56,10 @@ pub async fn start_oauth_server(window: Window) -> Result<u16, String> {
 #[specta::specta]
 pub async fn login_with_provider(
     app: tauri::AppHandle,
-    _window: Window,
+    // _window: Window,
     provider: String,
 ) -> Result<UserInfo, String> {
-    let configs = load_oauth_configs(&app).await?;
-    println!("configs: {:?}", &configs);
+    let configs: OAuthConfigs = load_oauth_configs()?;
     // Get provider-specific configuration
     let config = match provider.as_str() {
         "google" => configs.google,
@@ -68,7 +67,6 @@ pub async fn login_with_provider(
         "twitch" => configs.twitch,
         _ => return Err(format!("Unsupported provider: {}", provider)),
     };
-    let client_id = config.client_id.clone();
     // OAuth configuration for the server
     let oauth_config = tauri_plugin_oauth::OauthConfig {
         ports: Some(vec![8000, 8001, 8002]),
@@ -99,7 +97,7 @@ pub async fn login_with_provider(
     println!("redirect_uri: {:?}", &format!("http://localhost:{}", port));
     auth_url_obj
         .query_pairs_mut()
-        .append_pair("client_id", &client_id)
+        .append_pair("client_id", &config.client_id)
         .append_pair("redirect_uri", &format!("http://localhost:{}", port))
         .append_pair("scope", &config.scope)
         .append_pair("response_type", "code");
@@ -120,22 +118,8 @@ pub async fn login_with_provider(
 
     // Exchange the code for an access token
     let client = reqwest::Client::new();
-    /*
-    let token_response = client
-        .post(&config.token_url)
-        .form(&[
-            ("client_id", config.client_id),
-            ("client_secret", config.client_secret),
-            ("code", code),
-            ("redirect_uri", format!("http://localhost:{}", port)),
-            ("grant_type", "authorization_code".to_string()),
-        ])
-        .header("Accept", "application/json")
-        .send()
-        .await
-        .map_err(|err| err.to_string())?;
-    */
-    // println!("code: {}     provider: {}", code, provider.as_str());
+
+    // Get access token
     let request_body = json!({
         "provider": provider.as_str(),
         "code": code,
@@ -145,23 +129,9 @@ pub async fn login_with_provider(
         Ok(data) => data,
         Err(_) => return Err("cloudflare error".to_string()),
     };
-    // println!("token_response: {:?}", token_response);
-    /*
-    if !token_response.status().is_success() {
-        return Err(format!(
-            "Failed to exchange code for token: {}",
-            token_response.status()
-        ));
-    }
-
-
-    let token_data: serde_json::Value =
-        token_response.json().await.map_err(|err| err.to_string())?;
-    */
     let access_token = token_data["access_token"]
         .as_str()
         .ok_or("No access token found")?;
-
     println!("access_token: {:?}", access_token);
 
     // Get user info
@@ -187,7 +157,7 @@ pub async fn login_with_provider(
             client
                 .get(&config.user_info_url)
                 .header("Authorization", format!("Bearer {}", access_token))
-                .header("Client-ID", client_id)
+                .header("Client-ID", &config.client_id)
                 .header("Accept", "application/json")
                 .header("User-Agent", "tauri-app")
                 .send()
@@ -228,16 +198,24 @@ pub async fn login_with_provider(
         ),
         "twitch" => (
             user_info["id"].to_string(),
-            user_info["name"]
+            user_info["login"]
                 .as_str()
                 .unwrap_or_else(|| user_info["login"].as_str().unwrap_or(""))
                 .to_string(),
             user_info["email"].as_str().unwrap_or("").to_string(),
-            user_info["avatar_url"].as_str().map(|s| s.to_string()),
+            user_info["profile_image_url"]
+                .as_str()
+                .map(|s| s.to_string()),
         ),
         _ => return Err(format!("Unsupported provider: {}", provider)),
     };
-
+    println!(
+        "{:?} {:?} {:?} {:?}",
+        id.to_string(),
+        name.to_string(),
+        email.to_string(),
+        avatar.clone(),
+    );
     Ok(UserInfo {
         id,
         name,
@@ -262,23 +240,34 @@ fn generate_random_string(length: usize) -> String {
         .collect()
 }
 
-async fn load_oauth_configs(_app: &tauri::AppHandle) -> Result<OAuthConfigs, String> {
-    let additional_headers = json!({
-        "Accept": "application/json",
-    });
-    let request_body = json!({
-        "headers": additional_headers,
-    });
-    let response_data = match cloudflare("load_config", request_body).await {
-        Ok(data) => data,
-        Err(_) => {
-            return Err("cloudflare error".to_string());
-        }
+fn load_oauth_configs() -> Result<OAuthConfigs, String> {
+    let config = OAuthConfigs {
+        google: OAuthConfig {
+            client_id: "YOUR_GOOGLE_CLIENT_ID".to_string(),
+            client_secret: "YOUR_GOOGLE_CLIENT_SECRET".to_string(),
+            auth_url: "https://accounts.google.com/o/oauth2/v2/auth".to_string(),
+            token_url: "https://oauth2.googleapis.com/token".to_string(),
+            user_info_url: "https://www.googleapis.com/oauth2/v3/userinfo".to_string(),
+            scope: "email profile openid".to_string(),
+        },
+        github: OAuthConfig {
+            client_id: "Ov23lipg5E2u12rVR9dv".to_string(),
+            client_secret: "YOUR_GITHUB_CLIENT_SECRET".to_string(),
+            auth_url: "https://github.com/login/oauth/authorize".to_string(),
+            token_url: "https://github.com/login/oauth/access_token".to_string(),
+            user_info_url: "https://api.github.com/user".to_string(),
+            scope: "user:email read:user repo".to_string(),
+        },
+        twitch: OAuthConfig {
+            client_id: "halyhdsjvkw9jqbqk5h4s4ryj9hjbk".to_string(),
+            client_secret: "YOUR_TWITCH_CLIENT_SECRET".to_string(),
+            auth_url: "https://id.twitch.tv/oauth2/authorize".to_string(),
+            token_url: "https://id.twitch.tv/oauth2/token".to_string(),
+            user_info_url: "https://api.twitch.tv/helix/users".to_string(),
+            scope: "user:read:email user:read:follows".to_string(),
+        },
     };
-    // println!("API Response: {:?}", response_data);
-    let configs: OAuthConfigs = serde_json::from_value(response_data).map_err(|e| e.to_string())?;
-    // println!("configs: {:?}", configs);
-    Ok(configs)
+    Ok(config)
 }
 
 pub async fn cloudflare(action: &str, mut request_body: Value) -> Result<Value, String> {
@@ -314,6 +303,5 @@ pub async fn cloudflare(action: &str, mut request_body: Value) -> Result<Value, 
         eprintln!("Failed to call API: {}", response.status());
         return Err("cloudflare error".to_string());
     }
-    let response_data: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
-    Ok(response_data)
+    response.json().await.map_err(|e| e.to_string())
 }
