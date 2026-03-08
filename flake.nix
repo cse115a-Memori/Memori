@@ -41,6 +41,7 @@
               cargo
               rustfmt
               rust-src
+              rust-analyzer
 
               targets.riscv32imc-unknown-none-elf.stable.rust-std
             ]
@@ -52,10 +53,13 @@
         { pkgs }:
         {
           default = pkgs.mkShellNoCC {
+          name = "Memori";
             packages =
               with pkgs;
               [
                 rustToolchain
+                rust-analyzer
+
                 typst
                 typstyle
                 tinymist
@@ -73,6 +77,12 @@
               ++ (with typstPackages; [
                 # Typst packages
               ]);
+
+            env = {
+              # Required by rust-analyzer
+              RUST_SRC_PATH = "${pkgs.rustToolchain}/lib/rustlib/src/rust/library";
+            };
+
             shellHook = ''
               export LIBRARY_PATH=${
                 pkgs.lib.makeLibraryPath [
