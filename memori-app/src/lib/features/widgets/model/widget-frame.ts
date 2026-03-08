@@ -91,8 +91,8 @@ export function initWidgetFrame(widgets: MemoriWidget[]): LayoutsInFrame {
 	return LAYOUT_VARIANTS.reduce((acc, variant) => {
 		acc[variant] = {
 			widgets: widgets.map(
-				(widget, index): WidgetView => ({
-					id: `pool-${index}`,
+				(widget): WidgetView => ({
+					id: `pool-${variant}-${widget.id}`,
 					widgetId: widget.id,
 					kind: widget.kind,
 				})

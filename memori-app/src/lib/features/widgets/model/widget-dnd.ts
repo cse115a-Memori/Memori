@@ -102,11 +102,12 @@ function isPoolSourceWithFullFrame(
 	source: DragItem | undefined,
 	frameSlotCount: number | undefined
 ): boolean {
-	if (typeof frameSlotCount !== 'number') return false
+	if (typeof frameSlotCount !== 'number' || source?.id === undefined) return false
 
 	const srcGroup = getGroupIdFromDragItem(source)
 	const isFrameFull = frameState['frame-widgets'].length >= frameSlotCount
-	return isFrameFull && srcGroup === 'widgets'
+	const sourceInPool = findIndexById(frameState.widgets, String(source.id)) >= 0
+	return isFrameFull && sourceInPool && srcGroup === 'widgets'
 }
 
 function isPointInsideBounds(
@@ -309,40 +310,19 @@ export function projectLayoutFrame(
 	return moved === frameState ? null : moved
 }
 
-export function shouldUseCommittedFrameForOverflowSwap(
-	frameState: FrameState,
+export function projectWidgetFrame(
+	frame: WidgetFrame,
 	evt: DragMutationEvent,
-	frameSlotCount: number
-): boolean {
-	const source = getSource(evt.operation)
-	const target = getTarget(evt.operation)
-	if (!isPoolSourceWithFullFrame(frameState, source, frameSlotCount)) {
-		return false
+	layout: keyof WidgetFrame,
+	frameSlotCount?: number
+): WidgetFrame | null {
+	const projectedLayout = projectLayoutFrame(frame[layout], evt, frameSlotCount)
+	if (!projectedLayout) return null
+
+	return {
+		...frame,
+		[layout]: projectedLayout,
 	}
-
-	return getFrameTargetIndex(frameState, target, evt) >= 0
-}
-
-export function shouldCancelOverflowSwapPreview(
-	frameState: FrameState,
-	evt: DragMutationEvent,
-	frameSlotCount: number
-): boolean {
-	return !shouldUseCommittedFrameForOverflowSwap(frameState, evt, frameSlotCount)
-}
-
-export function shouldResetDragPreviewOnOverflowMiss(
-	frameState: FrameState,
-	evt: DragMutationEvent,
-	frameSlotCount: number
-): boolean {
-	const source = getSource(evt.operation)
-	const target = getTarget(evt.operation)
-	if (!isPoolSourceWithFullFrame(frameState, source, frameSlotCount)) {
-		return false
-	}
-
-	return getFrameTargetIndex(frameState, target, evt) < 0
 }
 
 function isItemTarget(op: DragOperation | undefined): boolean {
