@@ -165,6 +165,7 @@
                     widget = { ...widget, kind: nextKind }
                     loadDraftFromKind(nextKind)
                 }
+            }
         }
         wasEditorOpen = currentlyOpen
     })

@@ -4,6 +4,7 @@ use tauri::AppHandle;
 use memori_ui::widgets::Github;
 use crate::commands::data::{AuthState, read_store_state};
 use serde::Deserialize;
+use std::collections::HashSet;
 
 //Need this struct so that read_store_state can deserialize the stored state
 #[derive(Debug, Deserialize, Default)]
@@ -45,6 +46,7 @@ pub async fn get_github_repos(app: AppHandle) -> Result<Vec<String>, String> {
 pub async fn get_user_repos(token: &str) -> Result<Vec<String>, String> {
     let client = Client::new();
     let mut repos = Vec::new();
+    let mut seen: HashSet<String> = HashSet::new();
 
     // Fetch user's own repos
     let mut page = 1;
@@ -60,7 +62,9 @@ pub async fn get_user_repos(token: &str) -> Result<Vec<String>, String> {
         };
         for repo in arr {
             if let Some(name) = repo["full_name"].as_str() {
-                repos.push(name.to_string());
+                if seen.insert(name.to_string()) {
+                    repos.push(name.to_string());
+                }
             }
         }
         if arr.len() < 100 { break; }
@@ -85,7 +89,7 @@ pub async fn get_user_repos(token: &str) -> Result<Vec<String>, String> {
                     };
                     for repo in arr {
                         if let Some(name) = repo["full_name"].as_str() {
-                            if !repos.contains(&name.to_string()) {
+                            if seen.insert(name.to_string()) {
                                 repos.push(name.to_string());
                             }
                         }
@@ -96,7 +100,6 @@ pub async fn get_user_repos(token: &str) -> Result<Vec<String>, String> {
             }
         }
     }
-
     Ok(repos)
 }
 

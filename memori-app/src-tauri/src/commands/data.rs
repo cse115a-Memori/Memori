@@ -310,7 +310,7 @@ pub async fn get_widget_kinds(app: AppHandle) -> Result<[MemoriWidget; 6], Strin
     let auth: AuthState = read_store_state(&app, "auth");
     let temp_text = resolve_weather_text(&prefs).await;
     let (bus_prediction, bus_route) = resolve_bus_data(&prefs).await;
-    let github = refresh_github_widget(&app).await;
+    let github = refresh_github_widget(&app).await.unwrap_or_default();
     println!("github widget: {:?}", github);
     let twitch_user = fallback_twitch_user(&auth);
     let name = prefs.name;
@@ -320,10 +320,7 @@ pub async fn get_widget_kinds(app: AppHandle) -> Result<[MemoriWidget; 6], Strin
         never_widget(1, WidgetKind::Clock(Clock::new(1, 0, 0))),
         never_widget(2, WidgetKind::Bus(Bus::new(bus_prediction, bus_route))),
         never_widget(3, WidgetKind::Weather(Weather::new(temp_text))),
-        never_widget(
-            4,
-            WidgetKind::Github(github?),
-        ),
+        never_widget(4, WidgetKind::Github(github)),
         never_widget(5, WidgetKind::Twitch(Twitch::new(twitch_user))),
     ])
 }

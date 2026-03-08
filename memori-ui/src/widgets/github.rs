@@ -49,6 +49,12 @@ impl Github {
     }
 }
 
+impl Default for Github {
+    fn default() -> Self {
+        Self::new(String::new(), None)
+    }
+}
+
 fn build_commit_graph(commits: &[u32; 7], today_weekday: usize) -> BarChart<'static> {
     let days = ["M", "T", "W", "T", "F", "S", "S"];
     let bars: Vec<Bar> = commits
