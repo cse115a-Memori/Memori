@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct Bus {
+    // stop name and either id or km for second element
     pub stop: (String, String),
     pub predictions: Vec<(String, String, u16)>,
 }

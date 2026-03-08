@@ -28,14 +28,21 @@ pub struct Weather {
 }
 
 impl Weather {
-    pub fn new(temp: impl Into<String>) -> Self {
+    pub fn new(
+        city: impl Into<String>,
+        temp: impl Into<String>,
+        humidity: impl Into<String>,
+        wind: impl Into<String>,
+        rain: impl Into<String>,
+        clouds: impl Into<String>,
+    ) -> Self {
         Self {
-            city: "Santa Cruz".to_string(),
+            city: city.into(),
             temp: temp.into(),
-            humidity: "7".to_string(),
-            wind: "15".to_string(),
-            clouds: "8".into(),
-            rain: "0.0".into(),
+            humidity: humidity.into(),
+            wind: wind.into(),
+            clouds: clouds.into(),
+            rain: rain.into(),
         }
     }
     pub fn update(&mut self) {
