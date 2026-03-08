@@ -149,6 +149,10 @@
             const nextKind = buildKindFromDraft(widget.kind, editorState.draft)
             if (nextKind && isEditable && kindSignatureNow === editorState.sourceKindSignature) {
                 if ('Github' in nextKind && editorState.draft.githubRepo) {
+                    updateWidgetKind(widget.widgetId, nextKind)
+                    widget = { ...widget, kind: nextKind }
+                    loadDraftFromKind(nextKind)
+
                     githubState.repo = editorState.draft.githubRepo
                     void getWidgetKinds().then(result => {
                         result.match(
@@ -161,7 +165,6 @@
                     widget = { ...widget, kind: nextKind }
                     loadDraftFromKind(nextKind)
                 }
-            }
         }
         wasEditorOpen = currentlyOpen
     })
