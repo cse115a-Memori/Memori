@@ -8,6 +8,7 @@
 	import { Button } from '@/components/ui/button'
 	import * as Drawer from '@/components/ui/drawer'
 	import { Input } from '@/components/ui/input'
+	import * as Select from '@/components/ui/select'
 	import { prefsState } from '@/features/prefs/store'
 	import { kindToDisplay, type WidgetView } from '@/features/widgets/model/widget-frame'
 	import { updateWidgetKind } from '@/features/widgets/widgets-store'
@@ -21,10 +22,17 @@
 		kindSignature,
 		type SortableItemDraft,
 	} from './sortable-item-domain'
-	import { formatCompactClock } from './widget-clock'
+	import {
+		CLOCK_TIMEZONE_OPTIONS,
+		formatCompactClock,
+		getClockTimezoneLabel,
+		getCurrentSystemTimeZone,
+		resolveClockTimeZone,
+		toClockTimezoneDraftValue,
+	} from './widget-clock'
 	import { githubState } from '@/features/github'
-    import { getWidgetKinds } from '@/features/widgets/service'
-    import { syncWidgets } from '@/features/widgets/widgets-store'
+	import { getWidgetKinds } from '@/features/widgets/service'
+	import { syncWidgets } from '@/features/widgets/widgets-store'
 
 	interface Props {
 		id: UniqueIdentifier
@@ -52,6 +60,7 @@
 	const isClock = $derived('Clock' in widget.kind)
 	let now = $state(new Date())
 	let isEditorOpen = $state(false)
+	const systemTimeZone = getCurrentSystemTimeZone()
 	let editorState: {
 		draft: SortableItemDraft
 		sourceKindSignature: string
@@ -64,6 +73,28 @@
 
 	const compactClock = $derived(
 		formatCompactClock(now, prefsState.systemOptions.timeZone ?? undefined)
+	)
+	const clockTimezoneOptions = $derived(
+		(() => {
+			const options = systemTimeZone
+				? [systemTimeZone, ...CLOCK_TIMEZONE_OPTIONS.filter(option => option !== systemTimeZone)]
+				: [...CLOCK_TIMEZONE_OPTIONS]
+			const hasCurrentSelection = options.includes(editorState.draft.clockTimeZone)
+
+			if (
+				hasCurrentSelection ||
+				editorState.draft.clockTimeZone === '' ||
+				editorState.draft.clockTimeZone === undefined
+			) {
+				return options
+			}
+
+			return [editorState.draft.clockTimeZone, ...options]
+		})()
+	)
+	const clockTimezoneLabel = $derived(getClockTimezoneLabel(editorState.draft.clockTimeZone))
+	const clockPreview = $derived(
+		formatCompactClock(now, resolveClockTimeZone(editorState.draft.clockTimeZone))
 	)
 
 	const { ref, isDragging } = useSortable({
@@ -88,19 +119,24 @@
 		return () => clearInterval(intervalId)
 	})
 
-	let wasEditorOpen = $state(false)
-
 	function loadDraftFromKind(kind: WidgetView['kind']): void {
-		editorState.draft = createDraftFromKind(kind)
+		const nextDraft = createDraftFromKind(kind)
+		if ('Clock' in kind) {
+			nextDraft.clockTimeZone = toClockTimezoneDraftValue(
+				prefsState.systemOptions.timeZone,
+				systemTimeZone
+			)
+		}
+		editorState.draft = nextDraft
 		editorState.sourceKindSignature = kindSignature(kind)
 	}
 
 	function openEditor(): void {
 		const currentKindSignature = kindSignature(widget.kind)
-		if (editorState.sourceKindSignature !== currentKindSignature) {
+		if ('Clock' in widget.kind || editorState.sourceKindSignature !== currentKindSignature) {
 			loadDraftFromKind(widget.kind)
 		}
-		isEditorOpen = true
+		setEditorOpen(true)
 		if ('Github' in widget.kind) {
 			void loadRepos()
 		}
@@ -114,12 +150,30 @@
 
 	function applyDraftChanges(): void {
 		if (!canSave) return
+
+		if ('Clock' in widget.kind) {
+			prefsState.systemOptions.timeZone =
+				resolveClockTimeZone(editorState.draft.clockTimeZone) ?? null
+			loadDraftFromKind(widget.kind)
+			return
+		}
+
 		const nextKind = buildKindFromDraft(widget.kind, editorState.draft)
 		if (!nextKind) return
 
 		updateWidgetKind(widget.widgetId, nextKind)
 		widget = { ...widget, kind: nextKind }
 		loadDraftFromKind(nextKind)
+
+		if ('Github' in nextKind && editorState.draft.githubRepo) {
+			githubState.repo = editorState.draft.githubRepo
+			void getWidgetKinds().then(result => {
+				result.match(
+					widgets => syncWidgets(widgets),
+					error => console.error('Failed to refresh widgets:', error)
+				)
+			})
+		}
 	}
 
 	function handleSave(event: SubmitEvent): void {
@@ -127,51 +181,35 @@
 		if (!canSave) {
 			return
 		}
-		applyDraftChanges()
-		isEditorOpen = false
+		setEditorOpen(false)
 	}
-	
+
+	function setEditorOpen(nextOpen: boolean): void {
+		if (isEditorOpen && !nextOpen) {
+			applyDraftChanges()
+		}
+
+		isEditorOpen = nextOpen
+	}
+
 	let repos = $state<string[]>([])
-    let reposLoading = $state(false)
-    
-    async function loadRepos(): Promise<void> {
-        reposLoading = true
-        await tryCmd(commands.getGithubRepos()).match(
-            result => { repos = result },
-            error => { console.error('Failed to load repos:', error) }
-        )
-        reposLoading = false
-    }
+	let reposLoading = $state(false)
 
-    $effect(() => {
-        const currentlyOpen = isEditorOpen
-        if (wasEditorOpen && !currentlyOpen) {
-            const nextKind = buildKindFromDraft(widget.kind, editorState.draft)
-            if (nextKind && isEditable && kindSignatureNow === editorState.sourceKindSignature) {
-                if ('Github' in nextKind && editorState.draft.githubRepo) {
-                    updateWidgetKind(widget.widgetId, nextKind)
-                    widget = { ...widget, kind: nextKind }
-                    loadDraftFromKind(nextKind)
-
-                    githubState.repo = editorState.draft.githubRepo
-                    void getWidgetKinds().then(result => {
-                        result.match(
-                            widgets => syncWidgets(widgets),
-                            error => console.error('Failed to refresh widgets:', error)
-                        )
-                    })
-                } else {
-                    updateWidgetKind(widget.widgetId, nextKind)
-                    widget = { ...widget, kind: nextKind }
-                    loadDraftFromKind(nextKind)
-                }
-            }
-        }
-        wasEditorOpen = currentlyOpen
-    })
+	async function loadRepos(): Promise<void> {
+		reposLoading = true
+		await tryCmd(commands.getGithubRepos()).match(
+			result => {
+				repos = result
+			},
+			error => {
+				console.error('Failed to load repos:', error)
+			}
+		)
+		reposLoading = false
+	}
 </script>
 
-<Drawer.Root bind:open={isEditorOpen}>
+<Drawer.Root bind:open={() => isEditorOpen, setEditorOpen}>
 	<div class={cn('relative select-none', cls)} {@attach ref}>
 		<div
 			class={[
@@ -222,34 +260,38 @@
 					<Input bind:value={editorState.draft.name} placeholder="Display name" />
 				</label>
 			{:else if 'Clock' in widget.kind}
-				<div class="grid grid-cols-3 gap-2">
-					<label class="space-y-1 block">
-						<span class="text-sm font-medium text-slate-700">Hours</span>
-						<Input
-							type="number"
-							min="0"
-							max="23"
-							bind:value={editorState.draft.clockHours}
-						/>
-					</label>
-					<label class="space-y-1 block">
-						<span class="text-sm font-medium text-slate-700">Minutes</span>
-						<Input
-							type="number"
-							min="0"
-							max="59"
-							bind:value={editorState.draft.clockMinutes}
-						/>
-					</label>
-					<label class="space-y-1 block">
-						<span class="text-sm font-medium text-slate-700">Seconds</span>
-						<Input
-							type="number"
-							min="0"
-							max="59"
-							bind:value={editorState.draft.clockSeconds}
-						/>
-					</label>
+				<div class="space-y-3">
+					<div class="space-y-1">
+						<span class="text-sm font-medium text-slate-700">Timezone</span>
+						<Select.Root
+							type="single"
+							name="clockTimezone"
+							value={editorState.draft.clockTimeZone}
+							onValueChange={value => {
+								editorState.draft.clockTimeZone = value
+							}}
+						>
+							<Select.Trigger class="w-full">
+								{clockTimezoneLabel}
+							</Select.Trigger>
+							<Select.Content>
+								<Select.Group>
+									<Select.Label>Timezones</Select.Label>
+									{#each clockTimezoneOptions as option (option)}
+										<Select.Item
+											value={option}
+											label={getClockTimezoneLabel(option)}
+										>
+											{getClockTimezoneLabel(option)}
+										</Select.Item>
+									{/each}
+								</Select.Group>
+							</Select.Content>
+						</Select.Root>
+					</div>
+					<p class="text-xs text-slate-500">
+						Preview: {clockPreview.time} {clockPreview.zone}
+					</p>
 				</div>
 			{:else if 'Weather' in widget.kind}
 				<div class="space-y-3">
@@ -279,40 +321,42 @@
 					<Input bind:value={editorState.draft.twitchUser} placeholder="streamer" />
 				</label>
 			{:else if 'Github' in widget.kind}
-                <div class="space-y-1">
-                    <span class="text-sm font-medium text-slate-700">Repository</span>
-                    {#if reposLoading}
-                        <p class="text-sm text-slate-500">Loading repos...</p>
-                    {:else}
-                        <div class="flex flex-col gap-2 max-h-64 overflow-y-auto">
-                            {#each repos as repo (repo)}
-                                {@const owner = repo.split('/')[0]}
-                                {@const repoName = repo.split('/')[1]}
-                                <button
-                                    type="button"
-                                    onclick={() => { editorState.draft.githubRepo = repo }}
-                                    class={[
-                                        'flex items-center gap-3 p-2 rounded-lg border text-left transition-colors',
-                                        editorState.draft.githubRepo === repo
-                                            ? 'border-sky-400 bg-sky-50'
-                                            : 'border-slate-200 hover:bg-slate-50'
-                                    ]}
-                                >
-                                    <img
-                                        src={`https://github.com/${owner}.png?size=32`}
-                                        alt={owner}
-                                        class="w-8 h-8 rounded-full"
-                                    />
-                                    <div class="flex flex-col">
-                                        <span class="text-sm font-medium text-slate-700">{repoName}</span>
-                                        <span class="text-xs text-slate-400">{owner}</span>
-                                    </div>
-                                </button>
-                            {/each}
-                        </div>
-                    {/if}
-                </div>
- 			{:else}
+				<div class="space-y-1">
+					<span class="text-sm font-medium text-slate-700">Repository</span>
+					{#if reposLoading}
+						<p class="text-sm text-slate-500">Loading repos...</p>
+					{:else}
+						<div class="flex max-h-64 flex-col gap-2 overflow-y-auto">
+							{#each repos as repo (repo)}
+								{@const owner = repo.split('/')[0]}
+								{@const repoName = repo.split('/')[1]}
+								<button
+									type="button"
+									onclick={() => {
+										editorState.draft.githubRepo = repo
+									}}
+									class={[
+										'flex items-center gap-3 rounded-lg border p-2 text-left transition-colors',
+										editorState.draft.githubRepo === repo
+											? 'border-sky-400 bg-sky-50'
+											: 'border-slate-200 hover:bg-slate-50',
+									]}
+								>
+									<img
+										src={`https://github.com/${owner}.png?size=32`}
+										alt={owner}
+										class="h-8 w-8 rounded-full"
+									/>
+									<div class="flex flex-col">
+										<span class="text-sm font-medium text-slate-700">{repoName}</span>
+										<span class="text-xs text-slate-400">{owner}</span>
+									</div>
+								</button>
+							{/each}
+						</div>
+					{/if}
+				</div>
+			{:else}
 				<p class="text-sm text-slate-500">
 					{display.name}
 					is currently read-only in this editor.

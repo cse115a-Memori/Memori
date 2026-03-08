@@ -1,10 +1,9 @@
 import type { WidgetView } from '@/features/widgets/model/widget-frame'
+import { isClockTimezoneDraftValue } from './widget-clock'
 
 export interface SortableItemDraft {
 	name: string
-	clockHours: number | undefined
-	clockMinutes: number | undefined
-	clockSeconds: number | undefined
+	clockTimeZone: string
 	weatherTemp: string
 	weatherIcon: string
 	busRoute: string
@@ -15,9 +14,7 @@ export interface SortableItemDraft {
 
 const EMPTY_DRAFT: SortableItemDraft = {
 	name: '',
-	clockHours: undefined,
-	clockMinutes: undefined,
-	clockSeconds: undefined,
+	clockTimeZone: '',
 	weatherTemp: '',
 	weatherIcon: '',
 	busRoute: '',
@@ -30,21 +27,11 @@ function hasText(value: string): boolean {
 	return value.trim().length > 0
 }
 
-function clampUnit(value: number | undefined, max: number, fallback: number): number {
-	if (value === undefined || Number.isNaN(value)) return fallback
-	const truncated = Math.trunc(value)
-	return Math.min(max, Math.max(0, truncated))
-}
-
 export function createDraftFromKind(kind: WidgetView['kind']): SortableItemDraft {
 	const draft = { ...EMPTY_DRAFT }
 
 	if ('Name' in kind) {
 		draft.name = kind.Name.name
-	} else if ('Clock' in kind) {
-		draft.clockHours = kind.Clock.hours
-		draft.clockMinutes = kind.Clock.minutes
-		draft.clockSeconds = kind.Clock.seconds
 	} else if ('Weather' in kind) {
 		draft.weatherTemp = kind.Weather.temp
 		draft.weatherIcon = kind.Weather.icon
@@ -71,13 +58,7 @@ export function buildKindFromDraft(
 	}
 
 	if ('Clock' in kind) {
-		return {
-			Clock: {
-				hours: clampUnit(draft.clockHours, 23, kind.Clock.hours),
-				minutes: clampUnit(draft.clockMinutes, 59, kind.Clock.minutes),
-				seconds: clampUnit(draft.clockSeconds, 59, kind.Clock.seconds),
-			},
-		}
+		return kind
 	}
 
 	if ('Weather' in kind) {
@@ -137,6 +118,10 @@ export function isDraftPersistable(
 	kind: WidgetView['kind'],
 	draft: SortableItemDraft
 ): boolean {
+	if ('Clock' in kind) {
+		return isClockTimezoneDraftValue(draft.clockTimeZone)
+	}
+
 	return buildKindFromDraft(kind, draft) !== null
 }
 
