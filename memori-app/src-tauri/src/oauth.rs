@@ -256,7 +256,7 @@ fn load_oauth_configs() -> Result<OAuthConfigs, String> {
             auth_url: "https://github.com/login/oauth/authorize".to_string(),
             token_url: "https://github.com/login/oauth/access_token".to_string(),
             user_info_url: "https://api.github.com/user".to_string(),
-            scope: "user:email read:user repo".to_string(),
+            scope: "user:email read:user repo read:org".to_string(),
         },
         twitch: OAuthConfig {
             client_id: "halyhdsjvkw9jqbqk5h4s4ryj9hjbk".to_string(),
