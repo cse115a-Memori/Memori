@@ -6,6 +6,7 @@ use serde_json::json;
 use std::time::Duration;
 
 const GITHUB_TIMEOUT_SECS: u64 = 3;
+const DEFAULT_GITHUB_REPO: &str = "Memori";
 
 #[derive(Debug, Deserialize)]
 struct TwitchBroadcaster {
@@ -141,7 +142,7 @@ pub(crate) async fn fetch_github_widget(token: &str) -> Result<Github, String> {
         .await
         .map_err(|err| err.to_string())?;
 
-    Ok(Github::new(user.login, None))
+    Ok(Github::new(user.login, Some(DEFAULT_GITHUB_REPO.to_string())))
 }
 
 fn twitch_client_id() -> Result<String, String> {

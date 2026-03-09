@@ -2,6 +2,7 @@ use super::fetch::{
     fetch_all_ucsc_stops, fetch_github_widget, fetch_twitch_display_name, fetch_weather_temp, Stop,
 };
 use crate::state::{AppState, DeviceConnection};
+use crate::widget_data::github_data::*;
 use memori_ui::{
     layout::MemoriLayout,
     widgets::{
@@ -10,15 +11,16 @@ use memori_ui::{
     },
     MemoriState,
 };
-use crate::widget_data::github_data::*;
-use reqwest::Client;
 use serde::{de::DeserializeOwned, Deserialize};
-use serde_json::json;
-use tauri::{State, AppHandle};
+use std::time::Duration;
+use tauri::{AppHandle, State};
+use tauri_plugin_svelte::ManagerExt;
+use tokio::time::timeout;
 use transport::HostTransport as _;
 
 const DEFAULT_WEATHER_TEXT: &str = "20.0";
 const DEFAULT_GITHUB_USERNAME: &str = "CaiNann";
+const DEFAULT_GITHUB_REPO: &str = "Memori";
 const DEFAULT_TWITCH_USER: &str = "twitch_user";
 const DEFAULT_BUS_PREDICTION: &str = "9 min";
 const DEFAULT_BUS_ROUTE: &str = "Route 19";
@@ -47,22 +49,22 @@ struct PrefsState {
 
 #[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-struct AuthState {
-    users_by_provider: ProviderUsers,
+pub struct AuthState {
+    pub users_by_provider: ProviderUsers,
 }
 
 #[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-struct ProviderUsers {
-    github: Option<AuthUserInfo>,
-    twitch: Option<AuthUserInfo>,
+pub struct ProviderUsers {
+    pub github: Option<AuthUserInfo>,
+    pub twitch: Option<AuthUserInfo>,
 }
 
 #[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-struct AuthUserInfo {
-    name: String,
-    access_token: String,
+pub struct AuthUserInfo {
+    pub name: String,
+    pub access_token: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -150,7 +152,7 @@ async fn set_memori_state(
     }
 }
 
-fn read_store_state<T>(app: &AppHandle, store_id: &str) -> T
+pub fn read_store_state<T>(app: &AppHandle, store_id: &str) -> T
 where
     T: DeserializeOwned + Default,
 {
@@ -180,21 +182,6 @@ fn fallback_twitch_user(auth: &AuthState) -> String {
         .as_ref()
         .and_then(|user| non_empty(&user.name))
         .unwrap_or_else(|| DEFAULT_TWITCH_USER.to_string())
-}
-
-async fn resolve_github_data(auth: &AuthState) -> (String, Option<String>) {
-    let fallback_username = fallback_github_username(auth);
-
-    match auth.users_by_provider.github.as_ref() {
-        Some(user) => match non_empty(&user.access_token) {
-            Some(token) => fetch_github_widget(&token)
-                .await
-                .map(|github| (github.username, github.repo))
-                .unwrap_or_else(|_| (fallback_username.clone(), None)),
-            None => (fallback_username, None),
-        },
-        None => (fallback_username, None),
-    }
 }
 
 fn default_bus_data() -> (String, String) {
@@ -323,7 +310,8 @@ pub async fn get_widget_kinds(app: AppHandle) -> Result<[MemoriWidget; 6], Strin
     let auth: AuthState = read_store_state(&app, "auth");
     let temp_text = resolve_weather_text(&prefs).await;
     let (bus_prediction, bus_route) = resolve_bus_data(&prefs).await;
-    let (github_username, github_repo) = resolve_github_data(&auth).await;
+    let github = refresh_github_widget(&app).await.unwrap_or_default();
+    println!("github widget: {:?}", github);
     let twitch_user = fallback_twitch_user(&auth);
     let name = prefs.name;
 
@@ -332,10 +320,7 @@ pub async fn get_widget_kinds(app: AppHandle) -> Result<[MemoriWidget; 6], Strin
         never_widget(1, WidgetKind::Clock(Clock::new(1, 0, 0))),
         never_widget(2, WidgetKind::Bus(Bus::new(bus_prediction, bus_route))),
         never_widget(3, WidgetKind::Weather(Weather::new(temp_text))),
-        never_widget(
-            4,
-            WidgetKind::Github(Github::new(github_username, github_repo)),
-        ),
+        never_widget(4, WidgetKind::Github(github)),
         never_widget(5, WidgetKind::Twitch(Twitch::new(twitch_user))),
     ])
 }

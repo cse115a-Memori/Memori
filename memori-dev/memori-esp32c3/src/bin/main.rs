@@ -39,6 +39,9 @@ static BLE_TRANSPORT: StaticCell<Mutex<CriticalSectionRawMutex, DeviceBLETranspo
 
 static MEMORI_STATE: StaticCell<Mutex<CriticalSectionRawMutex, MemoriState>> = StaticCell::new();
 
+
+const DEVICE_ID: &str = env!("DEVICE_ID");
+
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
 esp_bootloader_esp_idf::esp_app_desc!();
@@ -102,6 +105,7 @@ async fn main(spawner: Spawner) -> () {
         // in this function it would be nice if we stored something
         // in flash that told us if it was already onboarded or if its
         // a new device.
+
         // let mem_state = MemoriState::default();
         //
         let pair_widget = MemoriWidget::new(
@@ -114,6 +118,7 @@ async fn main(spawner: Spawner) -> () {
         let frame = memori_ui::layout::MemoriLayout::Full(WidgetId(0));
 
         let mem_state = MemoriState::new(0, [pair_widget], alloc::vec![frame], 0);
+
 
         Mutex::new(mem_state)
     });

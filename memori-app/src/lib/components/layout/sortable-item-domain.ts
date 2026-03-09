@@ -10,6 +10,7 @@ export interface SortableItemDraft {
 	busRoute: string
 	busPrediction: string
 	twitchUser: string
+	githubRepo: string
 }
 
 const EMPTY_DRAFT: SortableItemDraft = {
@@ -22,6 +23,7 @@ const EMPTY_DRAFT: SortableItemDraft = {
 	busRoute: '',
 	busPrediction: '',
 	twitchUser: '',
+	githubRepo: '',
 }
 
 function hasText(value: string): boolean {
@@ -51,6 +53,8 @@ export function createDraftFromKind(kind: WidgetView['kind']): SortableItemDraft
 		draft.busPrediction = kind.Bus.prediction
 	} else if ('Twitch' in kind) {
 		draft.twitchUser = kind.Twitch.user
+	} else if ('Github' in kind) {
+  	draft.githubRepo = kind.Github.repo ?? ''
 	}
 
 	return draft
@@ -95,12 +99,21 @@ export function buildKindFromDraft(
 		if (!hasText(user)) return null
 		return { Twitch: { user } }
 	}
+	if ('Github' in kind) {
+    return {
+      Github: {
+        ...kind.Github,
+        repo: draft.githubRepo.trim() || null,
+      }
+    }
+  }
 
 	return null
 }
 
 export function isKindEditable(kind: WidgetView['kind']): boolean {
-	return !('Github' in kind)
+  return 'Name' in kind || 'Clock' in kind || 'Weather' in kind ||
+    'Bus' in kind || 'Twitch' in kind || 'Github' in kind
 }
 
 export type SortableItemKindVariant =

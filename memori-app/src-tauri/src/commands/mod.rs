@@ -1,5 +1,5 @@
 mod connection;
-mod data;
+pub mod data;
 mod fetch;
 
 pub use connection::*;
