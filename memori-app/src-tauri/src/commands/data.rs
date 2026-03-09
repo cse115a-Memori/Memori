@@ -61,6 +61,7 @@ pub struct ProviderUsers {
 #[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct AuthUserInfo {
+    pub id: String,
     pub name: String,
     pub access_token: String,
 }
@@ -328,6 +329,7 @@ pub async fn flash_memori_state(
 #[tauri::command]
 #[specta::specta]
 pub async fn send_github(_state: State<'_, AppState>, token: String) -> Result<String, String> {
+    println!("\n\n\n\n\n\n\n\n");
     let github_widget = fetch_github_widget(&token).await?;
     Ok(github_widget.username)
 }
@@ -348,9 +350,10 @@ pub async fn get_widget_kinds(app: AppHandle) -> Result<[MemoriWidget; 6], Strin
     let weather = resolve_weather_text(&prefs).await;
     let (bus_stop, stop_predictions) = resolve_bus_data(&prefs).await;
     let github = refresh_github_widget(&app).await.unwrap_or_default();
-    println!("github widget: {:?}", github);
-    let twitch_user = fallback_twitch_user(&auth);
+    println!("github widget: {:?}\n\n\n\n\n\n\n", github);
+    // let twitch_user = fallback_twitch_user(&auth);
     let live = refresh_twitch_widget(&app).await.unwrap();
+    println!("twitch widget: {:?}\n\n\n\n\n\n\n", live);
     let name = prefs.name;
 
     Ok([

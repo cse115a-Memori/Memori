@@ -97,8 +97,14 @@ export function buildKindFromDraft(
 	if ('Twitch' in kind) {
 		const username = draft.twitchUser.trim()
 		if (!hasText(username)) return null
-		const live_channels: [string, string, string, string][] = [['', '', '', '']]
-		return { Twitch: { username, live_channels } }
+		// const live_channels: [string, string, string, string][] = [['', '', '', '']]
+		// return { Twitch: { username, live_channels } }
+		return {
+			Twitch: {
+				...kind.Twitch,
+				username,
+			}
+		}
 	}
 	if ('Github' in kind) {
     return {

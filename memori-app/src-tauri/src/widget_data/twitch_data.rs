@@ -1,22 +1,12 @@
-use crate::oauth::UserInfo;
+use crate::commands::{read_store_state, AuthState};
 use memori_ui::widgets::Twitch;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use tauri::AppHandle;
-use tauri_plugin_svelte::ManagerExt;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct TwitchResponse<T> {
     pub data: Vec<T>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TwitchUser {
-    pub display_name: String,
-    pub email: Option<String>,
-    pub id: String,
-    pub login: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -32,7 +22,7 @@ async fn twitch_get(url: &str, token: &str) -> Result<serde_json::Value, String>
     client
         .get(url)
         .bearer_auth(token)
-        .header("Client-ID", "halyhdsjvkw9jqbqk5h4s4ryj9hjbk")
+        .header("Client-Id", "halyhdsjvkw9jqbqk5h4s4ryj9hjbk")
         .header("User-Agent", "my-app")
         .send()
         .await
@@ -45,7 +35,7 @@ async fn twitch_get(url: &str, token: &str) -> Result<serde_json::Value, String>
 }
 
 async fn get_live_streams(userid: &str, token: &str) -> Result<Vec<LiveStream>, String> {
-    let url = format!("https://api.twitch.tv/helix/streams/followed?userid={userid}");
+    let url = format!("https://api.twitch.tv/helix/streams/followed?user_id={userid}");
     let data = twitch_get(&url, token).await?;
     let live_streams: TwitchResponse<LiveStream> =
         serde_json::from_value(data).map_err(|e| e.to_string())?;
@@ -68,6 +58,7 @@ async fn get_live_streams(userid: &str, token: &str) -> Result<Vec<LiveStream>, 
 
 pub async fn refresh_twitch_widget(app: &AppHandle) -> Result<Twitch, String> {
     println!("Refresh twitch widget called");
+    /*
     let auth_users = app
         .svelte()
         .get::<HashMap<String, UserInfo>>("auth", "usersByProvider")
@@ -75,9 +66,18 @@ pub async fn refresh_twitch_widget(app: &AppHandle) -> Result<Twitch, String> {
     let twitch_user = auth_users
         .get("twitch")
         .ok_or("No Twitch user found".to_string())?;
-    let token = &twitch_user.access_token;
-    let userid = &twitch_user.id;
-    let live_streams: Vec<LiveStream> = get_live_streams(&token, &userid).await?;
+    */
+    let auth: AuthState = read_store_state(app, "auth");
+    let twitch_user = auth.users_by_provider.twitch;
+    if twitch_user.is_none() {
+        println!("twitch user is none");
+        return Ok(Twitch::new("Not logged in", vec![]));
+    }
+    let token = twitch_user.as_ref().unwrap().access_token.clone();
+    let userid = twitch_user.as_ref().unwrap().id.trim_matches('"');
+    println!("{token}");
+    println!("{userid}");
+    let live_streams: Vec<LiveStream> = get_live_streams(userid, &token).await?;
     let live_streams_tuples: Vec<(String, String, String, String)> = live_streams
         .iter()
         .map(|stream| {
@@ -89,7 +89,7 @@ pub async fn refresh_twitch_widget(app: &AppHandle) -> Result<Twitch, String> {
             )
         })
         .collect();
-    println!("Refresh twitch widget done");
+    println!("LIVE STREAMERS RIGHT NOW {:?}", live_streams_tuples);
     Ok(memori_ui::widgets::Twitch {
         username: "".to_string(),
         live_channels: live_streams_tuples,
