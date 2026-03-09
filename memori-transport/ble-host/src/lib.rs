@@ -8,11 +8,11 @@ use futures::stream::StreamExt;
 use memori_ui::MemoriState;
 use memori_ui::widgets::{MemoriWidget, WidgetId};
 use postcard::from_bytes;
-use tokio::task::JoinHandle;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{Mutex, mpsc, oneshot};
+use tokio::task::JoinHandle;
 use tokio::time::sleep;
 use transport::ble_types::*;
 use transport::ble_types::{
@@ -226,7 +226,10 @@ impl HostBLETransport {
                             );
                         }
                     } else {
-                        eprintln!("[ble-host] notif-reader: No pending request for id: {}", packet.id);
+                        eprintln!(
+                            "[ble-host] notif-reader: No pending request for id: {}",
+                            packet.id
+                        );
                     }
                 }
             }
@@ -273,7 +276,10 @@ impl HostBLETransport {
     ) {
         while let Some((cmd, id)) = cmd_rx.recv().await {
             if let Err(e) = device_command_tx.send(cmd) {
-                eprintln!("[ble-host] command: Failed to forward device command: {:?}", e);
+                eprintln!(
+                    "[ble-host] command: Failed to forward device command: {:?}",
+                    e
+                );
                 continue;
             }
 
@@ -299,13 +305,13 @@ impl HostBLETransport {
         tokio::spawn(async move {
             if let Err(e) = self.peripheral.disconnect().await {
                 eprintln!("[ble-host] disconnect: failed to disconnect: {}", e);
-        }});
+            }
+        });
 
         self.read_handle.abort();
         self.write_handle.abort();
         self.command_handle.abort();
     }
-
 }
 
 impl HostTransport for HostBLETransport {
@@ -314,9 +320,7 @@ impl HostTransport for HostBLETransport {
         let response = self.send_command(command).await?;
 
         match response {
-            DeviceBLEResponse::SetState { result } => {
-                result
-            }
+            DeviceBLEResponse::SetState { result } => result,
             _ => {
                 eprintln!("[host_transport] Unexpected response type");
                 Err(TransError::ProtocolIssue)
@@ -329,9 +333,7 @@ impl HostTransport for HostBLETransport {
         let response = self.send_command(command).await?;
 
         match response {
-            DeviceBLEResponse::WidgetGet { result } => {
-                result
-            }
+            DeviceBLEResponse::WidgetGet { result } => result,
             _ => {
                 eprintln!("[host_transport] Unexpected response type");
                 Err(TransError::ProtocolIssue)
@@ -350,12 +352,8 @@ impl HostTransport for HostBLETransport {
             })?;
 
         match data.as_slice() {
-            [level] => {
-                Ok(*level)
-            }
-            _ => {
-                Err(TransError::InvalidMessage)
-            }
+            [level] => Ok(*level),
+            _ => Err(TransError::InvalidMessage),
         }
     }
 

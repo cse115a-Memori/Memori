@@ -6,12 +6,16 @@
   import { startWidgetsStore } from '@/features/widgets/widgets-store'
   import { startGitHubStore } from '@/features/github'
   import { goto, onNavigate } from '$app/navigation'
+  import { syncConnectionState } from '@/features/connection'
+  import { refreshLocationState } from '@/features/prefs/service'
   import { page } from '$app/state'
 
   import '../app.css'
+  import { LoaderCircle } from '@lucide/svelte'
 
   const { children } = $props()
-  const isOnboardingRoute = $derived(page.url.pathname === '/')
+  const isOnboardingRoute = $derived(page.url.pathname === '/onboarding')
+  let isReady = $state(false)
 
   async function resetOnboarding() {
     prefsState.onboarded = false
@@ -35,31 +39,45 @@
       startWidgetsStore(),
       startAuthStore(),
       startGitHubStore(),
-    ]).catch((error) => {
-      console.error('Failed to start stores:', error)
-    })
+      syncConnectionState(),
+      refreshLocationState(),
+    ])
+      .catch((error) => {
+        console.error('Failed to start stores:', error)
+      })
+      .finally(() => {
+        isReady = true
+      })
+
+    // check if onboarded, if not goto(/onboard)
   })
 </script>
 
-<div class="min-h-dvh">
-  {#if isOnboardingRoute}
-    {@render children?.()}
-  {:else}
-    <div class="mx-auto w-full max-w-screen-sm px-4 py-6">
-      <div class="mb-4 flex flex-wrap items-center gap-2">
-        {@render navLinks('/', 'Home')}
-        {@render navLinks('/login', 'Login')}
-        {@render navLinks('/device', 'Device')}
-        {@render navLinks('/location', 'Location')}
-        {@render navLinks('/test', 'test')}
-        <Button variant="outline" class="ml-auto" onclick={resetOnboarding}>
-          Reset Onboarding
-        </Button>
-      </div>
+{#if isReady}
+  <div class="h-dvh">
+    {#if isOnboardingRoute}
       {@render children?.()}
-    </div>
-  {/if}
-</div>
+    {:else}
+      <div class="mx-auto w-full max-w-screen-sm px-4 py-6">
+        <div class="mb-4 flex flex-wrap items-center gap-2">
+          {@render navLinks('/', 'Home')}
+          {@render navLinks('/login', 'Login')}
+          {@render navLinks('/device', 'Device')}
+          {@render navLinks('/location', 'Location')}
+          {@render navLinks('/onboarding', 'Onboarding')}
+          <Button variant="outline" class="ml-auto" onclick={resetOnboarding}>
+            Reset Onboarding
+          </Button>
+        </div>
+        {@render children?.()}
+      </div>
+    {/if}
+  </div>
+{:else}
+  <div class="flex min-h-dvh items-center justify-center">
+    <LoaderCircle class="animate-spin" />
+  </div>
+{/if}
 
 {#snippet navLinks(route: string, name: string)}
   <Button

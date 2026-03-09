@@ -1,26 +1,25 @@
 import { ResultAsync } from 'neverthrow'
+
 import { type AuthProvider, authState, startAuthStore } from '@/features/auth/store'
 import { type AppError, commands, toCmdError, tryCmd, type UserInfo } from '@/tauri'
 
 export type { AuthProvider }
 
 export function login(provider: AuthProvider): ResultAsync<UserInfo, AppError> {
-	return tryCmd(commands.loginWithProvider(provider)).andThen(user =>
+	return tryCmd(commands.loginWithProvider(provider)).andThen((user) =>
 		ResultAsync.fromPromise(startAuthStore(), toCmdError).map(() => {
 			authState.usersByProvider = {
 				...authState.usersByProvider,
 				[provider]: user,
 			}
 			return user
-		})
+		}),
 	)
 }
 
-export function getUser(
-	provider: AuthProvider
-): ResultAsync<UserInfo | null, AppError> {
+export function getUser(provider: AuthProvider): ResultAsync<UserInfo | null, AppError> {
 	return ResultAsync.fromPromise(startAuthStore(), toCmdError).map(
-		() => authState.usersByProvider[provider] ?? null
+		() => authState.usersByProvider[provider] ?? null,
 	)
 }
 
