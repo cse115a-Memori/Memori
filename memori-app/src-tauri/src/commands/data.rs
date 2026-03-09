@@ -1,12 +1,9 @@
-use super::fetch::{fetch_github_widget, fetch_twitch_widget};
+use super::fetch::fetch_github_widget;
 use crate::state::{AppState, DeviceConnection};
 use crate::widget_data::{bus_data::*, github_data::*, twitch_data::*, weather_data::*};
 use memori_ui::{
     layout::MemoriLayout,
-    widgets::{
-        Bus, Clock, Github, MemoriWidget, Name, Twitch, UpdateFrequency, Weather, WidgetId,
-        WidgetKind,
-    },
+    widgets::{Bus, Clock, MemoriWidget, Name, UpdateFrequency, Weather, WidgetId, WidgetKind},
     MemoriState,
 };
 use serde::{de::DeserializeOwned, Deserialize};
@@ -16,10 +13,9 @@ use tauri_plugin_svelte::ManagerExt;
 use tokio::time::timeout;
 use transport::HostTransport as _;
 
-const DEFAULT_WEATHER_TEXT: &str = "20.0";
+const DEFAULT_TWITCH_USER: &str = "jujamont";
 const DEFAULT_GITHUB_USERNAME: &str = "CaiNann";
 const DEFAULT_GITHUB_REPO: &str = "Memori";
-const DEFAULT_TWITCH_USER: &str = "twitch_user";
 const DEFAULT_BUS_PREDICTION: (&str, &str, u16) = ("19", "Donwtown to Watsonville", 7);
 const DEFAULT_BUS_STOP: (&str, &str) = ("High and Front", "1230");
 const BUS_FETCH_TIMEOUT_SECS: u64 = 3;
@@ -259,14 +255,24 @@ fn never_widget(id: u32, kind: WidgetKind) -> MemoriWidget {
     )
 }
 
-fn build_twitch_state(display_name: String) -> MemoriState {
+fn second_widget(id: u32, kind: WidgetKind, seconds: u32) -> MemoriWidget {
+    MemoriWidget::new(
+        WidgetId(id),
+        kind,
+        UpdateFrequency::Seconds(seconds),
+        UpdateFrequency::Never,
+    )
+}
+
+async fn build_twitch_state(app: AppHandle) -> MemoriState {
+    let data = refresh_twitch_widget(&app).await.unwrap();
     MemoriState::new(
         0,
         vec![MemoriWidget::new(
             WidgetId(0),
-            WidgetKind::Twitch(Twitch::new(display_name, vec![])),
-            UpdateFrequency::Seconds(1),
-            UpdateFrequency::Seconds(1),
+            WidgetKind::Twitch(data),
+            UpdateFrequency::Seconds(5),
+            UpdateFrequency::Never,
         )],
         vec![MemoriLayout::Full(WidgetId(0))],
         5,
@@ -336,17 +342,16 @@ pub async fn send_github(_state: State<'_, AppState>, token: String) -> Result<S
 
 #[tauri::command]
 #[specta::specta]
-pub async fn send_twitch(state: State<'_, AppState>, token: String) -> Result<(), String> {
-    // let display_name = fetch_twitch_display_name(&token).await?;
-    let display_name = "jujamont".to_string();
-    set_memori_state(&state, build_twitch_state(display_name)).await
+pub async fn send_twitch(state: State<'_, AppState>, app: AppHandle) -> Result<(), String> {
+    let twitch_state = build_twitch_state(app).await;
+    set_memori_state(&state, twitch_state).await
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn get_widget_kinds(app: AppHandle) -> Result<[MemoriWidget; 6], String> {
     let prefs: PrefsState = read_store_state(&app, "prefs");
-    let auth: AuthState = read_store_state(&app, "auth");
+    // let auth: AuthState = read_store_state(&app, "auth");
     let weather = resolve_weather_text(&prefs).await;
     let (bus_stop, stop_predictions) = resolve_bus_data(&prefs).await;
     let github = refresh_github_widget(&app).await.unwrap_or_default();
@@ -367,7 +372,7 @@ pub async fn get_widget_kinds(app: AppHandle) -> Result<[MemoriWidget; 6], Strin
             )),
         ),
         never_widget(4, WidgetKind::Github(github)),
-        never_widget(5, WidgetKind::Twitch(live)),
+        second_widget(5, WidgetKind::Twitch(live), 5),
     ])
 }
 

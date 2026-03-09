@@ -53,9 +53,9 @@ async getWidgetKinds() : Promise<Result<[MemoriWidget, MemoriWidget, MemoriWidge
     else return { status: "error", error: e  as any };
 }
 },
-async sendTwitch(token: string) : Promise<Result<null, string>> {
+async sendTwitch() : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("send_twitch", { token }) };
+    return { status: "ok", data: await TAURI_INVOKE("send_twitch") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };

@@ -74,9 +74,8 @@ pub async fn refresh_twitch_widget(app: &AppHandle) -> Result<Twitch, String> {
         return Ok(Twitch::new("Not logged in", vec![]));
     }
     let token = twitch_user.as_ref().unwrap().access_token.clone();
+    let username = twitch_user.as_ref().unwrap().name.clone();
     let userid = twitch_user.as_ref().unwrap().id.trim_matches('"');
-    println!("{token}");
-    println!("{userid}");
     let live_streams: Vec<LiveStream> = get_live_streams(userid, &token).await?;
     let live_streams_tuples: Vec<(String, String, String, String)> = live_streams
         .iter()
@@ -91,7 +90,7 @@ pub async fn refresh_twitch_widget(app: &AppHandle) -> Result<Twitch, String> {
         .collect();
     println!("LIVE STREAMERS RIGHT NOW {:?}", live_streams_tuples);
     Ok(memori_ui::widgets::Twitch {
-        username: "".to_string(),
+        username,
         live_channels: live_streams_tuples,
     })
 }

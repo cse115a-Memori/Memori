@@ -48,6 +48,7 @@ impl Widget for &Twitch {
         let num_live = self.live_channels.len();
         let (mut p1, mut p2) = (Paragraph::default(), Paragraph::default());
         let live = Span::styled("● LIVE", Style::default().bg(Color::White).fg(Color::Black));
+        let outer_inner = twitch_block.inner(area);
         if num_live >= 2 {
             let stream1 = self.live_channels.first().unwrap();
             let streamer1 = Span::from(format!(" {} ", stream1.0));
@@ -76,15 +77,14 @@ impl Widget for &Twitch {
             let game = Line::from(format!("playing {}", stream.1));
             let title = Line::from(format!("Title: {}", stream.2));
             let viewers = Line::from(format!("Viewers: {}", stream.3));
-            let temp = Text::from(vec![streamer, game, title, viewers]);
+            let temp = Text::from(vec![streamer, game, viewers, title]);
             p1 = Paragraph::new(temp)
                 .alignment(Alignment::Center)
                 .wrap(Wrap { trim: true });
         } else {
-            Text::from("No channels you follow are currently live").render(area, buf);
+            Text::from("No channels you follow are currently live").render(outer_inner, buf);
             return;
         }
-        let outer_inner = twitch_block.inner(area);
         match (outer_inner.width, outer_inner.height) {
             (w, h) if w < 30 && h < 6 => {
                 // small
