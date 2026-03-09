@@ -254,23 +254,15 @@
 			{:else if 'Weather' in widget.kind}
 				<div class="space-y-3">
 					<label class="space-y-1 block">
-						<span class="text-sm font-medium text-slate-700">Temp</span>
-						<Input bind:value={editorState.draft.weatherTemp} placeholder="24" />
-					</label>
-					<label class="space-y-1 block">
-						<span class="text-sm font-medium text-slate-700">Icon</span>
-						<Input bind:value={editorState.draft.weatherIcon} placeholder="sunny" />
+						<span class="text-sm font-medium text-slate-700">Stop</span>
+						<Input bind:value={editorState.draft.weatherCity} placeholder="Santa Cruz" />
 					</label>
 				</div>
 			{:else if 'Bus' in widget.kind}
 				<div class="space-y-3">
 					<label class="space-y-1 block">
-						<span class="text-sm font-medium text-slate-700">Route</span>
-						<Input bind:value={editorState.draft.busRoute} placeholder="15A" />
-					</label>
-					<label class="space-y-1 block">
-						<span class="text-sm font-medium text-slate-700">Prediction</span>
-						<Input bind:value={editorState.draft.busPrediction} placeholder="7 mins" />
+						<span class="text-sm font-medium text-slate-700">Stop</span>
+						<Input bind:value={editorState.draft.busStop} placeholder="1230" />
 					</label>
 				</div>
 			{:else if 'Twitch' in widget.kind}

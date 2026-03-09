@@ -1,8 +1,6 @@
-use super::fetch::{
-    fetch_all_ucsc_stops, fetch_github_widget, fetch_twitch_display_name, fetch_weather_temp, Stop,
-};
+use super::fetch::{fetch_github_widget, fetch_twitch_widget};
 use crate::state::{AppState, DeviceConnection};
-use crate::widget_data::github_data::*;
+use crate::widget_data::{bus_data::*, github_data::*, twitch_data::*, weather_data::*};
 use memori_ui::{
     layout::MemoriLayout,
     widgets::{
@@ -22,8 +20,8 @@ const DEFAULT_WEATHER_TEXT: &str = "20.0";
 const DEFAULT_GITHUB_USERNAME: &str = "CaiNann";
 const DEFAULT_GITHUB_REPO: &str = "Memori";
 const DEFAULT_TWITCH_USER: &str = "twitch_user";
-const DEFAULT_BUS_PREDICTION: &str = "9 min";
-const DEFAULT_BUS_ROUTE: &str = "Route 19";
+const DEFAULT_BUS_PREDICTION: (&str, &str, u16) = ("19", "Donwtown to Watsonville", 7);
+const DEFAULT_BUS_STOP: (&str, &str) = ("High and Front", "1230");
 const BUS_FETCH_TIMEOUT_SECS: u64 = 3;
 
 #[derive(Debug, Deserialize, specta::Type)]
@@ -159,13 +157,16 @@ where
     app.svelte().state_or_default(store_id).unwrap_or_default()
 }
 
-async fn resolve_weather_text(prefs: &PrefsState) -> String {
+async fn resolve_weather_text(
+    prefs: &PrefsState,
+) -> (String, String, String, String, String, String, String) {
     let (lat, lon) = coords_from_prefs(prefs);
 
-    fetch_weather_temp(lat, lon)
-        .await
-        .map(|temp_celsius| format!("{temp_celsius:.1}"))
-        .unwrap_or_else(|_| DEFAULT_WEATHER_TEXT.to_string())
+    fetch_weather_temp(lat, lon).await.unwrap()
+    /*
+    .map(|temp_celsius| format!("{temp_celsius:.1}"))
+    .unwrap_or_else(|_| DEFAULT_WEATHER_TEXT.to_string())
+    */
 }
 
 fn fallback_github_username(auth: &AuthState) -> String {
@@ -184,14 +185,21 @@ fn fallback_twitch_user(auth: &AuthState) -> String {
         .unwrap_or_else(|| DEFAULT_TWITCH_USER.to_string())
 }
 
-fn default_bus_data() -> (String, String) {
+fn default_bus_data() -> ((String, String), Vec<(String, String, u16)>) {
     (
-        DEFAULT_BUS_PREDICTION.to_string(),
-        DEFAULT_BUS_ROUTE.to_string(),
+        (
+            DEFAULT_BUS_STOP.0.to_string(),
+            DEFAULT_BUS_STOP.1.to_string(),
+        ),
+        vec![(
+            DEFAULT_BUS_PREDICTION.0.to_string(),
+            DEFAULT_BUS_PREDICTION.1.to_string(),
+            DEFAULT_BUS_PREDICTION.2,
+        )],
     )
 }
 
-async fn resolve_bus_data(prefs: &PrefsState) -> (String, String) {
+async fn resolve_bus_data(prefs: &PrefsState) -> ((String, String), Vec<(String, String, u16)>) {
     let location = match prefs.last_known_location.as_ref() {
         Some(location) => location,
         None => return default_bus_data(),
@@ -211,16 +219,34 @@ async fn resolve_bus_data(prefs: &PrefsState) -> (String, String) {
         Ok(Err(_)) => return default_bus_data(),
     };
 
-    match find_closest_stop(&all_stops, lat, lon) {
-        Some(stop) => {
-            let distance_km = haversine_km(lat, lon, stop.lat, stop.lon);
-            (
-                format!("{distance_km:.1} km"),
-                format!("Stop {}", stop.stpid),
-            )
-        }
-        None => default_bus_data(),
+    let stop: &Stop = match find_closest_stop(&all_stops, lat, lon) {
+        Some(stop) => stop, /*{
+        let distance_km = haversine_km(lat, lon, stop.lat, stop.lon);
+        (
+        format!("{distance_km:.1} km"),
+        format!("Stop {}", stop.stpid),
+        )
+        }*/
+        None => &Stop {
+            stpid: "".to_string(),
+            stpnm: "".to_string(),
+            lat: 0.0,
+            lon: 0.0,
+        },
+    };
+    let predictions = fetch_predictions(stop).await.unwrap();
+    let mut predictions2 = Vec::new();
+    for prediction in predictions {
+        let parsed: u16 = match prediction.prdctdn.parse::<u16>() {
+            Ok(value) => value,
+            Err(_) => {
+                println!("fetch bus time err");
+                continue;
+            }
+        };
+        predictions2.push((prediction.rt.clone(), prediction.rtdd.clone(), parsed));
     }
+    ((stop.stpnm.clone(), stop.stpid.clone()), predictions2)
 }
 
 fn never_widget(id: u32, kind: WidgetKind) -> MemoriWidget {
@@ -237,7 +263,7 @@ fn build_twitch_state(display_name: String) -> MemoriState {
         0,
         vec![MemoriWidget::new(
             WidgetId(0),
-            WidgetKind::Twitch(Twitch::new(display_name)),
+            WidgetKind::Twitch(Twitch::new(display_name, vec![])),
             UpdateFrequency::Seconds(1),
             UpdateFrequency::Seconds(1),
         )],
@@ -246,12 +272,22 @@ fn build_twitch_state(display_name: String) -> MemoriState {
     )
 }
 
-fn build_weather_state(temp_celsius: f32) -> MemoriState {
+fn build_weather_state(
+    weather_text: (String, String, String, String, String, String, String),
+) -> MemoriState {
     MemoriState::new(
         0,
         vec![MemoriWidget::new(
             WidgetId(0),
-            WidgetKind::Weather(Weather::new(temp_celsius.to_string())),
+            WidgetKind::Weather(Weather::new(
+                weather_text.0,
+                weather_text.1,
+                weather_text.2,
+                weather_text.3,
+                weather_text.4,
+                weather_text.5,
+                weather_text.6,
+            )),
             UpdateFrequency::Seconds(60),
             UpdateFrequency::Seconds(60),
         )],
@@ -299,7 +335,8 @@ pub async fn send_github(_state: State<'_, AppState>, token: String) -> Result<S
 #[tauri::command]
 #[specta::specta]
 pub async fn send_twitch(state: State<'_, AppState>, token: String) -> Result<(), String> {
-    let display_name = fetch_twitch_display_name(&token).await?;
+    // let display_name = fetch_twitch_display_name(&token).await?;
+    let display_name = "jujamont".to_string();
     set_memori_state(&state, build_twitch_state(display_name)).await
 }
 
@@ -308,20 +345,26 @@ pub async fn send_twitch(state: State<'_, AppState>, token: String) -> Result<()
 pub async fn get_widget_kinds(app: AppHandle) -> Result<[MemoriWidget; 6], String> {
     let prefs: PrefsState = read_store_state(&app, "prefs");
     let auth: AuthState = read_store_state(&app, "auth");
-    let temp_text = resolve_weather_text(&prefs).await;
-    let (bus_prediction, bus_route) = resolve_bus_data(&prefs).await;
+    let weather = resolve_weather_text(&prefs).await;
+    let (bus_stop, stop_predictions) = resolve_bus_data(&prefs).await;
     let github = refresh_github_widget(&app).await.unwrap_or_default();
     println!("github widget: {:?}", github);
     let twitch_user = fallback_twitch_user(&auth);
+    let live = refresh_twitch_widget(&app).await.unwrap();
     let name = prefs.name;
 
     Ok([
         never_widget(0, WidgetKind::Name(Name::new(name))),
         never_widget(1, WidgetKind::Clock(Clock::new(1, 0, 0))),
-        never_widget(2, WidgetKind::Bus(Bus::new(bus_prediction, bus_route))),
-        never_widget(3, WidgetKind::Weather(Weather::new(temp_text))),
+        never_widget(2, WidgetKind::Bus(Bus::new(bus_stop, stop_predictions))),
+        never_widget(
+            3,
+            WidgetKind::Weather(Weather::new(
+                weather.0, weather.1, weather.2, weather.3, weather.4, weather.5, weather.6,
+            )),
+        ),
         never_widget(4, WidgetKind::Github(github)),
-        never_widget(5, WidgetKind::Twitch(Twitch::new(twitch_user))),
+        never_widget(5, WidgetKind::Twitch(live)),
     ])
 }
 
@@ -351,7 +394,7 @@ pub async fn send_name(state: State<'_, AppState>, name: String) -> Result<(), S
 #[specta::specta]
 pub async fn send_temp(state: State<'_, AppState>, lat: f64, lon: f64) -> Result<String, String> {
     let temp_celsius = fetch_weather_temp(lat, lon).await?;
-    set_memori_state(&state, build_weather_state(temp_celsius)).await?;
+    set_memori_state(&state, build_weather_state(temp_celsius.clone())).await?;
     Ok(format!("{temp_celsius:?}"))
 }
 

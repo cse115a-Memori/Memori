@@ -148,7 +148,7 @@ async getGithubRepos() : Promise<Result<string[], string>> {
 /**
  * Define a widget by its data
  */
-export type Bus = { route: string; prediction: string }
+export type Bus = { stop: [string, string]; predictions: ([string, string, number])[] }
 export type Clock = { seconds: number; minutes: number; hours: number }
 export type DeviceMode = "RealDevice" | "Simulator"
 export type Github = { username: string; repo: string | null; openIssues: number; openPrs: number; stars: number; notifications: number; commits: [number, number, number, number, number, number, number]; weekday: number }
@@ -255,13 +255,13 @@ export type Name = { name: string }
 /**
  * Define a widget by its data
  */
-export type Twitch = { user: string }
+export type Twitch = { username: string; live_channels: ([string, string, string, string])[] }
 export type UpdateFrequency = { Seconds: number } | { Minutes: number } | { Hours: number } | "Never"
 export type UserInfo = { id: string; name: string; email: string; avatar: string | null; provider: string; accessToken: string }
 /**
  * Define a widget by its data
  */
-export type Weather = { temp: string; icon: string }
+export type Weather = { city: string; temp: string; clouds: string; wind: string; rain: string; humidity: string; description: string }
 export type WidgetId = number
 export type WidgetKind = { Name: Name } | { Clock: Clock } | { Github: Github } | { Weather: Weather } | { Bus: Bus } | { Twitch: Twitch }
 
