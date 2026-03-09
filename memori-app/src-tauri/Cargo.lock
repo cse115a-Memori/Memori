@@ -2818,7 +2818,6 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-shell",
  "tauri-plugin-single-instance",
- "tauri-plugin-store",
  "tauri-plugin-svelte",
  "tauri-specta",
  "tauri-store",
@@ -5279,22 +5278,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tauri-plugin-store"
-version = "2.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ca1a8ff83c269b115e98726ffc13f9e548a10161544a92ad121d6d0a96e16ea"
-dependencies = [
- "dunce",
- "serde",
- "serde_json",
- "tauri",
- "tauri-plugin",
- "thiserror 2.0.18",
- "tokio",
- "tracing",
-]
-
-[[package]]
 name = "tauri-plugin-svelte"
 version = "3.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5388,9 +5371,9 @@ dependencies = [
 
 [[package]]
 name = "tauri-store"
-version = "1.2.1"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9be9521d54e10be792f25be936805981d017d6047c3e41b5a76b612cc94d8d43"
+checksum = "2c0cf1b1a3a5e7d100f57c3eccbf8d67e53cffc1598b787c628d809405d6de56"
 dependencies = [
  "dashmap 6.1.0",
  "futures",

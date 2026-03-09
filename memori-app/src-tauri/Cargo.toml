@@ -21,7 +21,6 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 
 tauri-plugin-opener = "2"
-tauri-plugin-store = "2"
 tauri-plugin-geolocation = "2"
 tauri-plugin-blec = "0.8.1"
 tauri-plugin-svelte = "3.1.0"
@@ -31,7 +30,7 @@ tauri-plugin-shell = "2"
 tauri-plugin-deep-link = "2"
 
 tauri-specta = { version = "=2.0.0-rc.21", features = ["derive", "typescript"] }
-tauri-store = "1.2.1"
+tauri-store = "=1.1.1"
 specta = { version = "=2.0.0-rc.22", features = ["derive"] }
 specta-typescript = "0.0.9"
 
