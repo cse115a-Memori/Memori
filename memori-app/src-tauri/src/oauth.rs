@@ -196,17 +196,23 @@ pub async fn login_with_provider(
             user_info["email"].as_str().unwrap_or("").to_string(),
             user_info["avatar_url"].as_str().map(|s| s.to_string()),
         ),
-        "twitch" => (
-            user_info["id"].to_string(),
-            user_info["login"]
-                .as_str()
-                .unwrap_or_else(|| user_info["login"].as_str().unwrap_or(""))
-                .to_string(),
-            user_info["email"].as_str().unwrap_or("").to_string(),
-            user_info["profile_image_url"]
-                .as_str()
-                .map(|s| s.to_string()),
-        ),
+        "twitch" => {
+            let twitch_info = user_info["data"]
+                .as_array()
+                .and_then(|arr| arr.first())
+                .ok_or("no user data found in twitch response")?;
+            (
+                twitch_info["id"].to_string(),
+                twitch_info["login"]
+                    .as_str()
+                    .unwrap_or_else(|| user_info["login"].as_str().unwrap_or(""))
+                    .to_string(),
+                twitch_info["email"].as_str().unwrap_or("").to_string(),
+                twitch_info["profile_image_url"]
+                    .as_str()
+                    .map(|s| s.to_string()),
+            )
+        }
         _ => return Err(format!("Unsupported provider: {}", provider)),
     };
     println!(

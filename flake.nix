@@ -1,6 +1,10 @@
 {
   description = "A Nix-flake-based Typst development environment";
   inputs.nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1"; # unstable Nixpkgs
+  inputs.fenix = {
+    url = "https://flakehub.com/f/nix-community/fenix/0.1";
+    inputs.nixpkgs.follows = "nixpkgs";
+  };
   outputs =
     { self, ... }@inputs:
     let
@@ -17,18 +21,45 @@
           f {
             pkgs = import inputs.nixpkgs {
               inherit system;
+              overlays = [
+                inputs.self.overlays.default
+              ];
             };
           }
         );
     in
     {
+
+      overlays.default = final: prev: {
+        rustToolchain =
+          with inputs.fenix.packages.${prev.stdenv.hostPlatform.system};
+          combine (
+            with stable;
+            [
+              clippy
+              rustc
+              cargo
+              rustfmt
+              rust-src
+              rust-analyzer
+
+              targets.riscv32imc-unknown-none-elf.stable.rust-std
+            ]
+          );
+
+      };
+
       devShells = forEachSupportedSystem (
         { pkgs }:
         {
           default = pkgs.mkShellNoCC {
+          name = "Memori";
             packages =
               with pkgs;
               [
+                rustToolchain
+                rust-analyzer
+
                 typst
                 typstyle
                 tinymist
@@ -37,7 +68,7 @@
                 pkg-config
                 libiconv
                 vips
-
+                bun
                 esp-generate
                 espflash
                 espup
@@ -46,6 +77,12 @@
               ++ (with typstPackages; [
                 # Typst packages
               ]);
+
+            env = {
+              # Required by rust-analyzer
+              RUST_SRC_PATH = "${pkgs.rustToolchain}/lib/rustlib/src/rust/library";
+            };
+
             shellHook = ''
               export LIBRARY_PATH=${
                 pkgs.lib.makeLibraryPath [

@@ -27,6 +27,7 @@ desktop:
 typ FILE="":
     typst watch {{ FILE }}
 
+
 doc PATH:
     cargo doc --open {{ PATH }}
 

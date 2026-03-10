@@ -1,10 +1,10 @@
-use reqwest::Client;
-use chrono::{Local, Datelike};
-use tauri::AppHandle;
+use crate::commands::data::{read_store_state, AuthState};
+use chrono::{Datelike, Local};
 use memori_ui::widgets::Github;
-use crate::commands::data::{AuthState, read_store_state};
+use reqwest::Client;
 use serde::Deserialize;
 use std::collections::HashSet;
+use tauri::AppHandle;
 
 //Need this struct so that read_store_state can deserialize the stored state
 #[derive(Debug, Deserialize, Default)]
@@ -67,7 +67,9 @@ pub async fn get_user_repos(token: &str) -> Result<Vec<String>, String> {
                 }
             }
         }
-        if arr.len() < 100 { break; }
+        if arr.len() < 100 {
+            break;
+        }
         page += 1;
     }
 
@@ -94,7 +96,9 @@ pub async fn get_user_repos(token: &str) -> Result<Vec<String>, String> {
                             }
                         }
                     }
-                    if arr.len() < 100 { break; }
+                    if arr.len() < 100 {
+                        break;
+                    }
                     page += 1;
                 }
             }
@@ -103,17 +107,16 @@ pub async fn get_user_repos(token: &str) -> Result<Vec<String>, String> {
     Ok(repos)
 }
 
-async fn get_num_prs(
-    token: &str,
-    repo: &str,
-) -> Result<u32, String> {
+async fn get_num_prs(token: &str, repo: &str) -> Result<u32, String> {
     let client = Client::new();
     let url = format!(
         "https://api.github.com/search/issues?q=repo:{}+type:pr+state:open&per_page=1",
         repo
     );
     let data = github_get(&client, &url, token).await?;
-    let count = data["total_count"].as_u64().ok_or_else(|| "total_count not found".to_string())? as u32;
+    let count = data["total_count"]
+        .as_u64()
+        .ok_or_else(|| "total_count not found".to_string())? as u32;
 
     Ok(count)
 }
@@ -136,7 +139,6 @@ async fn get_num_issues(token: &str, repo: &str) -> Result<u32, String> {
     let count = data["total_count"].as_u64().unwrap_or(0) as u32;
     Ok(count)
 }
-
 
 async fn get_num_notifications(token: &str) -> Result<u32, String> {
     let client = Client::new();
@@ -171,24 +173,24 @@ async fn get_commit_frequency(token: &str, repo: &str) -> Result<[u32; 7], Strin
 }
 
 pub async fn refresh_github_widget(app: &AppHandle) -> Result<Github, String> {
-    println!("Refresh github widget called");
+    println!("Refresh github widget called\n\n\n\n\n\n");
     let auth: AuthState = read_store_state(app, "auth");
     let github_user = auth.users_by_provider.github;
-    
+
     if github_user.is_none() {
         println!("Github user is none");
-        return Ok(Github::new("Not logged in...".to_string(), None))
+        return Ok(Github::new("Not logged in...".to_string(), None));
     }
-    
+
     let token = github_user.as_ref().unwrap().access_token.clone();
     let username = github_user.as_ref().unwrap().name.clone();
-    
+
     let github_store: GithubState = read_store_state(app, "github");
     let repo = match github_store.repo {
         Some(repo) => repo,
         None => return Ok(Github::new(username, None)),
     };
-    
+
     // Call each async function concurrently
     let (open_issues, open_prs, stars, notifications, commits) = tokio::join!(
         get_num_issues(&token, &repo),
@@ -197,9 +199,9 @@ pub async fn refresh_github_widget(app: &AppHandle) -> Result<Github, String> {
         get_num_notifications(&token),
         get_commit_frequency(&token, &repo),
     );
-    
+
     println!("Refresh github widget done");
-    
+
     Ok(memori_ui::widgets::Github {
         username: username.clone(),
         repo: Some(repo.clone()),
@@ -210,4 +212,13 @@ pub async fn refresh_github_widget(app: &AppHandle) -> Result<Github, String> {
         commits: commits?,
         weekday: Local::now().weekday().num_days_from_sunday() as usize,
     })
+}
+
+
+#[tauri::command]
+#[specta::specta]
+pub async fn test_github(app: AppHandle) -> Result<(), String> {
+    let widget = refresh_github_widget(&app).await;
+    println!("{:?}", widget);
+    Ok(())
 }
