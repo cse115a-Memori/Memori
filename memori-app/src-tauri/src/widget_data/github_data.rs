@@ -1,4 +1,5 @@
-use crate::commands::data::{read_store_state, AuthState};
+use crate::commands::data::{read_store_state};
+use crate::commands::translation_structs::AuthState;
 use chrono::{Datelike, Local};
 use memori_ui::widgets::Github;
 use reqwest::Client;
@@ -173,7 +174,7 @@ async fn get_commit_frequency(token: &str, repo: &str) -> Result<[u32; 7], Strin
 }
 
 pub async fn refresh_github_widget(app: &AppHandle) -> Result<Github, String> {
-    println!("Refresh github widget called\n\n\n\n\n\n");
+    println!("Refresh github widget called\n");
     let auth: AuthState = read_store_state(app, "auth");
     let github_user = auth.users_by_provider.github;
 
@@ -212,13 +213,4 @@ pub async fn refresh_github_widget(app: &AppHandle) -> Result<Github, String> {
         commits: commits?,
         weekday: Local::now().weekday().num_days_from_sunday() as usize,
     })
-}
-
-
-#[tauri::command]
-#[specta::specta]
-pub async fn test_github(app: AppHandle) -> Result<(), String> {
-    let widget = refresh_github_widget(&app).await;
-    println!("{:?}", widget);
-    Ok(())
 }

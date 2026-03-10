@@ -5,16 +5,16 @@ mod state;
 mod widget_data;
 mod ble;
 
+use crate::widget_data::github_data::get_github_repos;
 use commands::{
     connect_device, disconnect_device, flash_memori_state, get_battery, get_device_mode,
-    get_widget_kinds, is_connected, send_bustime, send_github, send_name, send_temp, send_twitch, test_github,
+    get_widget_kinds, is_connected,
 };
 use memori_ui::{layout::MemoriLayout, widgets::MemoriWidget};
 use oauth::{login_with_provider, start_oauth_server};
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use state::AppState;
-use tauri_specta::{collect_commands, collect_events, Builder, Event};
-use crate::widget_data::github_data::get_github_repos;
+use tauri_specta::{collect_commands, Builder, Event};
 
 // use serde::{Deserialize, Serialize};
 // use specta::Type;
@@ -28,19 +28,13 @@ pub fn run() {
         .commands(collect_commands![
             connect_device,
             disconnect_device,
-            get_device_mode,
             is_connected,
-            get_battery,
             get_widget_kinds,
-            send_twitch,
+            get_battery,
+            get_device_mode,
             flash_memori_state,
-            send_github,
-            send_name,
-            send_temp,
-            send_bustime,
             start_oauth_server,
             login_with_provider,
-            test_github,
             get_github_repos,
         ])
         // .events(collect_events![UpdateIsConnected])

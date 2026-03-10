@@ -37,7 +37,7 @@ impl Bus {
     pub fn update(&mut self) {
         self.predictions.rotate_right(1);
     }
-    pub fn render2(&self, buf: &mut Buffer, num_routes: usize, w: u16) {
+    pub fn render2(&self, area: Rect, buf: &mut Buffer, num_routes: usize) {
         let predictions = self.predictions.clone();
         let bars: Vec<(String, u64)> = predictions
             .into_iter()
@@ -65,7 +65,16 @@ impl Bus {
             );
             let t = self.predictions[i].1.clone();
             Text::from(format!(" {}", t))
-                .render(Rect::new(1, (2 * ((i + 1) as u16)) + 1, w, 1), buf);
+                .render(Rect::new(1, (2 * ((i + 1) as u16)) + 1, 1, 1), buf);
+        }
+    }
+}
+
+impl Default for Bus {
+    fn default() -> Self {
+        Self {
+            stop: (String::new(), String::new()),
+            predictions: Vec::new(),
         }
     }
 }
@@ -86,18 +95,19 @@ impl Widget for &Bus {
             Rect::new(1, 1, outer_inner.width - 1, outer_inner.height - 1),
             buf,
         );
+        let outer_inner = Rect::new(outer_inner.x, outer_inner.y + 1, outer_inner.width, outer_inner.height);
         match (outer_inner.width, outer_inner.height) {
             (w, h) if w < 30 && h < 6 => {
-                self.render2(buf, 1, w);
+                self.render2(outer_inner, buf, 1);
             }
             (w, h) if w < 30 => {
-                self.render2(buf, 4, w);
+                self.render2(outer_inner, buf, 3);
             }
-            (w, h) if h < 6 => {
-                self.render2(buf, 1, w);
+      (w, h) if h < 6 => {
+                self.render2(outer_inner, buf, 1);
             }
-            (w, _) => {
-                self.render2(buf, 4, w);
+        (_, _) => {
+                self.render2(outer_inner, buf, 3);
             }
         }
     }

@@ -46,22 +46,22 @@
 		)
 		pendingOp = null
 	}
-	
+
 	async function loginGithub() {
 		errMsg = ''
 		statusMsg = ''
 		pendingOp = 'login'
 		await login('github').match(
-		nextUser => {
-			user = nextUser
-			statusMsg = 'Logged in with Github'
-		},
-		error => {
-			errMsg = `Github login failed: ${error}`
-		}
-	)
-	pendingOp = null
-}
+			nextUser => {
+				user = nextUser
+				statusMsg = 'Logged in with Github'
+			},
+			error => {
+				errMsg = `Github login failed: ${error}`
+			}
+		)
+		pendingOp = null
+	}
 
 	async function logoutTwitch() {
 		pendingOp = 'logout'
@@ -105,17 +105,11 @@
 	</div>
 
 	<div class="mt-4">
-		<Button variant="outline" onclick={sendTwitch} disabled={isBusy || !accessToken}>
-			Send twitch
-		</Button>
-	</div>
-
-	<div class="mt-4">
 		<Button variant="outline" onclick={logoutTwitch} disabled={isBusy || !user}>
 			Logout
 		</Button>
 	</div>
-	
+
 	<div class="mt-4">
 		<Button variant="outline" onclick={loginGithub} disabled={isBusy}>
 			Connect to Github

@@ -32,6 +32,15 @@ impl Twitch {
     }
 }
 
+impl Default for Twitch {
+    fn default() -> Self {
+        Self {
+            username: String::new(),
+            live_channels: Vec::new(),
+        }
+    }
+}
+
 // impl the function like this
 impl Widget for &Twitch {
     fn render(self, area: Rect, buf: &mut Buffer) {

@@ -39,40 +39,13 @@ async fn get_live_streams(userid: &str, token: &str) -> Result<Vec<LiveStream>, 
     let data = twitch_get(&url, token).await?;
     let live_streams: TwitchResponse<LiveStream> =
         serde_json::from_value(data).map_err(|e| e.to_string())?;
-    /*
-    let live_streams: Vec<(String, String, String, String)> = twitch_response
-        .data
-        .iter()
-        .map(|channel| {
-            (
-                channel.user_name.clone(),
-                channel.game_name.clone(),
-                channel.title.clone(),
-                channel.viewer_count.to_string(),
-            )
-        })
-        .collect();
-    */
     Ok(live_streams.data)
 }
 
 pub async fn refresh_twitch_widget(app: &AppHandle) -> Result<Twitch, String> {
-    println!("Refresh twitch widget called");
-    /*
-    let auth_users = app
-        .svelte()
-        .get::<HashMap<String, UserInfo>>("auth", "usersByProvider")
-        .unwrap();
-    let twitch_user = auth_users
-        .get("twitch")
-        .ok_or("No Twitch user found".to_string())?;
-    */
     let auth: AuthState = read_store_state(app, "auth");
     let twitch_user = auth.users_by_provider.twitch;
-    if twitch_user.is_none() {
-        println!("twitch user is none");
-        return Ok(Twitch::new("Not logged in", vec![]));
-    }
+    if twitch_user.is_none() { return Ok(Twitch::new("Not logged in", vec![])); }
     let token = twitch_user.as_ref().unwrap().access_token.clone();
     let username = twitch_user.as_ref().unwrap().name.clone();
     let userid = twitch_user.as_ref().unwrap().id.trim_matches('"');
@@ -88,8 +61,7 @@ pub async fn refresh_twitch_widget(app: &AppHandle) -> Result<Twitch, String> {
             )
         })
         .collect();
-    println!("LIVE STREAMERS RIGHT NOW {:?}", live_streams_tuples);
-    Ok(memori_ui::widgets::Twitch {
+    Ok(Twitch {
         username,
         live_channels: live_streams_tuples,
     })

@@ -1,11 +1,12 @@
-use crate::commands::call_api_json;
+//use crate::commands::call_api_json;
+use memori_ui::widgets::Weather;
 use serde::Deserialize;
 use serde_json::json;
 
 #[derive(Debug, Deserialize)]
 struct WeatherResponse {
     main: WeatherMain,
-    weather: Vec<Weather>,
+    weather: Vec<WeatherDescription>,
     wind: Wind,
     clouds: Cloud,
     rain: Option<Rain>,
@@ -22,7 +23,7 @@ struct Wind {
 }
 
 #[derive(Debug, Deserialize)]
-struct Weather {
+struct WeatherDescription {
     main: String,
     description: String,
 }
@@ -39,32 +40,36 @@ struct Rain {
     mmph: f32,
 }
 
-pub(crate) async fn fetch_weather_temp(
-    lat: f64,
-    lon: f64,
-) -> Result<(String, String, String, String, String, String, String), String> {
-    let req_body = json!({
-        "provider": "weather",
-        "url": format!(
-            "https://api.openweathermap.org/data/2.5/weather?appid={{}}&lat={lat}&lon={lon}&units=metric"
-        ),
-        "lat": lat.to_string(),
-        "lon": lon.to_string(),
-    });
-    let weather_res: WeatherResponse = call_api_json(req_body).await?;
-    let description = weather_res.weather.first().unwrap().main.clone();
-    let rain: String = match weather_res.rain {
-        Some(res) => res.mmph.to_string(),
-        None => "no rain".to_string(),
-    };
-    let weather_text: (String, String, String, String, String, String, String) = (
-        "Santa Cruz".to_string(),
-        weather_res.main.temp.to_string(),
-        weather_res.main.humidity.to_string(),
-        weather_res.wind.speed.to_string(),
-        rain,
-        weather_res.clouds.all.to_string(),
-        description.to_string(),
-    );
-    Ok(weather_text)
+pub(crate) async fn refresh_weather_widget(lat: f64, lon: f64) -> Result<Weather, String> {
+    // let api_key = "7fd5a9bc8b2d2753007ca6740cfc8917";
+    // 
+    // let req_body = json!({
+    //     "provider": "weather",
+    //     "url": format!(
+    //         "https://api.openweathermap.org/data/2.5/weather?appid={{}}&lat={lat}&lon={lon}&units=metric"
+    //     ),
+    //     "lat": lat.to_string(),
+    //     "lon": lon.to_string(),
+    // });
+    // let weather: WeatherResponse = call_api_json(req_body).await?;
+    // let description = weather_res.weather.first().unwrap().main.clone();
+    // let rain: String = match weather_res.rain {
+    //     Some(res) => res.mmph.to_string(),
+    //     None => "no rain".to_string(),
+    // };
+    // let city = "Santa Cruz".to_string();
+    // let temp = weather.main.temp.to_string();
+    // let humidity = weather.main.humidity.to_string();
+    // let wind = weather.wind.speed.to_string();
+    // let clouds = weather.clouds.all.to_string();
+    // Ok(Weather {
+    //     city,
+    //     temp,
+    //     humidity,
+    //     wind,
+    //     clouds,
+    //     description,
+    //     rain,
+    // })
+    todo!()
 }

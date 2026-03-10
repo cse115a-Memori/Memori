@@ -1,7 +1,7 @@
 mod connection;
 pub mod data;
-pub mod fetch;
+pub mod translation_structs;
 
 pub use connection::*;
 pub use data::*;
-pub use fetch::call_api_json;
+pub use translation_structs::*;

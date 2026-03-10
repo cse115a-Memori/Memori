@@ -1,95 +1,16 @@
-use super::fetch::fetch_github_widget;
+use crate::commands::translation_structs::*;
 use crate::state::{AppState, DeviceConnection};
-use crate::widget_data::{bus_data::*, github_data::*, twitch_data::*, weather_data::*};
-use memori_ui::{
-    layout::MemoriLayout,
-    widgets::{Bus, Clock, MemoriWidget, Name, UpdateFrequency, Weather, WidgetId, WidgetKind},
-    MemoriState,
-};
-use serde::{de::DeserializeOwned, Deserialize};
-use std::time::Duration;
+use crate::widget_data::bus_data::refresh_bus_widget;
+use crate::widget_data::clock_data::refresh_clock_widget;
+use crate::widget_data::github_data::refresh_github_widget;
+use crate::widget_data::twitch_data::refresh_twitch_widget;
+use crate::widget_data::weather_data::refresh_weather_widget;
+use memori_ui::widgets::WidgetKind;
+use memori_ui::{widgets::MemoriWidget, MemoriState};
+use serde::de::DeserializeOwned;
 use tauri::{AppHandle, State};
 use tauri_plugin_svelte::ManagerExt;
-use tokio::time::timeout;
 use transport::HostTransport as _;
-
-const DEFAULT_TWITCH_USER: &str = "jujamont";
-const DEFAULT_GITHUB_USERNAME: &str = "CaiNann";
-const DEFAULT_GITHUB_REPO: &str = "Memori";
-const DEFAULT_BUS_PREDICTION: (&str, &str, u16) = ("19", "Donwtown to Watsonville", 7);
-const DEFAULT_BUS_STOP: (&str, &str) = ("High and Front", "1230");
-const BUS_FETCH_TIMEOUT_SECS: u64 = 3;
-
-#[derive(Debug, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-#[specta(rename_all = "camelCase")]
-pub struct MemoriStateInput {
-    active_frame_idx: u32,
-    widgets: Vec<MemoriWidget>,
-    frames: Vec<MemoriLayout>,
-    frame_time: u32,
-}
-
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-struct PrefsState {
-    // location_status: String,
-    pub last_known_location: Option<Position>,
-    // onboarded: bool,
-    // last_known_device_id: Option<String>,
-    // system_options: serde_json::Value,
-    name: String,
-}
-
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct AuthState {
-    pub users_by_provider: ProviderUsers,
-}
-
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct ProviderUsers {
-    pub github: Option<AuthUserInfo>,
-    pub twitch: Option<AuthUserInfo>,
-}
-
-#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct AuthUserInfo {
-    pub id: String,
-    pub name: String,
-    pub access_token: String,
-}
-
-#[derive(Debug, Clone, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct Position {
-    // pub timestamp: f64,
-    pub coords: Coordinates,
-}
-
-#[derive(Debug, Clone, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct Coordinates {
-    pub latitude: f64,
-    pub longitude: f64,
-    // pub accuracy: f64,
-    // pub altitude: Option<f64>,
-    // pub altitude_accuracy: Option<f64>,
-    // pub heading: Option<f64>,
-    // pub speed: Option<f64>,
-}
-
-fn coords_from_prefs(prefs: &PrefsState) -> (f64, f64) {
-    const DEF_LAT: f64 = 36.97412;
-    const DEF_LON: f64 = -122.0308;
-
-    match prefs.last_known_location.as_ref() {
-        Some(location) => (location.coords.latitude, location.coords.longitude),
-        None => (DEF_LAT, DEF_LON),
-    }
-}
 
 impl MemoriStateInput {
     fn into_memori_state(self) -> Result<MemoriState, String> {
@@ -159,36 +80,10 @@ where
     app.svelte().state_or_default(store_id).unwrap_or_default()
 }
 
-async fn resolve_weather_text(
-    prefs: &PrefsState,
-) -> (String, String, String, String, String, String, String) {
-    let (lat, lon) = coords_from_prefs(prefs);
-
-    fetch_weather_temp(lat, lon).await.unwrap()
-    /*
-    .map(|temp_celsius| format!("{temp_celsius:.1}"))
-    .unwrap_or_else(|_| DEFAULT_WEATHER_TEXT.to_string())
-    */
-}
-
-fn never_widget(id: u32, kind: WidgetKind) -> MemoriWidget {
-    MemoriWidget::new(
-        WidgetId(id),
-        kind,
-        UpdateFrequency::Never,
-        UpdateFrequency::Never,
-    )
-}
-
-fn second_widget(id: u32, kind: WidgetKind, seconds: u32) -> MemoriWidget {
-    MemoriWidget::new(
-        WidgetId(id),
-        kind,
-        UpdateFrequency::Seconds(seconds),
-        UpdateFrequency::Never,
-    )
-}
-
+/// Flashes the `MemoriStateInput` to the device.
+///
+/// # Errors
+/// Could error if the device isnt connected.
 #[tauri::command]
 #[specta::specta]
 pub async fn flash_memori_state(
@@ -198,31 +93,26 @@ pub async fn flash_memori_state(
     set_memori_state(&state, memori_state.into_memori_state()?).await
 }
 
+/// Sends back a copy of the different widget types that are used during drag and drop.
 #[tauri::command]
 #[specta::specta]
 pub async fn get_widget_kinds(app: AppHandle) -> Result<[MemoriWidget; 6], String> {
     let prefs: PrefsState = read_store_state(&app, "prefs");
-    // let auth: AuthState = read_store_state(&app, "auth");
-    let weather = resolve_weather_text(&prefs).await;
-    let (bus_stop, stop_predictions) = resolve_bus_data(&prefs).await;
+
+    let clock = refresh_clock_widget().await.unwrap_or_default();
+    // let weather = refresh_weather_widget().await.unwrap_or_default();
+    let bus = refresh_bus_widget().await.unwrap_or_default();
     let github = refresh_github_widget(&app).await.unwrap_or_default();
-    println!("github widget: {:?}\n\n\n\n\n\n\n", github);
-    // let twitch_user = fallback_twitch_user(&auth);
-    let live = refresh_twitch_widget(&app).await.unwrap();
-    println!("twitch widget: {:?}\n\n\n\n\n\n\n", live);
+    let twitch = refresh_twitch_widget(&app).await.unwrap_or_default();
     let name = prefs.name;
 
     Ok([
-        never_widget(0, WidgetKind::Name(Name::new(name))),
-        never_widget(1, WidgetKind::Clock(Clock::new(1, 0, 0))),
-        never_widget(2, WidgetKind::Bus(Bus::new(bus_stop, stop_predictions))),
-        never_widget(
-            3,
-            WidgetKind::Weather(Weather::new(
-                weather.0, weather.1, weather.2, weather.3, weather.4, weather.5, weather.6,
-            )),
-        ),
-        never_widget(4, WidgetKind::Github(github)),
-        second_widget(5, WidgetKind::Twitch(live), 5),
+        MemoriWidget::with_never_update_frequency(1, WidgetKind::Clock(clock)),
+        MemoriWidget::with_never_update_frequency(2, WidgetKind::Bus(bus.clone())),
+        MemoriWidget::with_never_update_frequency(3, WidgetKind::Bus(bus)),
+        // MemoriWidget::with_minute_update_frequency(3, WidgetKind::Weather(weather), 30),
+        MemoriWidget::with_minute_update_frequency(4, WidgetKind::Github(github), 1),
+        MemoriWidget::with_second_update_frequency(5, WidgetKind::Twitch(twitch.clone()), 5),
+        MemoriWidget::with_second_update_frequency(6, WidgetKind::Twitch(twitch), 5),
     ])
 }

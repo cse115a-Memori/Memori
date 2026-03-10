@@ -14,12 +14,19 @@ pub use twitch::*;
 pub use weather::*;
 
 use alloc::vec;
+use alloc::vec::Vec;
 use ratatui::widgets::Widget;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Hash)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct WidgetId(pub u32);
+
+impl From<u32> for WidgetId {
+    fn from(id: u32) -> Self {
+        Self(id)
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
@@ -64,6 +71,41 @@ impl MemoriWidget {
             kind,
             remote_update_frequency,
             local_update_frequency,
+        }
+    }
+
+    pub fn with_never_update_frequency(id: impl Into<WidgetId>, kind: WidgetKind) -> Self {
+        Self {
+            id: id.into(),
+            kind,
+            remote_update_frequency: UpdateFrequency::Never,
+            local_update_frequency: UpdateFrequency::Never,
+        }
+    }
+
+    pub fn with_second_update_frequency(
+        id: impl Into<WidgetId>,
+        kind: WidgetKind,
+        seconds: u32,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            kind,
+            remote_update_frequency: UpdateFrequency::Seconds(seconds),
+            local_update_frequency: UpdateFrequency::Seconds(seconds),
+        }
+    }
+
+    pub fn with_minute_update_frequency(
+        id: impl Into<WidgetId>,
+        kind: WidgetKind,
+        minutes: u32,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            kind,
+            remote_update_frequency: UpdateFrequency::Minutes(minutes),
+            local_update_frequency: UpdateFrequency::Minutes(minutes),
         }
     }
 }

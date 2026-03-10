@@ -53,6 +53,20 @@ impl Weather {
     }
 }
 
+impl Default for Weather {
+    fn default() -> Self {
+        Self {
+            city: String::new(),
+            temp: String::new(),
+            humidity: String::new(),
+            wind: String::new(),
+            clouds: String::new(),
+            rain: String::new(),
+            description: String::new(),
+        }
+    }
+}
+
 // impl the function like this
 impl Widget for &Weather {
     fn render(self, area: Rect, buf: &mut Buffer) {
