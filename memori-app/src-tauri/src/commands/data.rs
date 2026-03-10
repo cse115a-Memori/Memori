@@ -91,15 +91,6 @@ fn coords_from_prefs(prefs: &PrefsState) -> (f64, f64) {
     }
 }
 
-fn non_empty(value: &str) -> Option<String> {
-    let trimmed = value.trim();
-    if trimmed.is_empty() {
-        None
-    } else {
-        Some(trimmed.to_string())
-    }
-}
-
 impl MemoriStateInput {
     fn into_memori_state(self) -> Result<MemoriState, String> {
         let active_frame_idx = usize::try_from(self.active_frame_idx)
@@ -166,86 +157,6 @@ async fn resolve_weather_text(
     */
 }
 
-fn fallback_github_username(auth: &AuthState) -> String {
-    auth.users_by_provider
-        .github
-        .as_ref()
-        .and_then(|user| non_empty(&user.name))
-        .unwrap_or_else(|| DEFAULT_GITHUB_USERNAME.to_string())
-}
-
-fn fallback_twitch_user(auth: &AuthState) -> String {
-    auth.users_by_provider
-        .twitch
-        .as_ref()
-        .and_then(|user| non_empty(&user.name))
-        .unwrap_or_else(|| DEFAULT_TWITCH_USER.to_string())
-}
-
-fn default_bus_data() -> ((String, String), Vec<(String, String, u16)>) {
-    (
-        (
-            DEFAULT_BUS_STOP.0.to_string(),
-            DEFAULT_BUS_STOP.1.to_string(),
-        ),
-        vec![(
-            DEFAULT_BUS_PREDICTION.0.to_string(),
-            DEFAULT_BUS_PREDICTION.1.to_string(),
-            DEFAULT_BUS_PREDICTION.2,
-        )],
-    )
-}
-
-async fn resolve_bus_data(prefs: &PrefsState) -> ((String, String), Vec<(String, String, u16)>) {
-    let location = match prefs.last_known_location.as_ref() {
-        Some(location) => location,
-        None => return default_bus_data(),
-    };
-
-    let lat = location.coords.latitude;
-    let lon = location.coords.longitude;
-
-    let all_stops = match timeout(
-        Duration::from_secs(BUS_FETCH_TIMEOUT_SECS),
-        fetch_all_ucsc_stops(),
-    )
-    .await
-    {
-        Ok(Ok(stops)) => stops,
-        Err(_) => return default_bus_data(),
-        Ok(Err(_)) => return default_bus_data(),
-    };
-
-    let stop: &Stop = match find_closest_stop(&all_stops, lat, lon) {
-        Some(stop) => stop, /*{
-        let distance_km = haversine_km(lat, lon, stop.lat, stop.lon);
-        (
-        format!("{distance_km:.1} km"),
-        format!("Stop {}", stop.stpid),
-        )
-        }*/
-        None => &Stop {
-            stpid: "".to_string(),
-            stpnm: "".to_string(),
-            lat: 0.0,
-            lon: 0.0,
-        },
-    };
-    let predictions = fetch_predictions(stop).await.unwrap();
-    let mut predictions2 = Vec::new();
-    for prediction in predictions {
-        let parsed: u16 = match prediction.prdctdn.parse::<u16>() {
-            Ok(value) => value,
-            Err(_) => {
-                println!("fetch bus time err");
-                continue;
-            }
-        };
-        predictions2.push((prediction.rt.clone(), prediction.rtdd.clone(), parsed));
-    }
-    ((stop.stpnm.clone(), stop.stpid.clone()), predictions2)
-}
-
 fn never_widget(id: u32, kind: WidgetKind) -> MemoriWidget {
     MemoriWidget::new(
         WidgetId(id),
@@ -264,65 +175,6 @@ fn second_widget(id: u32, kind: WidgetKind, seconds: u32) -> MemoriWidget {
     )
 }
 
-async fn build_twitch_state(app: AppHandle) -> MemoriState {
-    let data = refresh_twitch_widget(&app).await.unwrap();
-    MemoriState::new(
-        0,
-        vec![MemoriWidget::new(
-            WidgetId(0),
-            WidgetKind::Twitch(data),
-            UpdateFrequency::Seconds(5),
-            UpdateFrequency::Never,
-        )],
-        vec![MemoriLayout::Full(WidgetId(0))],
-        5,
-    )
-}
-
-fn build_weather_state(
-    weather_text: (String, String, String, String, String, String, String),
-) -> MemoriState {
-    MemoriState::new(
-        0,
-        vec![MemoriWidget::new(
-            WidgetId(0),
-            WidgetKind::Weather(Weather::new(
-                weather_text.0,
-                weather_text.1,
-                weather_text.2,
-                weather_text.3,
-                weather_text.4,
-                weather_text.5,
-                weather_text.6,
-            )),
-            UpdateFrequency::Seconds(60),
-            UpdateFrequency::Seconds(60),
-        )],
-        vec![MemoriLayout::Full(WidgetId(0))],
-        5,
-    )
-}
-
-fn haversine_km(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
-    let earth_radius_km = 6371.0;
-    let dlat = (lat2 - lat1).to_radians();
-    let dlon = (lon2 - lon1).to_radians();
-    let a = (dlat / 2.0).sin().powi(2)
-        + lat1.to_radians().cos() * lat2.to_radians().cos() * (dlon / 2.0).sin().powi(2);
-    let c = 2.0 * a.sqrt().asin();
-    earth_radius_km * c
-}
-
-fn find_closest_stop(stops: &[Stop], lat: f64, lon: f64) -> Option<&Stop> {
-    stops.iter().min_by(|stop_a, stop_b| {
-        let dist_a = haversine_km(lat, lon, stop_a.lat, stop_a.lon);
-        let dist_b = haversine_km(lat, lon, stop_b.lat, stop_b.lon);
-        dist_a
-            .partial_cmp(&dist_b)
-            .unwrap_or(std::cmp::Ordering::Equal)
-    })
-}
-
 #[tauri::command]
 #[specta::specta]
 pub async fn flash_memori_state(
@@ -330,21 +182,6 @@ pub async fn flash_memori_state(
     memori_state: MemoriStateInput,
 ) -> Result<(), String> {
     set_memori_state(&state, memori_state.into_memori_state()?).await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn send_github(_state: State<'_, AppState>, token: String) -> Result<String, String> {
-    println!("\n\n\n\n\n\n\n\n");
-    let github_widget = fetch_github_widget(&token).await?;
-    Ok(github_widget.username)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn send_twitch(state: State<'_, AppState>, app: AppHandle) -> Result<(), String> {
-    let twitch_state = build_twitch_state(app).await;
-    set_memori_state(&state, twitch_state).await
 }
 
 #[tauri::command]
@@ -374,56 +211,4 @@ pub async fn get_widget_kinds(app: AppHandle) -> Result<[MemoriWidget; 6], Strin
         never_widget(4, WidgetKind::Github(github)),
         second_widget(5, WidgetKind::Twitch(live), 5),
     ])
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn send_name(state: State<'_, AppState>, name: String) -> Result<(), String> {
-    let memori_state = MemoriState::new(
-        0,
-        vec![MemoriWidget::new(
-            WidgetId(0),
-            WidgetKind::Name(Name::new(name)),
-            UpdateFrequency::Seconds(1),
-            UpdateFrequency::Seconds(1),
-        )],
-        vec![MemoriLayout::Fourths {
-            top_right: WidgetId(0),
-            bottom_left: WidgetId(0),
-            bottom_right: WidgetId(0),
-            top_left: WidgetId(0),
-        }],
-        5,
-    );
-    set_memori_state(&state, memori_state).await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn send_temp(state: State<'_, AppState>, lat: f64, lon: f64) -> Result<String, String> {
-    let temp_celsius = fetch_weather_temp(lat, lon).await?;
-    set_memori_state(&state, build_weather_state(temp_celsius.clone())).await?;
-    Ok(format!("{temp_celsius:?}"))
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn test_github(app: AppHandle) -> Result<(), String> {
-    let widget = refresh_github_widget(&app).await;
-    println!("{:?}", widget);
-    Ok(())
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn send_bustime(
-    _state: State<'_, AppState>,
-    lat: f64,
-    lon: f64,
-) -> Result<String, String> {
-    let all_stops = fetch_all_ucsc_stops().await?;
-    let nearest_stop = find_closest_stop(&all_stops, lat, lon)
-        .ok_or("No nearby bus stop was found".to_string())?;
-
-    Ok(format!("closest stop: {}", nearest_stop.stpid))
 }

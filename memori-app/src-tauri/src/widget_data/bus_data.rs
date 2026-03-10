@@ -97,3 +97,18 @@ pub(crate) async fn fetch_predictions(stop: &Stop) -> Result<Vec<Prediction>, St
     let predictions: BustimeResponse<Prediction> = call_api_json(req_body).await?;
     Ok(predictions.bustime_response)
 }
+
+
+#[tauri::command]
+#[specta::specta]
+pub async fn send_bustime(
+    _state: State<'_, AppState>,
+    lat: f64,
+    lon: f64,
+) -> Result<String, String> {
+    let all_stops = fetch_all_ucsc_stops().await?;
+    let nearest_stop = find_closest_stop(&all_stops, lat, lon)
+        .ok_or("No nearby bus stop was found".to_string())?;
+
+    Ok(format!("closest stop: {}", nearest_stop.stpid))
+}

@@ -37,7 +37,7 @@
                 pkg-config
                 libiconv
                 vips
-
+                bun
                 esp-generate
                 espflash
                 espup

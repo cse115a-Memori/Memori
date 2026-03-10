@@ -213,3 +213,12 @@ pub async fn refresh_github_widget(app: &AppHandle) -> Result<Github, String> {
         weekday: Local::now().weekday().num_days_from_sunday() as usize,
     })
 }
+
+
+#[tauri::command]
+#[specta::specta]
+pub async fn test_github(app: AppHandle) -> Result<(), String> {
+    let widget = refresh_github_widget(&app).await;
+    println!("{:?}", widget);
+    Ok(())
+}

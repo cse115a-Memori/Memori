@@ -63,24 +63,6 @@
 	pendingOp = null
 }
 
-	async function sendTwitch() {
-		if (!accessToken) {
-			statusMsg = 'Missing OAuth access token'
-			return
-		}
-
-		pendingOp = 'send'
-		await tryCmd(commands.sendTwitch(accessToken)).match(
-			data => {
-				statusMsg = data ?? 'Twitch sent'
-			},
-			error => {
-				statusMsg = `Send twitch failed: ${error}`
-			}
-		)
-		pendingOp = null
-	}
-
 	async function logoutTwitch() {
 		pendingOp = 'logout'
 		statusMsg = ''
