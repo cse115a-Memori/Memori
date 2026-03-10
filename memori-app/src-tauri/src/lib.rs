@@ -3,6 +3,7 @@ mod oauth;
 mod simulator;
 mod state;
 mod widget_data;
+mod ble;
 
 use commands::{
     connect_device, disconnect_device, flash_memori_state, get_battery, get_device_mode,

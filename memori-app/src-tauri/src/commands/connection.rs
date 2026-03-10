@@ -6,6 +6,7 @@ use memori_tcp::HostTcpTransport;
 use tauri::State;
 // use tauri_plugin_svelte::ManagerExt;
 use transport::HostTransport as _;
+use crate::ble::ble_request_handler;
 
 #[tauri::command]
 #[specta::specta]
@@ -15,6 +16,7 @@ pub async fn connect_device(
     mode: DeviceMode,
 ) -> Result<(), String> {
     let mut guard = state.conn.lock().await;
+    let memori = state.memori.clone();
 
     if !matches!(*guard, DeviceConnection::Disconnected) {
         return Err("Already connected. Disconnect first.".to_string());
@@ -22,9 +24,13 @@ pub async fn connect_device(
 
     match mode {
         DeviceMode::RealDevice => {
-            let (conn, _) = HostBLETransport::connect()
+            let (conn, (dev_req_rx, host_resp_tx)) = HostBLETransport::connect()
                 .await
                 .map_err(|e| format!("Failed to connect to device: {e}"))?;
+
+            tokio::spawn(async move {
+                ble_request_handler(memori, dev_req_rx, host_resp_tx).await;
+            });
 
             *guard = DeviceConnection::RealDevice(conn);
             println!("Connected to real device over Bluetooth");

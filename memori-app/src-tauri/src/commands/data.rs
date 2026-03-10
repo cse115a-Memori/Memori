@@ -139,18 +139,32 @@ async fn set_memori_state(
 
     let mut conn_guard = state.conn.lock().await;
 
-    match &mut *conn_guard {
-        DeviceConnection::RealDevice(ble_transport) => ble_transport
-            .set_state(memori_state)
-            .await
-            .map_err(|err| format!("Failed to set state: {err}")),
-        DeviceConnection::Simulator(sim_transport) => sim_transport
-            .set_state(memori_state)
-            .await
-            .map_err(|err| format!("Failed to set state: {err}")),
-        DeviceConnection::Disconnected => Err("Device is not connected".to_string()),
+    let result = match &mut *conn_guard {
+        DeviceConnection::RealDevice(transport) => {
+            transport
+                .set_state(memori_state.clone())
+                .await
+                .map_err(|e| format!("Failed to set state: {e}"))
+        }
+        DeviceConnection::Simulator(transport) => {
+            transport
+                .set_state(memori_state.clone())
+                .await
+                .map_err(|e| format!("Failed to set state: {e}"))
+        }
+        DeviceConnection::Disconnected => {
+            return Err("Device is not connected".to_string());
+        }
+    };
+
+    if result.is_ok() {
+        let mut memori_guard = state.memori.write().await;
+        *memori_guard = Some(memori_state);
     }
+
+    Ok(())
 }
+
 
 pub fn read_store_state<T>(app: &AppHandle, store_id: &str) -> T
 where
