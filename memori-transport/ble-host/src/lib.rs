@@ -36,18 +36,14 @@ struct OutboundPacket {
 }
 
 async fn find_memori(central: &Adapter, code: &str) -> Option<Peripheral> {
+    let looking_for = format!("memori-{}", code.trim());
     for p in central.peripherals().await.ok()?.into_iter() {
         let has_memori = p
             .properties()
             .await
             .ok()
             .flatten()
-            .map(|props| {
-                props
-                    .local_name
-                    .iter()
-                    .any(|name| name.contains(format!("memori-{code}").as_str()))
-            })
+            .map(|props| props.local_name.iter().any(|name| *name == looking_for))
             .unwrap_or(false);
 
         if has_memori {

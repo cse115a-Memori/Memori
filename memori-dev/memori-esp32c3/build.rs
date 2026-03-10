@@ -1,9 +1,6 @@
 use nanoid::nanoid;
 
-const ID_ALPHABET: [char; 26] = [
-    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's',
-    't', 'u', 'v', 'w', 'x', 'y', 'z',
-];
+const ID_ALPHABET: [char; 9] = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
 fn main() {
     let device_id = nanoid!(4, &ID_ALPHABET);
