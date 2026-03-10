@@ -42,9 +42,13 @@
 		isFlashing = true
 		const payload = selectFlashPayload(snapshot)
 
+		console.log('flashing payload', payload)
+
 		await tryCmd(commands.flashMemoriState(payload)).match(
 			() => {
 				flashErr = ''
+
+				// save lastKnownDeviceId
 			},
 			error => {
 				flashErr = `Flash failed: ${error}`

@@ -1,4 +1,4 @@
-<script lang="ts">
+<!-- <script lang="ts">
   import { onMount } from 'svelte'
   import { getUser, login, logout } from '@/features/auth/service'
   import type { UserInfo } from '@/tauri'
@@ -270,4 +270,4 @@
 	{#if statusMsg}
 		<p class="mt-4 text-center">{statusMsg}</p>
 	{/if}
-</main>
+</main> -->

@@ -39,6 +39,13 @@ export const widgetsState = widgetsStore.state
 
 let startPromise: Promise<void> | null = null
 
+export function resetWidgets(): void {
+  widgetsState.activeFrameIdx = initialWidgetsState.activeFrameIdx
+  widgetsState.frameTime = initialWidgetsState.frameTime
+  widgetsState.widgets = initialWidgetsState.widgets
+  widgetsState.frames = initialWidgetsState.frames
+}
+
 function isMemoriWidget(value: unknown): value is MemoriWidget {
 	if (!value || typeof value !== 'object' || Array.isArray(value)) return false
 	const candidate = value as { id?: unknown; kind?: unknown }

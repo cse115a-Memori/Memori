@@ -110,9 +110,9 @@ pub async fn get_widget_kinds(app: AppHandle) -> Result<[MemoriWidget; 6], Strin
     let name = prefs.name;
 
     Ok([
-        MemoriWidget::with_never_update_frequency(1, WidgetKind::Clock(clock.clone())),
-        MemoriWidget::with_never_update_frequency(2, WidgetKind::Clock(clock.clone())),
-        MemoriWidget::with_never_update_frequency(3, WidgetKind::Clock(clock)),
+        MemoriWidget::with_second_update_frequency(1, WidgetKind::Clock(clock.clone()), 1),
+        MemoriWidget::with_second_update_frequency(2, WidgetKind::Clock(clock.clone()), 1),
+        MemoriWidget::with_second_update_frequency(3, WidgetKind::Clock(clock), 1),
         // MemoriWidget::with_never_update_frequency(2, WidgetKind::Bus(bus.clone())),
         // MemoriWidget::with_minute_update_frequency(3, WidgetKind::Weather(weather), 30),
         MemoriWidget::with_minute_update_frequency(4, WidgetKind::Github(github), 1),

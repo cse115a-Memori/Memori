@@ -1,6 +1,6 @@
 import { getLayoutSlotCount, type LayoutVariant } from '@/features/widgets/model/layout'
 import type { WidgetsState } from '@/features/widgets/types'
-import type { MemoriLayout, MemoriStateInput } from '@/tauri'
+import type { MemoriLayout, MemoriStateInput, MemoriWidget, WidgetId } from '@/tauri'
 
 function encodeLayout(
 	layout: LayoutVariant,
@@ -103,11 +103,14 @@ export function validateWidgetsStateForFlash(state: WidgetsState): string | null
 }
 
 export function selectFlashPayload(state: WidgetsState): MemoriStateInput {
-	const widgets = [...state.widgets]
+	// const widgets = [...state.widgets]
+  let widgets: MemoriWidget[] = []
 
 	const frames = state.frames.map(frame => {
 		const layout = frame.activeLayout
 		const widgetIds = (frame.layoutAssignments[layout] ?? []).map(widget => widget.id)
+		console.log("widgetIds", widgetIds)
+		widgets = state.widgets.filter(w => widgetIds.includes(w.id))
 		return encodeLayout(layout, widgetIds)
 	})
 

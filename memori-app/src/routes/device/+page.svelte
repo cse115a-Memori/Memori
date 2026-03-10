@@ -2,7 +2,12 @@
 	import { onMount } from 'svelte'
 
 	import WidgetEditor from '@/components/layout/WidgetEditor.svelte'
-	import { connState, connectDevice, disconnectDevice, syncConnectionState } from '@/features/connection'
+	import {
+		connState,
+		connectDevice,
+		disconnectDevice,
+		syncConnectionState,
+	} from '@/features/connection'
 	import { refreshLocationState, requestLocationState } from '@/features/prefs/service'
 	import { prefsState } from '@/features/prefs/store'
 	import { playFailedSound, playSuccessSound } from '@/features/sound'
@@ -186,8 +191,8 @@
 		<header class="space-y-2">
 			<h1 class="text-2xl font-semibold tracking-tight">Device Controls</h1>
 			<p class="text-sm text-muted-foreground">
-				Use this screen as the operational fallback after onboarding or whenever you need to
-				reconnect and resend payloads.
+				Use this screen as the operational fallback after onboarding or whenever you
+				need to reconnect and resend payloads.
 			</p>
 		</header>
 
@@ -209,7 +214,9 @@
 					disabled={isBusy || connState.isConnected}
 					class="h-11 flex-1"
 				>
-					<NativeSelect.Option value="RealDevice">Real Device (Bluetooth)</NativeSelect.Option>
+					<NativeSelect.Option value="RealDevice"
+						>Real Device (Bluetooth)</NativeSelect.Option
+					>
 					<NativeSelect.Option value="Simulator">Simulator (TCP)</NativeSelect.Option>
 				</NativeSelect.Root>
 

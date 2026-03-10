@@ -102,6 +102,7 @@ export function buildKindFromDraft(
 		}
 	}
 	if ('Github' in kind) {
+	console.log("github kind",kind.Github)
     return {
       Github: {
         ...kind.Github,
