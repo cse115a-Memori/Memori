@@ -9,8 +9,8 @@ export function syncConnectionState() {
 	})
 }
 
-export function connectDevice(mode: DeviceMode) {
-	return tryCmd(commands.connectDevice(mode)).map(() => {
+export function connectDevice(mode: DeviceMode, code: string) {
+	return tryCmd(commands.connectDevice(mode, code)).map(() => {
 		connState.isConnected = true
 	})
 }
