@@ -196,7 +196,7 @@ impl Widget for &Github {
                 let chunks = Layout::default()
                     .direction(Direction::Vertical)
                     .constraints([
-                        Constraint::Length(2), // Username + space
+                        Constraint::Length(1), // Username + space
                         Constraint::Min(0),    // Repo box
                     ])
                     .split(outer_inner);

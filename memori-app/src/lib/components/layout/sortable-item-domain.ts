@@ -125,6 +125,7 @@ export type SortableItemKindVariant =
 	| 'Weather'
 	| 'Bus'
 	| 'Twitch'
+	| 'Github'
 	| 'Readonly'
 
 export function getKindVariant(kind: WidgetView['kind']): SortableItemKindVariant {
@@ -133,6 +134,7 @@ export function getKindVariant(kind: WidgetView['kind']): SortableItemKindVarian
 	if ('Weather' in kind) return 'Weather'
 	if ('Bus' in kind) return 'Bus'
 	if ('Twitch' in kind) return 'Twitch'
+	if ('Github' in kind) return 'Github'
 	return 'Readonly'
 }
 

@@ -10,7 +10,7 @@
 	} from '@/features/widgets/widgets-store'
 	import { startGitHubStore } from '@/features/github'
 	import { goto, onNavigate } from '$app/navigation'
-	import { syncConnectionState } from '@/features/connection'
+	import { connState, syncConnectionState } from '@/features/connection'
 	// import { refreshLocationState } from '@/features/prefs/service'
 	import { page } from '$app/state'
 	import { resetWidgets } from '@/features/widgets/widgets-store'
@@ -18,6 +18,7 @@
 	import '../app.css'
 	import { LoaderCircle } from '@lucide/svelte'
 	import { selectFlashPayload } from '@/features/widgets/flash'
+	import { commands, tryCmd } from '@/tauri'
 
 	const { children } = $props()
 	const isOnboardingRoute = $derived(page.url.pathname === '/onboarding')
@@ -61,6 +62,19 @@
 	const snapshot = $state.snapshot(widgetsState) as WidgetsState
 	const payload = selectFlashPayload(snapshot)
 	$inspect('widgetState from layout', payload, widgetsState)
+
+	let connected: boolean | undefined = $state()
+
+	async function getConnected() {
+		await tryCmd(commands.isConnected()).match(
+			result => {
+				connected = result
+			},
+			error => {
+				console.error('Failed to load repos:', error)
+			}
+		)
+	}
 </script>
 
 {#if isReady}
@@ -77,6 +91,9 @@
 					{@render navLinks('/testing', 'Testing')}
 					<Button variant="outline" class="ml-auto" onclick={resetOnboarding}>
 						Reset Onboarding
+					</Button>
+					<Button variant="outline" class="ml-auto" onclick={getConnected}>
+						Check Connection {connected ? "Connected" : "Disconnected"}
 					</Button>
 					<Button variant="outline" class="ml-auto" onclick={resetWidgets}>
 						Reset Widgets
