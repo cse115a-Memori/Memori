@@ -8,6 +8,11 @@ export interface SortableItemDraft {
 	weatherIcon: string
 	busRoute: string
 	busPrediction: string
+	clockHours: number | undefined
+	clockMinutes: number | undefined
+	clockSeconds: number | undefined
+	weatherCity: string
+	busStop: string
 	twitchUser: string
 	githubRepo: string
 }
@@ -19,6 +24,11 @@ const EMPTY_DRAFT: SortableItemDraft = {
 	weatherIcon: '',
 	busRoute: '',
 	busPrediction: '',
+	clockHours: undefined,
+	clockMinutes: undefined,
+	clockSeconds: undefined,
+	weatherCity: '',
+	busStop: '',
 	twitchUser: '',
 	githubRepo: '',
 }
@@ -33,13 +43,11 @@ export function createDraftFromKind(kind: WidgetView['kind']): SortableItemDraft
 	if ('Name' in kind) {
 		draft.name = kind.Name.name
 	} else if ('Weather' in kind) {
-		draft.weatherTemp = kind.Weather.temp
-		draft.weatherIcon = kind.Weather.icon
+		draft.weatherCity = kind.Weather.city
 	} else if ('Bus' in kind) {
-		draft.busRoute = kind.Bus.route
-		draft.busPrediction = kind.Bus.prediction
+		draft.busStop = 'a'//kind.Bus.stop[0]
 	} else if ('Twitch' in kind) {
-		draft.twitchUser = kind.Twitch.user
+		draft.twitchUser = kind.Twitch.username
 	} else if ('Github' in kind) {
   	draft.githubRepo = kind.Github.repo ?? ''
 	}
@@ -62,23 +70,36 @@ export function buildKindFromDraft(
 	}
 
 	if ('Weather' in kind) {
-		const temp = draft.weatherTemp.trim()
-		const icon = draft.weatherIcon.trim()
-		if (!hasText(temp) || !hasText(icon)) return null
-		return { Weather: { temp, icon } }
+		const city = draft.weatherCity.trim()
+		if (!hasText(city)) return null
+		const temp = ''
+		const humidity = ''
+		const wind = ''
+		const rain = ''
+		const clouds = ''
+		const description = ''
+		return { Weather: { city, temp, humidity, wind, rain, clouds, description } }
 	}
 
 	if ('Bus' in kind) {
-		const route = draft.busRoute.trim()
-		const prediction = draft.busPrediction.trim()
-		if (!hasText(route) || !hasText(prediction)) return null
-		return { Bus: { route, prediction } }
+		// const stop = draft.busStop.trim()
+		// if (!hasText(stop)) return null
+		const stop: [string, string] = ['a', 'a']
+		const predictions: [string, string, number][] = [['a', 'a', 0]]
+		return { Bus: { stop, predictions } }
 	}
 
 	if ('Twitch' in kind) {
-		const user = draft.twitchUser.trim()
-		if (!hasText(user)) return null
-		return { Twitch: { user } }
+		const username = draft.twitchUser.trim()
+		if (!hasText(username)) return null
+		// const live_channels: [string, string, string, string][] = [['', '', '', '']]
+		// return { Twitch: { username, live_channels } }
+		return {
+			Twitch: {
+				...kind.Twitch,
+				username,
+			}
+		}
 	}
 	if ('Github' in kind) {
     return {

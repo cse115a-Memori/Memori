@@ -102,7 +102,7 @@ pub(super) async fn handle_host_cmd<P: PacketPool>(
 }
 
 /// Refreshes widget data from the host on the interval specified in the widget.
-#[embassy_executor::task]
+#[embassy_executor::task(pool_size = 8)]
 async fn refresh_widget_task(
     widget: MemoriWidget,
     transport: &'static Mutex<CriticalSectionRawMutex, DeviceBLETransport>,

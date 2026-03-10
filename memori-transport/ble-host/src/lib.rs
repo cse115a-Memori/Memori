@@ -35,14 +35,19 @@ struct OutboundPacket {
     response_tx: Option<oneshot::Sender<DeviceBLEResponse>>,
 }
 
-async fn find_memori(central: &Adapter) -> Option<Peripheral> {
+async fn find_memori(central: &Adapter, code: &str) -> Option<Peripheral> {
     for p in central.peripherals().await.ok()?.into_iter() {
         let has_memori = p
             .properties()
             .await
             .ok()
             .flatten()
-            .map(|props| props.local_name.iter().any(|name| name.contains("memori")))
+            .map(|props| {
+                props
+                    .local_name
+                    .iter()
+                    .any(|name| name.contains(format!("memori-{code}").as_str()))
+            })
             .unwrap_or(false);
 
         if has_memori {
@@ -78,7 +83,9 @@ pub struct HostBLETransport {
 }
 
 impl HostBLETransport {
-    pub async fn connect() -> anyhow::Result<(
+    pub async fn connect(
+        code: &str,
+    ) -> anyhow::Result<(
         Self,
         (
             mpsc::UnboundedReceiver<DeviceBLECommand>,
@@ -96,7 +103,7 @@ impl HostBLETransport {
         central.start_scan(ScanFilter::default()).await?;
         sleep(Duration::from_secs(3)).await;
 
-        let peripheral = find_memori(&central)
+        let peripheral = find_memori(&central, code)
             .await
             .ok_or_else(|| anyhow::anyhow!("Memori device not found"))?;
 

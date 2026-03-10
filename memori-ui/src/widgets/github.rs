@@ -1,4 +1,3 @@
-use crate::alloc::string::ToString;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec;
@@ -90,7 +89,7 @@ impl Widget for &Github {
 
         let outer_inner = outer_block.inner(area);
         outer_block.render(area, buf);
-        
+
         if self.repo.is_none() {
             Paragraph::new("No repo selected...")
                 .style(Style::default().fg(Color::DarkGray))

@@ -1,7 +1,7 @@
 #![no_std]
 
 use embedded_graphics::mono_font::MonoFont;
-use embedded_graphics_unicodefonts::MONO_6X10;
+use embedded_graphics_unicodefonts::*;
 use ratatui::prelude::*;
 
 extern crate alloc;
@@ -13,9 +13,9 @@ mod state;
 pub use state::*;
 
 /// Regular font.
-pub const FONT_REGULAR: MonoFont<'static> = MONO_6X10;
+pub const FONT_REGULAR: MonoFont<'static> = MONO_7X14;
 /// Bold font.
-pub const FONT_BOLD: Option<MonoFont<'static>> = None;
+pub const FONT_BOLD: Option<MonoFont<'static>> = Some(MONO_7X14_BOLD);
 /// Italic font.
 pub const FONT_ITALIC: Option<MonoFont<'static>> = None;
 

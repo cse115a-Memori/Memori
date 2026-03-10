@@ -2,22 +2,31 @@ mod bus;
 mod clock;
 mod github;
 mod name;
+mod pair;
 mod twitch;
 mod weather;
 pub use bus::*;
 pub use clock::*;
 pub use github::*;
 pub use name::*;
+pub use pair::*;
 pub use twitch::*;
 pub use weather::*;
 
 use alloc::vec;
+use alloc::vec::Vec;
 use ratatui::widgets::Widget;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Hash)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct WidgetId(pub u32);
+
+impl From<u32> for WidgetId {
+    fn from(id: u32) -> Self {
+        Self(id)
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
@@ -64,6 +73,41 @@ impl MemoriWidget {
             local_update_frequency,
         }
     }
+
+    pub fn with_never_update_frequency(id: impl Into<WidgetId>, kind: WidgetKind) -> Self {
+        Self {
+            id: id.into(),
+            kind,
+            remote_update_frequency: UpdateFrequency::Never,
+            local_update_frequency: UpdateFrequency::Never,
+        }
+    }
+
+    pub fn with_second_update_frequency(
+        id: impl Into<WidgetId>,
+        kind: WidgetKind,
+        seconds: u32,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            kind,
+            remote_update_frequency: UpdateFrequency::Seconds(seconds),
+            local_update_frequency: UpdateFrequency::Seconds(seconds),
+        }
+    }
+
+    pub fn with_minute_update_frequency(
+        id: impl Into<WidgetId>,
+        kind: WidgetKind,
+        minutes: u32,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            kind,
+            remote_update_frequency: UpdateFrequency::Minutes(minutes),
+            local_update_frequency: UpdateFrequency::Minutes(minutes),
+        }
+    }
 }
 
 impl MemoriWidget {
@@ -91,6 +135,7 @@ pub enum WidgetKind {
     Weather(Weather),
     Bus(Bus),
     Twitch(Twitch),
+    Pair(Pair),
 }
 
 impl WidgetKind {
@@ -102,6 +147,7 @@ impl WidgetKind {
             Self::Bus(b) => b.update(),
             Self::Twitch(t) => t.update(),
             Self::Github(g) => g.update(),
+            Self::Pair(_) => {}
         }
     }
 }
@@ -118,6 +164,7 @@ impl Widget for &MemoriWidget {
             WidgetKind::Weather(w) => w.render(area, buf),
             WidgetKind::Bus(b) => b.render(area, buf),
             WidgetKind::Twitch(t) => t.render(area, buf),
+            WidgetKind::Pair(p) => p.render(area, buf),
         }
     }
 }

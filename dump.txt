@@ -1,0 +1,115 @@
+ Compiling memori-ui v0.1.0 (/Users/kenrictee/dev/projects/memori/memori-ui)
+   Compiling memori-app v0.1.0 (/Users/kenrictee/dev/projects/memori/memori-app/src-tauri)
+warning: unused import: `crate::alloc::string::ToString`
+ --> /Users/kenrictee/dev/projects/memori/memori-ui/src/widgets/github.rs:1:5
+  |
+1 | use crate::alloc::string::ToString;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `ToString`
+ --> /Users/kenrictee/dev/projects/memori/memori-ui/src/widgets/weather.rs:3:22
+  |
+3 |     string::{String, ToString},
+  |                      ^^^^^^^^
+
+error[E0308]: mismatched types
+  --> /Users/kenrictee/dev/projects/memori/memori-ui/src/widgets/mod.rs:89:63
+   |
+89 |             remote_update_frequency: UpdateFrequency::Seconds(seconds),
+   |                                      ------------------------ ^^^^^^^ expected `u32`, found `u64`
+   |                                      |
+   |                                      arguments to this enum variant are incorrect
+   |
+note: tuple variant defined here
+  --> /Users/kenrictee/dev/projects/memori/memori-ui/src/widgets/mod.rs:44:5
+   |
+44 |     Seconds(u32),
+   |     ^^^^^^^
+help: you can convert a `u64` to a `u32` and panic if the converted value doesn't fit
+   |
+89 |             remote_update_frequency: UpdateFrequency::Seconds(seconds.try_into().unwrap()),
+   |                                                                      ++++++++++++++++++++
+
+error[E0308]: mismatched types
+  --> /Users/kenrictee/dev/projects/memori/memori-ui/src/widgets/mod.rs:90:62
+   |
+90 |             local_update_frequency: UpdateFrequency::Seconds(seconds),
+   |                                     ------------------------ ^^^^^^^ expected `u32`, found `u64`
+   |                                     |
+   |                                     arguments to this enum variant are incorrect
+   |
+note: tuple variant defined here
+  --> /Users/kenrictee/dev/projects/memori/memori-ui/src/widgets/mod.rs:44:5
+   |
+44 |     Seconds(u32),
+   |     ^^^^^^^
+help: you can convert a `u64` to a `u32` and panic if the converted value doesn't fit
+   |
+90 |             local_update_frequency: UpdateFrequency::Seconds(seconds.try_into().unwrap()),
+   |                                                                     ++++++++++++++++++++
+
+error[E0308]: mismatched types
+  --> /Users/kenrictee/dev/projects/memori/memori-ui/src/widgets/mod.rs:98:63
+   |
+98 |             remote_update_frequency: UpdateFrequency::Minutes(minutes),
+   |                                      ------------------------ ^^^^^^^ expected `u32`, found `u64`
+   |                                      |
+   |                                      arguments to this enum variant are incorrect
+   |
+note: tuple variant defined here
+  --> /Users/kenrictee/dev/projects/memori/memori-ui/src/widgets/mod.rs:45:5
+   |
+45 |     Minutes(u32),
+   |     ^^^^^^^
+help: you can convert a `u64` to a `u32` and panic if the converted value doesn't fit
+   |
+98 |             remote_update_frequency: UpdateFrequency::Minutes(minutes.try_into().unwrap()),
+   |                                                                      ++++++++++++++++++++
+
+error[E0308]: mismatched types
+  --> /Users/kenrictee/dev/projects/memori/memori-ui/src/widgets/mod.rs:99:62
+   |
+99 |             local_update_frequency: UpdateFrequency::Minutes(minutes),
+   |                                     ------------------------ ^^^^^^^ expected `u32`, found `u64`
+   |                                     |
+   |                                     arguments to this enum variant are incorrect
+   |
+note: tuple variant defined here
+  --> /Users/kenrictee/dev/projects/memori/memori-ui/src/widgets/mod.rs:45:5
+   |
+45 |     Minutes(u32),
+   |     ^^^^^^^
+help: you can convert a `u64` to a `u32` and panic if the converted value doesn't fit
+   |
+99 |             local_update_frequency: UpdateFrequency::Minutes(minutes.try_into().unwrap()),
+   |                                                                     ++++++++++++++++++++
+
+warning: unused variable: `h`
+  --> /Users/kenrictee/dev/projects/memori/memori-ui/src/widgets/bus.rs:93:17
+   |
+93 |             (w, h) if w < 30 => {
+   |                 ^ help: if this is intentional, prefix it with an underscore: `_h`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `w`
+   --> /Users/kenrictee/dev/projects/memori/memori-ui/src/widgets/github.rs:130:14
+    |
+130 |             (w, h) if h < 6 => {
+    |              ^ help: if this is intentional, prefix it with an underscore: `_w`
+
+warning: value assigned to `p1` is never read
+  --> /Users/kenrictee/dev/projects/memori/memori-ui/src/widgets/twitch.rs:49:14
+   |
+49 |         let (mut p1, mut p2) = (Paragraph::default(), Paragraph::default());
+   |              ^^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+   = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+For more information about this error, try `rustc --explain E0308`.
+warning: `memori-ui` (lib) generated 5 warnings
+error: could not compile `memori-ui` (lib) due to 4 previous errors; 5 warnings emitted
+        Info File src-tauri/src/widget_data/weather_data.rs changed. Rebuilding application..
