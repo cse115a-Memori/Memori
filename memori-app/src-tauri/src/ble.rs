@@ -1,19 +1,19 @@
-use crate::widget_data::refresh_bustime;
-use crate::widget_data::refresh_github;
-use crate::widget_data::refresh_twitch;
-use crate::widget_data::refresh_temp;
-use memori_ui::MemoriState;
-use memori_ui::widgets::WidgetId;
+// use crate::widget_data::refresh_bustime;
+// use crate::widget_data::refresh_github;
+// use crate::widget_data::refresh_twitch;
+// use crate::widget_data::refresh_temp;
 use memori_ui::widgets::MemoriWidget;
-use transport::TransError;
-use transport::ble_types::*;
-use tokio::sync::RwLock;
-use std::sync::Arc;
+use memori_ui::widgets::WidgetId;
 use memori_ui::widgets::WidgetKind;
+use memori_ui::MemoriState;
+use std::sync::Arc;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tokio::sync::RwLock;
+use transport::ble_types::*;
+use transport::TransError;
 
 // async task that runs in the background when we have an active connection and
-// lets us see and choose how to handle incoming requests from the device 
+// lets us see and choose how to handle incoming requests from the device
 pub async fn ble_request_handler(
     memori: Arc<RwLock<Option<MemoriState>>>,
     mut dev_cmd_rx: UnboundedReceiver<DeviceBLECommand>,
@@ -31,8 +31,8 @@ pub async fn ble_request_handler(
     }
 }
 
-// takes a widgetid and updates it based on the current state, returing a 
-// response object to send back to the device. 
+// takes a widgetid and updates it based on the current state, returing a
+// response object to send back to the device.
 async fn handle_refresh_data(
     memori: &RwLock<Option<MemoriState>>,
     widget_id: WidgetId,
@@ -59,10 +59,10 @@ async fn handle_refresh_data(
 
     // log
     let refresh_result: Result<Box<MemoriWidget>, String> = match widget.kind {
-        WidgetKind::Twitch(_) => refresh_twitch().await,
-        WidgetKind::Github(_) => refresh_github().await,
-        WidgetKind::Bus(_) => refresh_bustime().await,
-        WidgetKind::Weather(_) => refresh_temp().await,
+        // WidgetKind::Twitch(_) => refresh_twitch().await,
+        // WidgetKind::Github(_) => refresh_github().await,
+        // WidgetKind::Bus(_) => refresh_bustime().await,
+        // WidgetKind::Weather(_) => refresh_temp().await,
         _ => Err("invalid refresh branch".to_string()),
     };
 

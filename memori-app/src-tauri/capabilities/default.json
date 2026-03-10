@@ -16,10 +16,9 @@
     "core:resources:default",
     "core:menu:default",
     "core:tray:default",
-    "store:default",
+    "tauri-store:default",
     "log:default",
     "blec:default",
-    "deep-link:default",
-    "geolocation:default"
+    "deep-link:default"
   ]
 }

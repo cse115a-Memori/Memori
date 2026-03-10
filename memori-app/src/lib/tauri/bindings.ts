@@ -5,9 +5,9 @@
 
 
 export const commands = {
-async connectDevice(mode: DeviceMode) : Promise<Result<null, string>> {
+async connectDevice(mode: DeviceMode, code: string) : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("connect_device", { mode }) };
+    return { status: "ok", data: await TAURI_INVOKE("connect_device", { mode, code }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -21,17 +21,20 @@ async disconnectDevice() : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async getDeviceMode() : Promise<Result<DeviceMode | null, string>> {
+async isConnected() : Promise<Result<boolean, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_device_mode") };
+    return { status: "ok", data: await TAURI_INVOKE("is_connected") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async isConnected() : Promise<Result<boolean, string>> {
+/**
+ * Sends back a copy of the different widget types that are used during drag and drop.
+ */
+async getWidgetKinds() : Promise<Result<[MemoriWidget, MemoriWidget, MemoriWidget, MemoriWidget, MemoriWidget, MemoriWidget], string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("is_connected") };
+    return { status: "ok", data: await TAURI_INVOKE("get_widget_kinds") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -45,57 +48,23 @@ async getBattery() : Promise<Result<number, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async getWidgetKinds() : Promise<Result<[MemoriWidget, MemoriWidget, MemoriWidget, MemoriWidget, MemoriWidget, MemoriWidget], string>> {
+async getDeviceMode() : Promise<Result<DeviceMode | null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("get_widget_kinds") };
+    return { status: "ok", data: await TAURI_INVOKE("get_device_mode") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async sendTwitch() : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("send_twitch") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
+/**
+ * Flashes the `MemoriStateInput` to the device.
+ * 
+ * # Errors
+ * Could error if the device isnt connected.
+ */
 async flashMemoriState(memoriState: MemoriStateInput) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("flash_memori_state", { memoriState }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async sendGithub(token: string) : Promise<Result<string, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("send_github", { token }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async sendName(name: string) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("send_name", { name }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async sendTemp(lat: number, lon: number) : Promise<Result<string, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("send_temp", { lat, lon }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async sendBustime(lat: number, lon: number) : Promise<Result<string, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("send_bustime", { lat, lon }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -112,14 +81,6 @@ async startOauthServer() : Promise<Result<number, string>> {
 async loginWithProvider(provider: string) : Promise<Result<UserInfo, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("login_with_provider", { provider }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async testGithub() : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("test_github") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -252,6 +213,7 @@ export type MemoriWidget = { id: WidgetId; kind: WidgetKind; remoteUpdateFrequen
  * Define a widget by its data
  */
 export type Name = { name: string }
+export type Pair = { code: string }
 /**
  * Define a widget by its data
  */
@@ -263,7 +225,7 @@ export type UserInfo = { id: string; name: string; email: string; avatar: string
  */
 export type Weather = { city: string; temp: string; clouds: string; wind: string; rain: string; humidity: string; description: string }
 export type WidgetId = number
-export type WidgetKind = { Name: Name } | { Clock: Clock } | { Github: Github } | { Weather: Weather } | { Bus: Bus } | { Twitch: Twitch }
+export type WidgetKind = { Name: Name } | { Clock: Clock } | { Github: Github } | { Weather: Weather } | { Bus: Bus } | { Twitch: Twitch } | { Pair: Pair }
 
 /** tauri-specta globals **/
 

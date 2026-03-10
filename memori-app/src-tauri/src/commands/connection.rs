@@ -5,8 +5,8 @@ use memori_tcp::HostTcpTransport;
 // use tauri::AppHandle;
 use tauri::State;
 // use tauri_plugin_svelte::ManagerExt;
-use transport::HostTransport as _;
 use crate::ble::ble_request_handler;
+use transport::HostTransport as _;
 
 #[tauri::command]
 #[specta::specta]
@@ -25,9 +25,7 @@ pub async fn connect_device(
 
     match mode {
         DeviceMode::RealDevice => {
-
-            let (conn, (dev_req_rx, host_resp_tx)) = HostBLETransport::connect()
-
+            let (conn, (dev_req_rx, host_resp_tx)) = HostBLETransport::connect(code)
                 .await
                 .map_err(|e| format!("Failed to connect to device: {e}"))?;
 

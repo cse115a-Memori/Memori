@@ -34,7 +34,7 @@ impl From<u32> for WidgetId {
 #[cfg_attr(feature = "specta", specta(rename_all = "camelCase"))]
 pub struct MemoriWidget {
     pub id: WidgetId,
-    pub(crate) kind: WidgetKind,
+    pub kind: WidgetKind,
     remote_update_frequency: UpdateFrequency,
     local_update_frequency: UpdateFrequency,
 }

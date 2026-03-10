@@ -1,9 +1,9 @@
+mod ble;
 mod commands;
 mod oauth;
 mod simulator;
 mod state;
 mod widget_data;
-mod ble;
 
 use crate::widget_data::github_data::get_github_repos;
 use commands::{
@@ -51,7 +51,6 @@ pub fn run() {
 
     tauri::Builder::default()
         .manage(AppState::new())
-        .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_geolocation::init())
         .plugin(tauri_plugin_svelte::init())
