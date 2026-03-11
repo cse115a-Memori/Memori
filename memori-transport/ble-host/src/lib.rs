@@ -37,19 +37,27 @@ struct OutboundPacket {
 
 async fn find_memori(central: &Adapter, code: &str) -> Option<Peripheral> {
     let looking_for = format!("memori-{}", code.trim());
+    println!("{:#?}", looking_for);
+
     for p in central.peripherals().await.ok()?.into_iter() {
         let has_memori = p
             .properties()
             .await
             .ok()
             .flatten()
-            .map(|props| props.local_name.iter().any(|name| *name == looking_for))
+            .map(|props| {
+                props
+                    .local_name
+                    .iter()
+                    .any(|name| name.contains(&looking_for))
+            })
             .unwrap_or(false);
 
         if has_memori {
             return Some(p);
         }
     }
+    println!("{:#?} cooked", looking_for);
     None
 }
 
