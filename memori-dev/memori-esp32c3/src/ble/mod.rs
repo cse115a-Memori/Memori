@@ -6,7 +6,7 @@ use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::mutex::Mutex;
 use esp_hal::peripherals;
 use esp_radio::ble::controller::BleConnector;
-use log::{info, warn};
+use log::{error, info, warn};
 use memori_ui::MemoriState;
 use postcard::{from_bytes, to_slice};
 use transport::ble_types::*;
@@ -267,11 +267,15 @@ async fn send_packet<P: PacketPool>(
         id: msg_id,
     };
 
-    let _encoded = to_slice(&packet, &mut buffer).map_err(|_| TransError::InternalError)?;
+    let encoded = to_slice(&packet, &mut buffer).map_err(|_| TransError::SerializationFailure)?;
+    info!("encoded packet info {encoded:?}");
 
     tx.notify(conn, &buffer)
         .await
-        .map_err(|_| TransError::InternalError)?;
+        .map_err(|e| {
+            error!("Internal error: {e:?}");
+            TransError::InternalError
+        })?;
 
     Ok(())
 }

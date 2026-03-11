@@ -6,10 +6,12 @@ use transport::HostTransport;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let mut transport = HostBLETransport::connect().await.unwrap_or_else(|e| {
+    let mut transport = HostBLETransport::connect("").await.unwrap_or_else(|e| {
         eprintln!("Fatal: failed to connect to BLE transport: {e:?}");
         std::process::exit(1);
     });
+
+    time::sleep(Duration::from_secs(2)).await;
 
     loop {
         time::sleep(Duration::from_secs(1)).await;
