@@ -43,7 +43,7 @@ impl DeviceBLETransport {
 
     async fn handle_command(&self, cmd: DeviceBLECommand) -> TransResult<HostBLEResponse> {
         if !BLE_CONNECTED.load(Ordering::SeqCst) {
-            return Err(TransError::InternalError);
+            return Err(TransError::NotConnected);
         }
         let id = get_next_id();
         let outgoing = OutgoingCommand { cmd, id };
@@ -58,7 +58,7 @@ impl DeviceBLETransport {
         .await
         {
             Ok(host_response) => Ok(host_response),
-            Err(_) => Err(TransError::InternalError),
+            Err(_) => Err(TransError::Timeout),
         }
     }
 }
@@ -75,7 +75,7 @@ impl DeviceTransport for DeviceBLETransport {
 
         match self.handle_command(command).await {
             Ok(HostBLEResponse::RefreshData { result }) => result,
-            Ok(_) => Err(TransError::InternalError),
+            Ok(_) => Err(TransError::InvalidMessage),
             Err(e) => Err(e),
         }
     }
@@ -85,7 +85,7 @@ impl DeviceTransport for DeviceBLETransport {
 
         match self.handle_command(command).await {
             Ok(HostBLEResponse::Ping { result }) => result,
-            Ok(_) => Err(TransError::InternalError),
+            Ok(_) => Err(TransError::InvalidMessage),
             Err(e) => Err(e),
         }
     }
