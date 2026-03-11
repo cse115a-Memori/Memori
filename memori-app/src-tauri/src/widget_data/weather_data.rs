@@ -1,7 +1,7 @@
-//use crate::commands::call_api_json;
 use memori_ui::widgets::Weather;
+use reqwest::Client;
 use serde::Deserialize;
-use serde_json::json;
+use std::env;
 
 #[derive(Debug, Deserialize)]
 struct WeatherResponse {
@@ -41,35 +41,55 @@ struct Rain {
 }
 
 pub(crate) async fn refresh_weather_widget(lat: f64, lon: f64) -> Result<Weather, String> {
-    // let api_key = "7fd5a9bc8b2d2753007ca6740cfc8917";
-    // 
-    // let req_body = json!({
-    //     "provider": "weather",
-    //     "url": format!(
-    //         "https://api.openweathermap.org/data/2.5/weather?appid={{}}&lat={lat}&lon={lon}&units=metric"
-    //     ),
-    //     "lat": lat.to_string(),
-    //     "lon": lon.to_string(),
-    // });
-    // let weather: WeatherResponse = call_api_json(req_body).await?;
-    // let description = weather_res.weather.first().unwrap().main.clone();
-    // let rain: String = match weather_res.rain {
-    //     Some(res) => res.mmph.to_string(),
-    //     None => "no rain".to_string(),
-    // };
-    // let city = "Santa Cruz".to_string();
-    // let temp = weather.main.temp.to_string();
-    // let humidity = weather.main.humidity.to_string();
-    // let wind = weather.wind.speed.to_string();
-    // let clouds = weather.clouds.all.to_string();
-    // Ok(Weather {
-    //     city,
-    //     temp,
-    //     humidity,
-    //     wind,
-    //     clouds,
-    //     description,
-    //     rain,
-    // })
-    todo!()
+    let appid = "WEATHER_API_KEY";
+    let appid = match env::var(appid) {
+        Ok(key) => key,
+        Err(error) => return Err(format!("Weather api key missing: {error}")),
+    };
+    let url = format!("https://api.openweathermap.org/data/2.5/weather?appid={appid}&lat={lat}&lon={lon}&units=imperial");
+    let response = Client::new()
+        .get(url)
+        .header("User-Agent", "my-app")
+        .send()
+        .await
+        .map_err(|e| e.to_string())?
+        .error_for_status()
+        .map_err(|e| e.to_string())?
+        .json::<serde_json::Value>()
+        .await
+        .map_err(|e| e.to_string());
+    let response = match response {
+        Ok(data) => data,
+        Err(error) => return Err(format!("failed to call weather api: {error}")),
+    };
+    let weather: WeatherResponse = match serde_json::from_value(response) {
+        Ok(data) => data,
+        Err(error) => {
+            return Err(format!(
+                "failed to convert json response to weather struct: {error}"
+            ))
+        }
+    };
+    let description: String = match weather.weather.first() {
+        Some(data) => data.main.clone(),
+        None => String::from("No weather description"),
+    };
+    let rain: String = match weather.rain {
+        Some(res) => res.mmph.to_string(),
+        None => "no rain".to_string(),
+    };
+    let city = String::from("Santa Cruz");
+    let temp = weather.main.temp.to_string();
+    let humidity = weather.main.humidity.to_string();
+    let wind = weather.wind.speed.to_string();
+    let clouds = weather.clouds.all.to_string();
+    Ok(Weather {
+        city,
+        temp,
+        humidity,
+        wind,
+        clouds,
+        description,
+        rain,
+    })
 }
