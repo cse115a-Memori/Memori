@@ -2,15 +2,14 @@ use crate::simulator::request_handler;
 use crate::state::{AppState, DeviceConnection, DeviceMode};
 use ble_host::HostBLETransport;
 use memori_tcp::HostTcpTransport;
-// use tauri::AppHandle;
-use tauri::State;
-// use tauri_plugin_svelte::ManagerExt;
+use tauri::{AppHandle, State};
 use crate::ble::ble_request_handler;
 use transport::HostTransport as _;
 
 #[tauri::command]
 #[specta::specta]
 pub async fn connect_device(
+    app: AppHandle,
     state: State<'_, AppState>,
     mode: DeviceMode,
     code: &str,
@@ -29,7 +28,7 @@ pub async fn connect_device(
                 .map_err(|e| format!("Failed to connect to device: {e}"))?;
 
             tokio::spawn(async move {
-                ble_request_handler(memori, dev_req_rx, host_resp_tx).await;
+                ble_request_handler(memori, dev_req_rx, host_resp_tx, &app).await;
             });
 
             *guard = DeviceConnection::RealDevice(conn);

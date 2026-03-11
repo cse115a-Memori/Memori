@@ -3,7 +3,7 @@ use crate::state::{AppState, DeviceConnection};
 // use crate::widget_data::bus_data::refresh_bus_widget;
 use crate::widget_data::clock_data::refresh_clock_widget;
 use crate::widget_data::github_data::refresh_github_widget;
-use crate::widget_data::twitch_data::refresh_twitch_widget;
+//use crate::widget_data::twitch_data::refresh_twitch_widget;
 // use crate::widget_data::weather_data::refresh_weather_widget;
 use memori_ui::widgets::{Github, WidgetKind};
 use memori_ui::{widgets::MemoriWidget, MemoriState};
@@ -106,7 +106,7 @@ pub async fn get_widget_kinds(app: AppHandle) -> Result<[MemoriWidget; 6], Strin
     println!("github widget: {:?}", github);
     // let twitch_user = fallback_twitch_user(&auth);
     let asdf = username;
-    let twitch = refresh_twitch_widget(&app).await.unwrap_or_default();
+    //let twitch = refresh_twitch_widget(&app).await.unwrap_or_default();
     let name = prefs.name;
 
     Ok([
@@ -115,8 +115,10 @@ pub async fn get_widget_kinds(app: AppHandle) -> Result<[MemoriWidget; 6], Strin
         MemoriWidget::with_second_update_frequency(3, WidgetKind::Clock(clock), 1),
         // MemoriWidget::with_never_update_frequency(2, WidgetKind::Bus(bus.clone())),
         // MemoriWidget::with_minute_update_frequency(3, WidgetKind::Weather(weather), 30),
-        MemoriWidget::with_minute_update_frequency(4, WidgetKind::Github(github), 1),
-        MemoriWidget::with_second_update_frequency(5, WidgetKind::Twitch(twitch.clone()), 5),
-        MemoriWidget::with_second_update_frequency(6, WidgetKind::Twitch(twitch), 5),
+        MemoriWidget::with_minute_update_frequency(4, WidgetKind::Github(github.clone()), 1),
+        MemoriWidget::with_minute_update_frequency(5, WidgetKind::Github(github.clone()), 1),
+        MemoriWidget::with_minute_update_frequency(6, WidgetKind::Github(github), 1),
+        //MemoriWidget::with_second_update_frequency(5, WidgetKind::Twitch(twitch.clone()), 5),
+        //MemoriWidget::with_second_update_frequency(6, WidgetKind::Twitch(twitch), 5),
     ])
 }

@@ -10,7 +10,7 @@ pub const BATTERY_SERVICE_UUID: u16 = 0x180f;
 pub const BATTERY_LEVEL_CHAR_UUID: u16 = 0x2a19;
 pub const BATTERY_NOTIFY_CHAR_UUID: u128 = 0x408813df5dd41f87ec11cdb001100000;
 
-pub const BLE_CHAR_SIZE: usize = 256;
+pub const BLE_CHAR_SIZE: usize = 200;
 
 pub type MessageID = u32;
 
