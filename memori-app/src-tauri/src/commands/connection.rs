@@ -11,7 +11,6 @@ use transport::HostTransport as _;
 #[tauri::command]
 #[specta::specta]
 pub async fn connect_device(
-    // app: AppHandle,
     state: State<'_, AppState>,
     mode: DeviceMode,
     code: &str,
