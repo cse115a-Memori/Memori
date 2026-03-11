@@ -156,6 +156,8 @@ async fn refresh_widget_task(
             continue;
         };
 
+        info!("successfully got refresh data: {data:?}");
+
         // Drop guard as soon as possible.
         drop(transport);
 
