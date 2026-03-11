@@ -21,7 +21,6 @@ pub async fn sender_task<P: PacketPool>(server: &Server<'_>, conn: &GattConnecti
                     conn,
                 )
                 .await
-                // .await
             }
             DeviceBLECommand::RefreshData { widget_id } => {
                 send_packet(

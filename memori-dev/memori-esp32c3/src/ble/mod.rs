@@ -13,6 +13,7 @@ use transport::ble_types::*;
 use transport::{TransError, TransResult};
 use trouble_host::prelude::*;
 
+use crate::RenderTx;
 use crate::ble::host_handler::handle_host_cmd;
 use crate::ble::sender::sender_task;
 
@@ -66,6 +67,7 @@ pub async fn ble_task(
     bt: peripherals::BT<'static>,
     ble_transport: &'static Mutex<CriticalSectionRawMutex, DeviceBLETransport>,
     state: &'static Mutex<CriticalSectionRawMutex, MemoriState>,
+    render_tx: RenderTx,
     spawner: Spawner,
 ) {
     info!("ble start");
@@ -98,7 +100,8 @@ pub async fn ble_task(
                 Ok(conn) => {
                     BLE_CONNECTED.store(true, core::sync::atomic::Ordering::SeqCst);
 
-                    let a = gatt_events_task(&server, &conn, state, ble_transport, spawner);
+                    let a =
+                        gatt_events_task(&server, &conn, state, ble_transport, render_tx, spawner);
                     let b = sender_task(&server, &conn);
                     select(a, b).await;
 
@@ -126,6 +129,7 @@ async fn gatt_events_task<P: PacketPool>(
     conn: &GattConnection<'_, '_, P>,
     state: &'static Mutex<CriticalSectionRawMutex, MemoriState>,
     transport: &'static Mutex<CriticalSectionRawMutex, DeviceBLETransport>,
+    render_tx: RenderTx,
     spawner: Spawner,
 ) -> Result<(), Error> {
     let rx_handle = server.nus_service.rx.handle;
@@ -144,6 +148,7 @@ async fn gatt_events_task<P: PacketPool>(
                                 conn,
                                 transport,
                                 state,
+                                render_tx,
                                 spawner,
                             )
                             .await;
@@ -178,7 +183,7 @@ async fn handle_receive_data<P: PacketPool>(
     conn: &GattConnection<'_, '_, P>,
     transport: &'static Mutex<CriticalSectionRawMutex, DeviceBLETransport>,
     state: &'static Mutex<CriticalSectionRawMutex, MemoriState>,
-
+    render_tx: RenderTx,
     spawner: Spawner,
 ) {
     info!("[gatt] received {} bytes", data.len());
@@ -200,7 +205,10 @@ async fn handle_receive_data<P: PacketPool>(
 
     match payload {
         HostBLEPacket::Command(cmd) => {
-            handle_host_cmd(cmd, packet.id, server, state, transport, spawner, conn).await;
+            handle_host_cmd(
+                cmd, packet.id, server, state, transport, render_tx, spawner, conn,
+            )
+            .await;
         }
         HostBLEPacket::Response(resp) => {
             // we have a response!

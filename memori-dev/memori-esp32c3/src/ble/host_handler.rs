@@ -13,8 +13,11 @@ use memori_ui::{
 use transport::{DeviceTransport, TransError, ble_types::*};
 use trouble_host::prelude::*;
 
-use crate::ble::{Server, send_packet};
 use crate::local_widget_update::widget_update_task;
+use crate::{
+    RenderTx,
+    ble::{Server, send_packet},
+};
 
 /// Keeps track of the generation of refresh tasks, basically
 /// a way to tell older tasks to die when we update the state with
@@ -28,6 +31,7 @@ pub(super) async fn handle_host_cmd<P: PacketPool>(
     server: &Server<'_>,
     state: &'static Mutex<CriticalSectionRawMutex, MemoriState>,
     transport: &'static Mutex<CriticalSectionRawMutex, DeviceBLETransport>,
+    render_tx: RenderTx,
     spawner: Spawner,
     conn: &GattConnection<'_, '_, P>,
 ) {
@@ -65,7 +69,7 @@ pub(super) async fn handle_host_cmd<P: PacketPool>(
 
             for widget in widgets_needing_refresh {
                 let _ = spawner
-                    .spawn(refresh_widget_task(widget.clone(), transport, state,new_gen))
+                    .spawn(refresh_widget_task(widget.clone(), transport, state,render_tx.clone(),new_gen))
                     .inspect_err(|e| error!("Error with spawning refresh task: {e:#?}, aborting spawning refresh for this task, may not work as intended."));
             }
 
@@ -85,9 +89,16 @@ pub(super) async fn handle_host_cmd<P: PacketPool>(
 
             for (widget_id, seconds) in widgets_to_update {
                 spawner
-                    .spawn(widget_update_task(state, widget_id, seconds as u64))
+                    .spawn(widget_update_task(
+                        state,
+                        widget_id,
+                        seconds as u64,
+                        render_tx.clone(),
+                    ))
                     .expect("Failed to spawn widget update task");
             }
+
+            render_tx.send(crate::Render {}).await;
 
             DeviceBLEResponse::SetState { result: Ok(()) }
         }
@@ -110,6 +121,7 @@ async fn refresh_widget_task(
     widget: MemoriWidget,
     transport: &'static Mutex<CriticalSectionRawMutex, DeviceBLETransport>,
     state: &'static Mutex<CriticalSectionRawMutex, MemoriState>,
+    render_tx: RenderTx,
     my_generation: u32,
 ) {
     // Watches for the cancellation watch to be updated, and returns when it does so.
@@ -149,5 +161,7 @@ async fn refresh_widget_task(
 
         let mut state = state.lock().await;
         state.widgets.insert(widget_id, data);
+
+        render_tx.send(crate::Render {}).await;
     }
 }

@@ -19,6 +19,7 @@ pub const FONT_BOLD: Option<MonoFont<'static>> = Some(MONO_7X14_BOLD);
 /// Italic font.
 pub const FONT_ITALIC: Option<MonoFont<'static>> = None;
 
+
 pub struct Memori<B: Backend> {
     term: Terminal<B>,
 }

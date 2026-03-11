@@ -6,6 +6,10 @@ pub mod local_widget_update;
 
 use alloc::boxed::Box;
 use display_interface_spi::SPIInterface;
+use embassy_sync::{
+    blocking_mutex::raw::CriticalSectionRawMutex,
+    channel::{Receiver, Sender},
+};
 use embedded_hal_bus::spi::ExclusiveDevice;
 use esp_hal::{
     Blocking,
@@ -25,6 +29,15 @@ pub const DEVICE_ID: &str = env!("DEVICE_ID");
 
 /// Helper type for the WeActStudio display.
 pub type MemDisplay = Display<128, 296, 4736, weact_studio_epd::Color>;
+
+/// ZST to send a render message to the ui task.
+pub struct Render {}
+
+/// Render Receiver type to make things easier.
+pub type RenderRx = Receiver<'static, CriticalSectionRawMutex, Render, 10>;
+
+/// Render Sender type to make things easier.
+pub type RenderTx = Sender<'static, CriticalSectionRawMutex, Render, 10>;
 
 /// Helper type for the Terminal.
 pub type MemTerm<'a> = Terminal<
@@ -58,21 +71,12 @@ pub fn setup_term<'a>(
     display.set_rotation(DisplayRotation::Rotate90);
     driver.init().unwrap();
 
-    let mut frame_count = 0;
-
     let config = EmbeddedBackendConfig {
         font_regular: memori_ui::FONT_REGULAR,
         font_bold: memori_ui::FONT_BOLD,
         font_italic: memori_ui::FONT_ITALIC,
         flush_callback: Box::new(move |d| {
-            // do full update every 5 frames to maintain display health.
-            frame_count += 1;
-            if frame_count == 5 {
-                driver.full_update(d).unwrap();
-                frame_count = 0;
-            } else {
-                driver.fast_update(d).unwrap();
-            }
+            driver.full_update(d).unwrap();
         }),
         ..Default::default()
     };

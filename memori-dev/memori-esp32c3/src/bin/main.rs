@@ -8,9 +8,9 @@
 #![deny(clippy::large_stack_frames)]
 
 use ble_device::DeviceBLETransport;
-use bt_hci::uuid::units::ACTIVITY_REFERRED_TO_A_RADIONUCLIDE_BECQUEREL;
 use embassy_executor::Spawner;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
+use embassy_sync::channel::{Channel, Receiver};
 use embassy_sync::mutex::Mutex;
 use embassy_time::{Duration, Timer};
 use esp_backtrace as _;
@@ -20,9 +20,9 @@ use esp_hal::spi::master::Spi;
 use esp_hal::time::Rate;
 use esp_hal::timer::timg::TimerGroup;
 use esp_hal::{Blocking, clock::CpuClock};
-use log::{debug, info};
+use log::info;
 use memori_esp32c3::ble::ble_task;
-use memori_esp32c3::{MemTermInitPins, setup_term};
+use memori_esp32c3::{MemTermInitPins, Render, RenderRx, setup_term};
 use memori_ui::widgets::{MemoriWidget, Pair, WidgetId, WidgetKind};
 use memori_ui::{Memori, MemoriState};
 use static_cell::StaticCell;
@@ -38,6 +38,8 @@ static BLE_TRANSPORT: StaticCell<Mutex<CriticalSectionRawMutex, DeviceBLETranspo
     StaticCell::new();
 
 static MEMORI_STATE: StaticCell<Mutex<CriticalSectionRawMutex, MemoriState>> = StaticCell::new();
+
+static RENDER_CHANNEL: StaticCell<Channel<CriticalSectionRawMutex, Render, 10>> = StaticCell::new();
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
@@ -116,7 +118,6 @@ async fn main(spawner: Spawner) -> () {
 
         let mem_state = MemoriState::new(0, [pair_widget], alloc::vec![frame], 0);
 
-
         Mutex::new(mem_state)
     });
 
@@ -124,10 +125,20 @@ async fn main(spawner: Spawner) -> () {
         DeviceBLETransport::new(),
     ));
 
+    let render_channel = RENDER_CHANNEL.init(embassy_sync::channel::Channel::<
+        CriticalSectionRawMutex,
+        Render,
+        10,
+    >::new());
+
+    let (render_rx, render_tx) = { (render_channel.receiver(), render_channel.sender()) };
+
+    render_tx.send(Render {}).await;
+
     // Temporarily disable the e-paper UI task while validating BLE advertising.
     // The display driver performs blocking operations that can starve async BLE startup.
     spawner
-        .spawn(ui_task(spi_bus, term_init_pins, mem_state))
+        .spawn(ui_task(spi_bus, term_init_pins, mem_state, render_rx))
         .expect("Failed to begin ui_task");
 
     spawner
@@ -136,6 +147,7 @@ async fn main(spawner: Spawner) -> () {
             peripherals.BT,
             transport,
             mem_state,
+            render_tx,
             spawner,
         ))
         .expect("Failed to start ble_task");
@@ -151,6 +163,7 @@ pub async fn ui_task(
     spi: Spi<'static, Blocking>,
     term_init_pins: MemTermInitPins,
     state: &'static Mutex<CriticalSectionRawMutex, MemoriState>,
+    render_rx: memori_esp32c3::RenderRx,
 ) {
     info!("UI Task Begun!");
 
@@ -161,17 +174,13 @@ pub async fn ui_task(
     let mut memori = Memori::new(term);
 
     loop {
+        // wait till we receive a Render message
+        let _ = render_rx.receive().await;
+
         let state_guard = state.lock().await;
         let state = &*state_guard;
         memori
             .update(state)
             .expect("memori should not panic on render");
-
-        // Release mutex as soon as possible.
-        drop(state_guard);
-
-        // TODO: in reality this should wait for a signal for
-        // "hey! State changed you should re-render!"
-        Timer::after(Duration::from_millis(200)).await;
     }
 }
