@@ -108,21 +108,21 @@
 	onDragOver={handleDragOver}
 	onDragEnd={handleDragEnd}
 >
-		<div class="grid gap-2 md:grid-cols-[3fr_1fr]">
-			<WidgetSection
-				id="frame-widgets"
-				title="Frame"
-				widgets={visibleFrame[layout]['frame-widgets']}
-				{layout}
-				frameContainerClass={layoutTpl.container}
-			/>
-			<WidgetSection
-				id="widgets"
-				title="Widgets"
-				widgets={visibleFrame[layout]['widgets']}
-				{layout}
-				frameContainerClass={layoutTpl.container}
-			/>
+	<div class="grid gap-2 md:grid-cols-[3fr_1fr]">
+		<WidgetSection
+			id="frame-widgets"
+			title="Frame"
+			widgets={visibleFrame[layout]['frame-widgets']}
+			{layout}
+			frameContainerClass={layoutTpl.container}
+		/>
+		<WidgetSection
+			id="widgets"
+			title="Widgets"
+			widgets={visibleFrame[layout]['widgets']}
+			{layout}
+			frameContainerClass={layoutTpl.container}
+		/>
 	</div>
 
 	<DragOverlay>

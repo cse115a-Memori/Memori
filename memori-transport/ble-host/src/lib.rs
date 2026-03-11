@@ -101,7 +101,7 @@ impl HostBLETransport {
             .ok_or_else(|| anyhow::anyhow!("No BLE adapters found"))?;
 
         central.start_scan(ScanFilter::default()).await?;
-        sleep(Duration::from_secs(3)).await;
+        sleep(Duration::from_secs(6)).await;
 
         let peripheral = find_memori(&central, code)
             .await

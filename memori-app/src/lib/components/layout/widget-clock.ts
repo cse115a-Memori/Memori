@@ -21,7 +21,7 @@ export function isClockTimezoneDraftValue(value: string): boolean {
 
 export function toClockTimezoneDraftValue(
 	timeZone: string | null | undefined,
-	systemTimeZone = getCurrentSystemTimeZone(),
+	systemTimeZone = getCurrentSystemTimeZone()
 ): string {
 	if (timeZone && isClockTimezoneDraftValue(timeZone)) {
 		return timeZone
@@ -47,10 +47,11 @@ export function formatCompactClock(date: Date, timeZone?: string): CompactClock 
 			timeZone,
 			timeZoneName: 'short',
 		}).formatToParts(date)
-		const hour = parts.find((part) => part.type === 'hour')?.value ?? ''
-		const minute = parts.find((part) => part.type === 'minute')?.value ?? '00'
-		const dayPeriod = parts.find((part) => part.type === 'dayPeriod')?.value?.toUpperCase() ?? ''
-		const zone = parts.find((part) => part.type === 'timeZoneName')?.value ?? 'Local'
+		const hour = parts.find(part => part.type === 'hour')?.value ?? ''
+		const minute = parts.find(part => part.type === 'minute')?.value ?? '00'
+		const dayPeriod =
+			parts.find(part => part.type === 'dayPeriod')?.value?.toUpperCase() ?? ''
+		const zone = parts.find(part => part.type === 'timeZoneName')?.value ?? 'Local'
 
 		return {
 			time: `${hour}:${minute}${dayPeriod ? ` ${dayPeriod}` : ''}`,

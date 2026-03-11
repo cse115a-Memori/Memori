@@ -1,23 +1,21 @@
 <script lang="ts">
-	import type { CarouselAPI } from '$lib/components/ui/carousel/context.js'
-	import * as Carousel from '$lib/components/ui/carousel/index.js'
+	import { LoaderCircle } from '@lucide/svelte'
+	import { onMount } from 'svelte'
 	import { Button } from '@/components/ui/button'
 	import { Input } from '@/components/ui/input'
-	import { stepFrameCls } from './step-frame-classes'
-	import { prefsState } from '$lib/features/prefs'
-	import { onMount } from 'svelte'
-	import { goto } from '$app/navigation'
-	import { LoaderCircle } from '@lucide/svelte'
-
-	import * as InputOTP from '$lib/components/ui/input-otp/index.js'
-
-	import { connState, connectDevice } from '@/features/connection'
+	import { authState, login } from '@/features/auth'
+	import { connectDevice, connState } from '@/features/connection'
 	import { requestLocationState } from '@/features/prefs/service'
 	import { playFailedSound, playSuccessSound } from '@/features/sound'
-	import { commands, toCmdError, type DeviceMode, tryCmd, type UserInfo } from '@/tauri'
+	import { commands, type DeviceMode, toCmdError, tryCmd, type UserInfo } from '@/tauri'
+	import { goto } from '$app/navigation'
+	import type { CarouselAPI } from '$lib/components/ui/carousel/context.js'
+	import * as Carousel from '$lib/components/ui/carousel/index.js'
 	import * as Field from '$lib/components/ui/field/index.js'
+	import * as InputOTP from '$lib/components/ui/input-otp/index.js'
 	import * as NativeSelect from '$lib/components/ui/native-select/index.js'
-	import { authState, login } from '@/features/auth'
+	import { prefsState } from '$lib/features/prefs'
+	import { stepFrameCls } from './step-frame-classes'
 
 	let currStepIdx = $state(0)
 	let isLoading = $state(false)
@@ -28,9 +26,9 @@
 
 	// INTEGRATION
 
-	$inspect(authState.usersByProvider['twitch'])
-	let isLoggedInGithub = $derived(authState.usersByProvider['github'] !== undefined)
-	let isLoggedInTwitch = $derived(authState.usersByProvider['twitch'] !== undefined)
+	$inspect(authState.usersByProvider.twitch)
+	let isLoggedInGithub = $derived(authState.usersByProvider.github !== undefined)
+	let isLoggedInTwitch = $derived(authState.usersByProvider.twitch !== undefined)
 	let isLocationEnabled = $derived(prefsState.locationStatus === 'granted')
 
 	type PendingAction = 'Github' | 'Twitch' | 'Location'
@@ -105,11 +103,14 @@
 			() => {
 				// playSuccessSound()
 				connState.isConnected = true
+
+				// save lastKnownDeviceId
+				connState.deviceCode = pairingCode
+
 				next()
 			},
 			error => {
-				// dev only
-				connState.isConnected = true
+				connState.isConnected = false
 				next()
 
 				errMsg = 'Pairing failed. Try again.'
@@ -401,16 +402,17 @@
 		justify-content: center;
 		min-height: 100dvh;
 		padding: clamp(2.5rem, 6vw, 5rem);
-		background: var(--background);
-		color: var(--foreground);
 		overflow-x: clip;
 		overflow-y: clip;
+		color: var(--foreground);
+		background: var(--background);
 	}
 
 	.page::before {
-		content: '';
 		position: absolute;
 		inset: -20%;
+		pointer-events: none;
+		content: '';
 		background:
 			radial-gradient(60% 50% at 50% 0%, oklch(0.99 0.01 85 / 0.55) 0%, transparent 70%),
 			radial-gradient(
@@ -418,13 +420,13 @@
 				oklch(0.98 0.02 85 / 0.35) 0%,
 				transparent 60%
 			);
-		pointer-events: none;
 	}
 
 	.page::after {
-		content: '';
 		position: absolute;
 		inset: 0;
+		pointer-events: none;
+		content: '';
 		background-image: repeating-linear-gradient(
 			0deg,
 			oklch(0.8 0.02 85 / 0.03) 0,
@@ -433,30 +435,29 @@
 			transparent 3px
 		);
 		opacity: 0.35;
-		pointer-events: none;
 	}
 
 	.content {
 		position: relative;
 		z-index: 1;
-		width: min(42rem, 100%);
 		display: grid;
 		gap: 2.5rem;
+		width: min(42rem, 100%);
 		min-height: min(46rem, calc(100dvh - (2 * clamp(2.5rem, 6vw, 5rem))));
 		text-align: center;
 	}
 
 	.content::before {
-		content: '';
 		position: absolute;
-		width: min(34rem, 75vw);
-		aspect-ratio: 1;
-		border: 1px solid oklch(0.7 0.04 85 / 0.22);
-		border-radius: 999px;
 		top: 50%;
 		left: 50%;
-		transform: translate(-50%, -70%);
+		width: min(34rem, 75vw);
+		aspect-ratio: 1;
 		pointer-events: none;
+		content: '';
+		border: 1px solid oklch(0.7 0.04 85 / 0.22);
+		border-radius: 999px;
+		transform: translate(-50%, -70%);
 	}
 
 	.layout-grid {

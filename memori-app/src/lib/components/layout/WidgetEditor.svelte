@@ -6,6 +6,7 @@
 		WidgetsToolbar,
 	} from '@/components/layout'
 	import { startAuthStore } from '@/features/auth/store'
+	import { connState } from '@/features/connection'
 	import { prefsState } from '@/features/prefs/store'
 	import {
 		selectFlashPayload,
@@ -47,8 +48,6 @@
 		await tryCmd(commands.flashMemoriState(payload)).match(
 			() => {
 				flashErr = ''
-
-				// save lastKnownDeviceId
 			},
 			error => {
 				flashErr = `Flash failed: ${error}`

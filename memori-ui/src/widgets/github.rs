@@ -97,6 +97,10 @@ impl Widget for &Github {
                 .render(outer_inner, buf);
             return;
         }
+        
+        if let Some(slash_pos) = self.repo.as_deref().and_then(|r| r.find('/')) {
+            let repo_str = &self.repo.as_deref().unwrap()[slash_pos + 1..];
+        }
 
         // Determine layout based on available space
         match (outer_inner.width, outer_inner.height) {
@@ -111,7 +115,7 @@ impl Widget for &Github {
                     .split(outer_inner);
 
                 // Left half: username and repo
-                let left_text = format!("{}\n({})", self.username, self.repo.as_deref().unwrap());
+                let left_text = format!("{}\n({})", self.username, repo_str);
                 Paragraph::new(left_text)
                     .alignment(Alignment::Center)
                     .render(chunks[0], buf);
@@ -137,7 +141,7 @@ impl Widget for &Github {
                     .split(outer_inner);
 
                 // Left half: username and repo
-                let left_text = format!("{}\n({})", self.username, self.repo.as_deref().unwrap());
+                let left_text = format!("{}\n({})", self.username, repo_str);
                 Paragraph::new(left_text)
                     .alignment(Alignment::Center)
                     .render(chunks[0], buf);
@@ -172,7 +176,7 @@ impl Widget for &Github {
                 build_commit_graph(&self.commits, self.weekday).render(chunks[1], buf);
 
                 let repo_block = Block::default()
-                    .title(Line::from(format!(" {} ", self.repo.as_deref().unwrap())))
+                    .title(Line::from(format!(" {} ", repo_str)))
                     .borders(Borders::ALL)
                     .border_set(border_set)
                     .padding(Padding::new(1, 1, 0, 0));

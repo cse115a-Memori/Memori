@@ -45,11 +45,11 @@ export function createDraftFromKind(kind: WidgetView['kind']): SortableItemDraft
 	} else if ('Weather' in kind) {
 		draft.weatherCity = kind.Weather.city
 	} else if ('Bus' in kind) {
-		draft.busStop = 'a'//kind.Bus.stop[0]
+		draft.busStop = 'a' //kind.Bus.stop[0]
 	} else if ('Twitch' in kind) {
 		draft.twitchUser = kind.Twitch.username
 	} else if ('Github' in kind) {
-  	draft.githubRepo = kind.Github.repo ?? ''
+		draft.githubRepo = kind.Github.repo ?? ''
 	}
 
 	return draft
@@ -98,25 +98,31 @@ export function buildKindFromDraft(
 			Twitch: {
 				...kind.Twitch,
 				username,
-			}
+			},
 		}
 	}
 	if ('Github' in kind) {
-	console.log("github kind",kind.Github)
-    return {
-      Github: {
-        ...kind.Github,
-        repo: draft.githubRepo.trim() || null,
-      }
-    }
-  }
+		console.log('github kind', kind.Github)
+		return {
+			Github: {
+				...kind.Github,
+				repo: draft.githubRepo.trim() || null,
+			},
+		}
+	}
 
 	return null
 }
 
 export function isKindEditable(kind: WidgetView['kind']): boolean {
-  return 'Name' in kind || 'Clock' in kind || 'Weather' in kind ||
-    'Bus' in kind || 'Twitch' in kind || 'Github' in kind
+	return (
+		'Name' in kind ||
+		'Clock' in kind ||
+		'Weather' in kind ||
+		'Bus' in kind ||
+		'Twitch' in kind ||
+		'Github' in kind
+	)
 }
 
 export type SortableItemKindVariant =

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { Data, Type, UniqueIdentifier } from '@dnd-kit/abstract'
 	import { useSortable } from '@dnd-kit-svelte/svelte/sortable'
-	import { commands, tryCmd } from '@/tauri'
 	import { EllipsisVertical } from '@lucide/svelte'
 	import { onMount } from 'svelte'
 	import type { ClassValue } from 'svelte/elements'
@@ -9,9 +8,12 @@
 	import * as Drawer from '@/components/ui/drawer'
 	import { Input } from '@/components/ui/input'
 	import * as Select from '@/components/ui/select'
+	import { githubState } from '@/features/github'
 	import { prefsState } from '@/features/prefs/store'
 	import { kindToDisplay, type WidgetView } from '@/features/widgets/model/widget-frame'
-	import { updateWidgetKind } from '@/features/widgets/widgets-store'
+	import { getWidgetKinds } from '@/features/widgets/service'
+	import { syncWidgets, updateWidgetKind } from '@/features/widgets/widgets-store'
+	import { commands, tryCmd } from '@/tauri'
 	import { cn } from '@/utils'
 	import { cardCls } from './sortable-item-classes'
 	import {
@@ -30,9 +32,6 @@
 		resolveClockTimeZone,
 		toClockTimezoneDraftValue,
 	} from './widget-clock'
-	import { githubState } from '@/features/github'
-	import { getWidgetKinds } from '@/features/widgets/service'
-	import { syncWidgets } from '@/features/widgets/widgets-store'
 
 	interface Props {
 		id: UniqueIdentifier
@@ -77,7 +76,10 @@
 	const clockTimezoneOptions = $derived(
 		(() => {
 			const options = systemTimeZone
-				? [systemTimeZone, ...CLOCK_TIMEZONE_OPTIONS.filter(option => option !== systemTimeZone)]
+				? [
+						systemTimeZone,
+						...CLOCK_TIMEZONE_OPTIONS.filter(option => option !== systemTimeZone),
+					]
 				: [...CLOCK_TIMEZONE_OPTIONS]
 			const hasCurrentSelection = options.includes(editorState.draft.clockTimeZone)
 
@@ -92,7 +94,9 @@
 			return [editorState.draft.clockTimeZone, ...options]
 		})()
 	)
-	const clockTimezoneLabel = $derived(getClockTimezoneLabel(editorState.draft.clockTimeZone))
+	const clockTimezoneLabel = $derived(
+		getClockTimezoneLabel(editorState.draft.clockTimeZone)
+	)
 	const clockPreview = $derived(
 		formatCompactClock(now, resolveClockTimeZone(editorState.draft.clockTimeZone))
 	)
@@ -133,7 +137,10 @@
 
 	function openEditor(): void {
 		const currentKindSignature = kindSignature(widget.kind)
-		if ('Clock' in widget.kind || editorState.sourceKindSignature !== currentKindSignature) {
+		if (
+			'Clock' in widget.kind ||
+			editorState.sourceKindSignature !== currentKindSignature
+		) {
 			loadDraftFromKind(widget.kind)
 		}
 		setEditorOpen(true)
@@ -271,17 +278,12 @@
 								editorState.draft.clockTimeZone = value
 							}}
 						>
-							<Select.Trigger class="w-full">
-								{clockTimezoneLabel}
-							</Select.Trigger>
+							<Select.Trigger class="w-full"> {clockTimezoneLabel} </Select.Trigger>
 							<Select.Content>
 								<Select.Group>
 									<Select.Label>Timezones</Select.Label>
 									{#each clockTimezoneOptions as option (option)}
-										<Select.Item
-											value={option}
-											label={getClockTimezoneLabel(option)}
-										>
+										<Select.Item value={option} label={getClockTimezoneLabel(option)}>
 											{getClockTimezoneLabel(option)}
 										</Select.Item>
 									{/each}
@@ -297,7 +299,10 @@
 				<div class="space-y-3">
 					<label class="space-y-1 block">
 						<span class="text-sm font-medium text-slate-700">Stop</span>
-						<Input bind:value={editorState.draft.weatherCity} placeholder="Santa Cruz" />
+						<Input
+							bind:value={editorState.draft.weatherCity}
+							placeholder="Santa Cruz"
+						/>
 					</label>
 				</div>
 			{:else if 'Bus' in widget.kind}

@@ -3,15 +3,15 @@
 
 	import WidgetEditor from '@/components/layout/WidgetEditor.svelte'
 	import {
-		connState,
 		connectDevice,
+		connState,
 		disconnectDevice,
 		syncConnectionState,
 	} from '@/features/connection'
 	import { refreshLocationState, requestLocationState } from '@/features/prefs/service'
 	import { prefsState } from '@/features/prefs/store'
 	import { playFailedSound, playSuccessSound } from '@/features/sound'
-	import { commands, toCmdError, type DeviceMode, tryCmd } from '@/tauri'
+	import { commands, type DeviceMode, toCmdError, tryCmd } from '@/tauri'
 	import { Button } from '$lib/components/ui/button/index.js'
 	import * as Field from '$lib/components/ui/field/index.js'
 	import { Input } from '$lib/components/ui/input/index.js'

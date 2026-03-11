@@ -2,6 +2,7 @@ import type { ConnectionState } from '@/features/connection/types'
 
 const initialConnectionState: ConnectionState = {
 	isConnected: false,
+	deviceCode: '',
 }
 
 export const connState = $state<ConnectionState>(initialConnectionState)

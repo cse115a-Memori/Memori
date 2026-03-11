@@ -2,18 +2,18 @@
 	import { onMount } from 'svelte'
 	import { Button } from '@/components/ui/button'
 	import { startAuthStore } from '@/features/auth/store'
+	import { connectDevice, connState, syncConnectionState } from '@/features/connection'
+	import { startGitHubStore } from '@/features/github'
 	import { prefsState, startPrefsStore } from '@/features/prefs/store'
 	import {
+		resetWidgets,
 		startWidgetsStore,
-		widgetsState,
 		type WidgetsState,
+		widgetsState,
 	} from '@/features/widgets/widgets-store'
-	import { startGitHubStore } from '@/features/github'
 	import { goto, onNavigate } from '$app/navigation'
-	import { connState, syncConnectionState } from '@/features/connection'
 	// import { refreshLocationState } from '@/features/prefs/service'
 	import { page } from '$app/state'
-	import { resetWidgets } from '@/features/widgets/widgets-store'
 
 	import '../app.css'
 	import { LoaderCircle } from '@lucide/svelte'
@@ -40,7 +40,7 @@
 		})
 	})
 
-	onMount(() => {
+	onMount(async () => {
 		void Promise.all([
 			startPrefsStore(),
 			startWidgetsStore(),
@@ -57,24 +57,21 @@
 			})
 
 		// check if onboarded, if not goto(/onboard)
+		if (connState.deviceCode !== null) {
+			await connectDevice('RealDevice', connState.deviceCode).match(
+				() => {
+					connState.isConnected = true
+				},
+				error => {
+					connState.isConnected = false
+				}
+			)
+		}
 	})
 
 	const snapshot = $state.snapshot(widgetsState) as WidgetsState
 	const payload = selectFlashPayload(snapshot)
 	$inspect('widgetState from layout', payload, widgetsState)
-
-	let connected: boolean | undefined = $state()
-
-	async function getConnected() {
-		await tryCmd(commands.isConnected()).match(
-			result => {
-				connected = result
-			},
-			error => {
-				console.error('Failed to load repos:', error)
-			}
-		)
-	}
 </script>
 
 {#if isReady}
@@ -92,8 +89,15 @@
 					<Button variant="outline" class="ml-auto" onclick={resetOnboarding}>
 						Reset Onboarding
 					</Button>
-					<Button variant="outline" class="ml-auto" onclick={getConnected}>
-						Check Connection {connected ? "Connected" : "Disconnected"}
+					<Button variant="outline" class="ml-auto" onclick={syncConnectionState}>
+						Check Connection {connState.isConnected ? "Connected" : "Disconnected"}
+					</Button>
+					<Button
+						variant="outline"
+						class="ml-auto"
+						onclick={() => connState.deviceCode = ""}
+					>
+						Reset DeviceId
 					</Button>
 					<Button variant="outline" class="ml-auto" onclick={resetWidgets}>
 						Reset Widgets

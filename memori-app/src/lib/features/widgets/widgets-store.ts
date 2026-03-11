@@ -40,10 +40,10 @@ export const widgetsState = widgetsStore.state
 let startPromise: Promise<void> | null = null
 
 export function resetWidgets(): void {
-  widgetsState.activeFrameIdx = initialWidgetsState.activeFrameIdx
-  widgetsState.frameTime = initialWidgetsState.frameTime
-  widgetsState.widgets = initialWidgetsState.widgets
-  widgetsState.frames = initialWidgetsState.frames
+	widgetsState.activeFrameIdx = initialWidgetsState.activeFrameIdx
+	widgetsState.frameTime = initialWidgetsState.frameTime
+	widgetsState.widgets = initialWidgetsState.widgets
+	widgetsState.frames = initialWidgetsState.frames
 }
 
 function isMemoriWidget(value: unknown): value is MemoriWidget {
@@ -332,14 +332,14 @@ export function normalizeWidgetsState(widgetData?: MemoriWidget[]): void {
 	if (widgetData) {
 		const widgetsById = createWidgetMap(widgetsState.widgets)
 		widgetsState.widgets = dedupeWidgetsById(
-    widgetData.map(widget => {
-        const stored = widgetsById.get(widget.id)
-        if (!stored) return widget
-        // Always use fresh data for Github
-        if ('Github' in widget.kind) return widget
-        return stored
-    })
-)
+			widgetData.map(widget => {
+				const stored = widgetsById.get(widget.id)
+				if (!stored) return widget
+				// Always use fresh data for Github
+				if ('Github' in widget.kind) return widget
+				return stored
+			})
+		)
 	} else {
 		normalizeWidgetStateShape()
 	}

@@ -156,12 +156,12 @@ export function kindToDisplay(kind: MemoriWidget['kind']): WidgetDisplay {
 	}
 
 	if ('Github' in kind) {
-      if (kind.Github.username === 'Not logged in...') {
-        return { name: 'GitHub', content: 'Not logged in...' }
-      }
-      const repo = kind.Github.repo ?? 'No repo selected'
-      return { name: 'GitHub', content: repo }
-    }
+		if (kind.Github.username === 'Not logged in...') {
+			return { name: 'GitHub', content: 'Not logged in...' }
+		}
+		const repo = kind.Github.repo ?? 'No repo selected'
+		return { name: 'GitHub', content: repo }
+	}
 
 	if ('Twitch' in kind) {
 		return { name: 'Twitch', content: kind.Twitch.user }
