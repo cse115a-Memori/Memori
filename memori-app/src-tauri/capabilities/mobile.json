@@ -23,7 +23,7 @@
     "geolocation:allow-request-permissions",
     "geolocation:allow-get-current-position",
     "geolocation:allow-watch-position",
-    "tauri-store:default",
+    "svelte:default",
     "log:default",
     "blec:default",
     "deep-link:default"

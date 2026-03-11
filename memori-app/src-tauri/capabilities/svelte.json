@@ -5,8 +5,6 @@
   ],
   "permissions": [
     "svelte:default",
-    "core:event:default",
-    "deep-link:default",
-    "geolocation:default"
+    "core:event:default"
   ]
 }

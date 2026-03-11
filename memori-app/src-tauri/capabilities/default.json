@@ -16,7 +16,7 @@
     "core:resources:default",
     "core:menu:default",
     "core:tray:default",
-    "tauri-store:default",
+    "svelte:default",
     "log:default",
     "blec:default",
     "deep-link:default"

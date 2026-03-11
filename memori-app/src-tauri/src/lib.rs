@@ -14,7 +14,7 @@ use memori_ui::{layout::MemoriLayout, widgets::MemoriWidget};
 use oauth::{login_with_provider, start_oauth_server};
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use state::AppState;
-use tauri_specta::{collect_commands, Builder, Event};
+use tauri_specta::{collect_commands, Builder};
 
 // use serde::{Deserialize, Serialize};
 // use specta::Type;
