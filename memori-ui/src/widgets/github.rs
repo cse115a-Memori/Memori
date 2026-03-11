@@ -11,6 +11,7 @@ use ratatui::text::Line;
 use ratatui::widgets::{Bar, BarChart, BarGroup};
 use ratatui::widgets::{Block, Borders, Padding, Paragraph, Widget};
 use serde::{Deserialize, Serialize};
+use crate::alloc::string::ToString;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
@@ -97,11 +98,21 @@ impl Widget for &Github {
                 .render(outer_inner, buf);
             return;
         }
-        
-        if let Some(slash_pos) = self.repo.as_deref().and_then(|r| r.find('/')) {
-            let repo_str = &self.repo.as_deref().unwrap()[slash_pos + 1..];
-        }
 
+        let repo_str = self.repo
+            .as_deref()
+            .map(|r| match r.find('/') {
+                Some(pos) => &r[pos + 1..],
+                None => r,
+            })
+            .unwrap_or_default();
+        
+        let repo_str = if repo_str.len() >= 10 {
+            format!("{}...", &repo_str[..10])
+        } else {
+            repo_str.to_string()
+        };
+        
         // Determine layout based on available space
         match (outer_inner.width, outer_inner.height) {
             // Small height, fourths or horizontal splits
@@ -232,7 +243,7 @@ impl Widget for &Github {
                 chart.render(graph_inner, buf);
 
                 let repo_block = Block::default()
-                    .title(Line::from(format!(" {} ", self.repo.as_deref().unwrap())))
+                    .title(Line::from(format!(" {} ", repo_str)))
                     .borders(Borders::ALL)
                     .border_set(border_set)
                     .border_style(Style::default().fg(ratatui::style::Color::White));
