@@ -1,12 +1,15 @@
 use core::sync::atomic::{AtomicU32, Ordering};
 
 use alloc::vec::Vec;
-use ble_device::DeviceBLETransport;
+use ble_device::{BLE_CONNECTED, DeviceBLETransport};
 use embassy_executor::Spawner;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex};
 use embassy_time::{Duration, Timer};
 use log::{error, info};
-use memori_ui::{MemoriState, widgets::{MemoriWidget, UpdateFrequency}};
+use memori_ui::{
+    MemoriState,
+    widgets::{MemoriWidget, UpdateFrequency},
+};
 use transport::{DeviceTransport, TransError, ble_types::*};
 use trouble_host::prelude::*;
 
@@ -28,7 +31,7 @@ pub(super) async fn handle_host_cmd<P: PacketPool>(
     spawner: Spawner,
     conn: &GattConnection<'_, '_, P>,
 ) {
-    info!("[transport] received cmd {:?}", cmd);
+    info!("[transport] received cmd {:#?}", cmd);
 
     let mut state_guard = state.lock().await;
     let mem_state = &mut *state_guard;
@@ -65,26 +68,26 @@ pub(super) async fn handle_host_cmd<P: PacketPool>(
                     .spawn(refresh_widget_task(widget.clone(), transport, state,new_gen))
                     .inspect_err(|e| error!("Error with spawning refresh task: {e:#?}, aborting spawning refresh for this task, may not work as intended."));
             }
-          
-            let widgets_to_update = {
-                  mem_state
-                  .widgets
-                  .iter()
-                      .filter_map(|(widget_id, widget)| {
-                          match widget.get_local_update_frequency() {
-                              UpdateFrequency::Never => None,
-                              UpdateFrequency::Seconds(s) if s < 60 => Some((*widget_id, s)),
-                              _ => None,
-                          }
-                      })
-                      .collect::<Vec<_>>()
-              };
 
-              for (widget_id, seconds) in widgets_to_update {
-                  spawner
-                      .spawn(widget_update_task(state, widget_id, seconds as u64))
-                      .expect("Failed to spawn widget update task");
-              }
+            let widgets_to_update = {
+                mem_state
+                    .widgets
+                    .iter()
+                    .filter_map(
+                        |(widget_id, widget)| match widget.get_local_update_frequency() {
+                            UpdateFrequency::Never => None,
+                            UpdateFrequency::Seconds(s) if s < 60 => Some((*widget_id, s)),
+                            _ => None,
+                        },
+                    )
+                    .collect::<Vec<_>>()
+            };
+
+            for (widget_id, seconds) in widgets_to_update {
+                spawner
+                    .spawn(widget_update_task(state, widget_id, seconds as u64))
+                    .expect("Failed to spawn widget update task");
+            }
 
             DeviceBLEResponse::SetState { result: Ok(()) }
         }
@@ -102,7 +105,7 @@ pub(super) async fn handle_host_cmd<P: PacketPool>(
 }
 
 /// Refreshes widget data from the host on the interval specified in the widget.
-#[embassy_executor::task(pool_size = 8)]
+#[embassy_executor::task(pool_size = 16)]
 async fn refresh_widget_task(
     widget: MemoriWidget,
     transport: &'static Mutex<CriticalSectionRawMutex, DeviceBLETransport>,
@@ -127,6 +130,11 @@ async fn refresh_widget_task(
         let widget_id = widget.id;
 
         let mut transport = transport.lock().await;
+
+        if !BLE_CONNECTED.load(Ordering::SeqCst) {
+            error!("Phone not connected! cannot refresh!");
+            continue;
+        }
 
         let Ok(data) = transport
             .refresh_data(widget_id)

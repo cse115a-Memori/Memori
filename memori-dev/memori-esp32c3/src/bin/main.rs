@@ -172,6 +172,6 @@ pub async fn ui_task(
 
         // TODO: in reality this should wait for a signal for
         // "hey! State changed you should re-render!"
-        Timer::after(Duration::from_secs(1)).await;
+        Timer::after(Duration::from_millis(200)).await;
     }
 }

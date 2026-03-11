@@ -24,6 +24,7 @@ fn get_next_id() -> MessageID {
     MESSAGE_ID_COUNTER.fetch_add(1, Ordering::SeqCst)
 }
 
+#[derive(Debug, Clone)]
 pub struct OutgoingCommand {
     pub cmd: DeviceBLECommand,
     pub id: MessageID,

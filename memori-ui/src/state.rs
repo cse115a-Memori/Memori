@@ -86,22 +86,9 @@ impl Widget for &MemoriState {
                 .get(id)
                 .expect("WidgetId should exist in hashmap")
                 .render(area, buf),
-            MemoriLayout::VSplit { left, right } => {
-                let rects =
-                    Layout::vertical([Constraint::Percentage(50), Constraint::Percentage(50)])
-                        .split(area);
-                self.widgets
-                    .get(left)
-                    .expect("WidgetId should exist in hashmap")
-                    .render(rects[0], buf);
-                self.widgets
-                    .get(right)
-                    .expect("WidgetId should exist in hashmap")
-                    .render(rects[1], buf);
-            }
             MemoriLayout::HSplit { top, bottom } => {
                 let rects =
-                    Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)])
+                    Layout::vertical([Constraint::Percentage(50), Constraint::Percentage(50)])
                         .split(area);
                 self.widgets
                     .get(top)
@@ -109,6 +96,19 @@ impl Widget for &MemoriState {
                     .render(rects[0], buf);
                 self.widgets
                     .get(bottom)
+                    .expect("WidgetId should exist in hashmap")
+                    .render(rects[1], buf);
+            }
+            MemoriLayout::VSplit { left, right } => {
+                let rects =
+                    Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)])
+                        .split(area);
+                self.widgets
+                    .get(left)
+                    .expect("WidgetId should exist in hashmap")
+                    .render(rects[0], buf);
+                self.widgets
+                    .get(right)
                     .expect("WidgetId should exist in hashmap")
                     .render(rects[1], buf);
             }
