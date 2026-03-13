@@ -93,6 +93,7 @@ pub async fn flash_memori_state(
 #[tauri::command]
 #[specta::specta]
 pub async fn get_widget_kinds(app: AppHandle) -> Result<[MemoriWidget; 6], String> {
+    println!("get_widget_kinds called");
     let prefs: PrefsState = read_store_state(&app, "prefs");
     let clock = refresh_clock_widget().await.unwrap_or_default();
     let weather = refresh_weather_widget(36.97145812967173, -122.03535749883835).await.unwrap_or_default();
@@ -100,6 +101,9 @@ pub async fn get_widget_kinds(app: AppHandle) -> Result<[MemoriWidget; 6], Strin
     let github = refresh_github_widget(&app).await.unwrap_or_default();
     let twitch = refresh_twitch_widget(&app).await.unwrap_or_default();
     let name = memori_ui::widgets::Name { name: prefs.name.clone() };
+    println!("Weather: {:?}\n\n", weather);
+    println!("Twitch: {:?}\n\n", twitch);
+    println!("Bus: {:?}\n\n", bus);
 
     Ok([
         clock_to_memori_widget(1, clock).await.unwrap(),

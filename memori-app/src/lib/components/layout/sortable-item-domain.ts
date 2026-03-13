@@ -45,7 +45,7 @@ export function createDraftFromKind(kind: WidgetView['kind']): SortableItemDraft
 	} else if ('Weather' in kind) {
 		draft.weatherCity = kind.Weather.city
 	} else if ('Bus' in kind) {
-		draft.busStop = 'a' //kind.Bus.stop[0]
+		draft.busStop = kind.Bus.stop[0]
 	} else if ('Twitch' in kind) {
 		draft.twitchUser = kind.Twitch.username
 	} else if ('Github' in kind) {

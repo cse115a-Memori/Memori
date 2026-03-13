@@ -41,6 +41,7 @@ struct Rain {
 }
 
 pub(crate) async fn refresh_weather_widget(lat: f64, lon: f64) -> Result<Weather, String> {
+    println!("Refresh weather widget called");
     let appid = "WEATHER_API_KEY";
     let appid = match env::var(appid) {
         Ok(key) => key,
@@ -70,6 +71,7 @@ pub(crate) async fn refresh_weather_widget(lat: f64, lon: f64) -> Result<Weather
             ))
         }
     };
+    println!("weather: {:?}", weather);
     let description: String = match weather.weather.first() {
         Some(data) => data.main.clone(),
         None => String::from("No weather description"),

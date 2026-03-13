@@ -92,7 +92,7 @@ impl Widget for &Weather {
                 let icon = Paragraph::new(icon_text)
                     .alignment(Alignment::Center)
                     .wrap(Wrap { trim: false });
-                let temp = Paragraph::new(vec![temp, clouds, wind])
+                let temp = Paragraph::new(vec![temp])
                     .alignment(Alignment::Center)
                     .wrap(Wrap { trim: false });
                 icon.render(Rect::new(outer_inner.x, outer_inner.y, w / 3, h), buf);
@@ -107,7 +107,7 @@ impl Widget for &Weather {
                 let icon = Paragraph::new(icon_text)
                     .alignment(Alignment::Center)
                     .wrap(Wrap { trim: false });
-                let temp = Paragraph::new(vec![temp, clouds, wind, rain])
+                let temp = Paragraph::new(vec![temp])
                     .alignment(Alignment::Center)
                     .wrap(Wrap { trim: true });
                 icon.render(Rect::new(outer_inner.x, outer_inner.y + 1, w, h / 2), buf);

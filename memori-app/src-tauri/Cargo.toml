@@ -49,6 +49,8 @@ ble-host = { path = "../../memori-transport/ble-host" }
 url = "2.5.8"
 rand = "0.9.1"
 chrono = "0.4"
+dotenv = "0.15"
+
 
 
 [target."cfg(any(target_os = \"linux\"))".dependencies]

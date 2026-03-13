@@ -52,11 +52,12 @@ pub async fn refresh_twitch_widget(app: &AppHandle) -> Result<Twitch, String> {
     let live_streams: Vec<LiveStream> = get_live_streams(userid, &token).await?;
     let live_streams_tuples: Vec<(String, String, String, String)> = live_streams
         .iter()
+        .take(1)
         .map(|stream| {
             (
                 stream.user_name.clone(),
                 stream.game_name.clone(),
-                stream.title.clone(),
+                stream.title.chars().filter(|c| c.is_ascii()).collect(),
                 stream.viewer_count.to_string(),
             )
         })

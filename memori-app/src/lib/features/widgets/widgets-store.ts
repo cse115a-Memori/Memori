@@ -337,6 +337,9 @@ export function normalizeWidgetsState(widgetData?: MemoriWidget[]): void {
 				if (!stored) return widget
 				// Always use fresh data for Github
 				if ('Github' in widget.kind) return widget
+        if ('Twitch' in widget.kind) return widget
+				if ('Bus' in widget.kind) return widget
+				if ('Weather' in widget.kind) return widget
 				return stored
 			})
 		)
