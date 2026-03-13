@@ -2,6 +2,7 @@ use memori_ui::widgets::Weather;
 use reqwest::Client;
 use serde::Deserialize;
 use std::env;
+use memori_ui::widgets::{MemoriWidget, WidgetKind, UpdateFrequency, WidgetId};
 
 #[derive(Debug, Deserialize)]
 struct WeatherResponse {
@@ -94,4 +95,14 @@ pub(crate) async fn refresh_weather_widget(lat: f64, lon: f64) -> Result<Weather
         description,
         rain,
     })
+}
+
+pub async fn weather_to_memori_widget(widget_id: u32, weather_struct: Weather) -> Result<MemoriWidget, String> {
+    let widget = MemoriWidget {
+        id: WidgetId(widget_id),
+        kind: WidgetKind::Weather(weather_struct),
+        remote_update_frequency: UpdateFrequency::Minutes(30),
+        local_update_frequency: UpdateFrequency::Never,
+    };
+    Ok(widget)
 }

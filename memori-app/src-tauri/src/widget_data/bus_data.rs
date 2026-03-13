@@ -3,6 +3,7 @@ use reqwest::Client;
 use serde::Deserialize;
 use serde_json::Value;
 use std::env;
+use memori_ui::widgets::{MemoriWidget, WidgetKind, WidgetId, UpdateFrequency};
 
 const DEFAULT_BUS_PREDICTION: (&str, &str, u16) = ("19", "Donwtown to Watsonville", 7);
 const DEFAULT_BUS_STOP: (&str, &str) = ("High and Front", "1230");
@@ -222,4 +223,13 @@ pub async fn refresh_bus_widget() -> Result<Bus, String> {
     }
     let stop = (stop.stpnm.clone(), stop.stpid.clone());
     Ok(Bus { stop, predictions })
+}
+
+pub async fn bus_to_memori_widget(bus_id: u32, bus: Bus) -> Result<MemoriWidget, String> {
+    Ok(MemoriWidget {
+        id: WidgetId(bus_id),
+        kind: WidgetKind::Bus(bus),
+        remote_update_frequency: UpdateFrequency::Seconds(5),
+        local_update_frequency: UpdateFrequency::Never,
+    })
 }

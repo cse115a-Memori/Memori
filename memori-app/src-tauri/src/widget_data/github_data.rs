@@ -1,7 +1,7 @@
 use crate::commands::data::{read_store_state};
 use crate::commands::translation_structs::AuthState;
 use chrono::{Datelike, Local};
-use memori_ui::widgets::Github;
+use memori_ui::widgets::{Github, WidgetId, WidgetKind, UpdateFrequency, MemoriWidget};
 use reqwest::Client;
 use serde::Deserialize;
 use std::collections::HashSet;
@@ -213,4 +213,14 @@ pub async fn refresh_github_widget(app: &AppHandle) -> Result<Github, String> {
         commits: commits?,
         weekday: Local::now().weekday().num_days_from_sunday() as usize,
     })
+}
+
+pub async fn github_to_memori_widget(github_id: u32, github: Github) -> Result<MemoriWidget, String> {
+    let widget = (MemoriWidget {
+        id: WidgetId(github_id),
+        kind: WidgetKind::Github(github),
+        remote_update_frequency: UpdateFrequency::Minutes(1),
+        local_update_frequency: UpdateFrequency::Never,
+    });
+    Ok(widget)
 }

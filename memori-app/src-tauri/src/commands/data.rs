@@ -1,10 +1,10 @@
 use crate::commands::translation_structs::*;
 use crate::state::{AppState, DeviceConnection};
-use crate::widget_data::bus_data::refresh_bus_widget;
+use crate::widget_data::bus_data::{refresh_bus_widget, bus_to_memori_widget};
 use crate::widget_data::clock_data::{refresh_clock_widget, clock_to_memori_widget};
-use crate::widget_data::github_data::refresh_github_widget;
-use crate::widget_data::twitch_data::refresh_twitch_widget;
-use crate::widget_data::weather_data::refresh_weather_widget;
+use crate::widget_data::github_data::{github_to_memori_widget, refresh_github_widget};
+use crate::widget_data::twitch_data::{refresh_twitch_widget, twitch_to_memori_widget};
+use crate::widget_data::weather_data::{refresh_weather_widget, weather_to_memori_widget};
 use memori_ui::widgets::{WidgetKind};
 use memori_ui::widgets::Name;
 use memori_ui::{widgets::MemoriWidget, MemoriState};
@@ -107,10 +107,10 @@ pub async fn get_widget_kinds(app: AppHandle) -> Result<[MemoriWidget; 6], Strin
 
     Ok([
         clock_to_memori_widget(1, clock).await.unwrap(),
-        MemoriWidget::with_minute_update_frequency(2, WidgetKind::Weather(weather), 30),
-        MemoriWidget::with_minute_update_frequency(3, WidgetKind::Bus(bus), 1),
-        MemoriWidget::with_minute_update_frequency(4, WidgetKind::Github(github), 1),
-        MemoriWidget::with_second_update_frequency(5, WidgetKind::Twitch(twitch), 5),
+        weather_to_memori_widget(2, weather).await.unwrap(),
+        bus_to_memori_widget(3, bus).await.unwrap(),
+        github_to_memori_widget(4, github).await.unwrap(),
+        twitch_to_memori_widget(5, twitch).await.unwrap(),
         MemoriWidget::with_never_update_frequency(6, WidgetKind::Name(name))
     ])
 }

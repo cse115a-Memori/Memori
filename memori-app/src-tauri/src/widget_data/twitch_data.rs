@@ -1,5 +1,5 @@
 use crate::commands::{read_store_state, AuthState};
-use memori_ui::widgets::Twitch;
+use memori_ui::widgets::{Twitch, WidgetId, WidgetKind, UpdateFrequency, MemoriWidget};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
@@ -66,4 +66,14 @@ pub async fn refresh_twitch_widget(app: &AppHandle) -> Result<Twitch, String> {
         username,
         live_channels: live_streams_tuples,
     })
+}
+
+pub async fn twitch_to_memori_widget(twitch_id: u32, twitch: Twitch) -> Result<MemoriWidget, String> {
+    let widget = MemoriWidget {
+        id: WidgetId(twitch_id),
+        kind: WidgetKind::Twitch(twitch),
+        remote_update_frequency: UpdateFrequency::Seconds(30),
+        local_update_frequency: UpdateFrequency::Never,
+    };
+    Ok(widget)
 }
