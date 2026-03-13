@@ -41,8 +41,8 @@ impl Clock {
             self.minutes = 0;
             self.hours += 1;
         }
-        if self.hours == 13 {
-            self.hours = 1;
+        if self.hours >= 13 {
+            self.hours -= 12;
         }
     }
 }
@@ -51,7 +51,6 @@ impl Widget for &Clock {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let mut hours_string = self.hours.to_string();
         let mut minutes_string = self.minutes.to_string();
-        let mut seconds_string = self.seconds.to_string();
 
         if self.hours < 10 {
             hours_string = format!("0{}", self.hours);
@@ -59,15 +58,11 @@ impl Widget for &Clock {
         if self.minutes < 10 {
             minutes_string = format!("0{}", self.minutes);
         }
-        if self.seconds < 10 {
-            seconds_string = format!("0{}", self.seconds);
-        }
 
-        let string = format!("{}:{}:{}", hours_string, minutes_string, seconds_string);
+        let string = format!("{}:{}", hours_string, minutes_string);
 
         let border_set = border::PLAIN;
 
-        // Outer "Github" box
         let outer_block = Block::default()
             .borders(Borders::ALL)
             .border_set(border_set)
@@ -81,7 +76,6 @@ impl Widget for &Clock {
         let center_x = outer_inner.x + (outer_inner.width.saturating_sub(text_len)) / 2;
         let center_y = outer_inner.y + outer_inner.height / 2;
 
-        // Render the centered text
         buf.set_string(center_x, center_y, string, Style::default());
     }
 }

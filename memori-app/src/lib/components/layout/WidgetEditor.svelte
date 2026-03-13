@@ -42,8 +42,6 @@
 		flashErr = ''
 		isFlashing = true
 		
-		await loadWidgets()
-		
 		const payload = selectFlashPayload(snapshot)
 
 		console.log('flashing payload', payload)

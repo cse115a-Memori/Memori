@@ -126,16 +126,15 @@ impl Widget for &Github {
                     .split(outer_inner);
 
                 // Left half: username and repo
-                let left_text = format!("{}\n({})", self.username, repo_str);
+                let left_text = format!("({})", repo_str);
                 Paragraph::new(left_text)
                     .alignment(Alignment::Center)
                     .render(chunks[0], buf);
 
                 // Right half: stats list
                 let stats = format!(
-                    "Issues: {}\nPRs: {}\nStars: {}\nNotifs: {}",
-                    self.open_issues, self.open_prs, self.stars, self.notifications
-                );
+                    "Issues:{}\nPRs: {}",
+                    self.open_issues, self.open_prs);
                 Paragraph::new(stats)
                     .alignment(Alignment::Left)
                     .render(chunks[1], buf);
