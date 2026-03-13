@@ -35,8 +35,8 @@ impl From<u32> for WidgetId {
 pub struct MemoriWidget {
     pub id: WidgetId,
     pub kind: WidgetKind,
-    remote_update_frequency: UpdateFrequency,
-    local_update_frequency: UpdateFrequency,
+    pub remote_update_frequency: UpdateFrequency,
+    pub local_update_frequency: UpdateFrequency,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]

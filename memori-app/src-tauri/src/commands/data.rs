@@ -1,11 +1,12 @@
 use crate::commands::translation_structs::*;
 use crate::state::{AppState, DeviceConnection};
-// use crate::widget_data::bus_data::refresh_bus_widget;
-use crate::widget_data::clock_data::refresh_clock_widget;
+use crate::widget_data::bus_data::refresh_bus_widget;
+use crate::widget_data::clock_data::{refresh_clock_widget, clock_to_memori_widget};
 use crate::widget_data::github_data::refresh_github_widget;
-//use crate::widget_data::twitch_data::refresh_twitch_widget;
-// use crate::widget_data::weather_data::refresh_weather_widget;
-use memori_ui::widgets::{Github, WidgetKind};
+use crate::widget_data::twitch_data::refresh_twitch_widget;
+use crate::widget_data::weather_data::refresh_weather_widget;
+use memori_ui::widgets::{WidgetKind};
+use memori_ui::widgets::Name;
 use memori_ui::{widgets::MemoriWidget, MemoriState};
 use serde::de::DeserializeOwned;
 use tauri::{AppHandle, State};
@@ -93,32 +94,19 @@ pub async fn flash_memori_state(
 #[specta::specta]
 pub async fn get_widget_kinds(app: AppHandle) -> Result<[MemoriWidget; 6], String> {
     let prefs: PrefsState = read_store_state(&app, "prefs");
-    let auth: AuthState = read_store_state(&app, "auth");
-    let github: Github = app.svelte().state_or_default("github").unwrap_or_default();
-    let username = github.username;
-    // let temp_text = resolve_weather_text(&prefs).await;
-    // let (bus_prediction, bus_route) = resolve_bus_data(&prefs).await;
-
     let clock = refresh_clock_widget().await.unwrap_or_default();
-    // let weather = refresh_weather_widget().await.unwrap_or_default();
-    // let bus = refresh_bus_widget().await.unwrap_or_default();
+    let weather = refresh_weather_widget(36.97145812967173, -122.03535749883835).await.unwrap_or_default();
+    let bus = refresh_bus_widget().await.unwrap_or_default();
     let github = refresh_github_widget(&app).await.unwrap_or_default();
-    println!("github widget: {:?}", github);
-    // let twitch_user = fallback_twitch_user(&auth);
-    let asdf = username;
-    //let twitch = refresh_twitch_widget(&app).await.unwrap_or_default();
-    let name = prefs.name;
+    let twitch = refresh_twitch_widget(&app).await.unwrap_or_default();
+    let name = memori_ui::widgets::Name { name: prefs.name.clone() };
 
     Ok([
-        MemoriWidget::with_second_update_frequency(1, WidgetKind::Clock(clock.clone()), 1),
-        MemoriWidget::with_second_update_frequency(2, WidgetKind::Clock(clock.clone()), 1),
-        MemoriWidget::with_second_update_frequency(3, WidgetKind::Clock(clock), 1),
-        // MemoriWidget::with_never_update_frequency(2, WidgetKind::Bus(bus.clone())),
-        // MemoriWidget::with_minute_update_frequency(3, WidgetKind::Weather(weather), 30),
-        MemoriWidget::with_minute_update_frequency(4, WidgetKind::Github(github.clone()), 1),
-        MemoriWidget::with_minute_update_frequency(5, WidgetKind::Github(github.clone()), 1),
-        MemoriWidget::with_minute_update_frequency(6, WidgetKind::Github(github), 1),
-        //MemoriWidget::with_second_update_frequency(5, WidgetKind::Twitch(twitch.clone()), 5),
-        //MemoriWidget::with_second_update_frequency(6, WidgetKind::Twitch(twitch), 5),
+        clock_to_memori_widget(1, clock).await.unwrap(),
+        MemoriWidget::with_minute_update_frequency(2, WidgetKind::Weather(weather), 30),
+        MemoriWidget::with_minute_update_frequency(3, WidgetKind::Bus(bus), 1),
+        MemoriWidget::with_minute_update_frequency(4, WidgetKind::Github(github), 1),
+        MemoriWidget::with_second_update_frequency(5, WidgetKind::Twitch(twitch), 5),
+        MemoriWidget::with_never_update_frequency(6, WidgetKind::Name(name))
     ])
 }
