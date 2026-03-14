@@ -78,12 +78,29 @@ As a user, I need the device to stay powered for at least a week.
 = Known Issues
 - connection state desync issues on app 
   - if device disconnects from app, for example by exiting the app and resuming it, that's not reflected in the state
-- 
+- if the user accidentally clicks onboarding after having already onboarded, they have to type
+  in a pairing code and attempt to connect regardless of if they have already paired.
+- Bus widget doesn't work
+- Twitch widget doesn't work
+- After the user has already moved a widget tile to the frame,
+  the "Moving: {}" text remains visible.
+- The clock widget will sometimes display the wrong time.
+- The smallest layout for the weather widget does not properly render.
+  it overflows into a different widget's box.
+- After a user selects a different preference for github widget repo and updates to device,
+  the device takes at least 10 seconds to reflect the new repo.
+- After a user selects a different preference for github widget repo and updates to device,
+  the device will then revert back to the previous repo data upon a refresh request.
 
 
 // Provide a list of the high priority user stories and bug fixes that can
 // serve as a guide for a follow-on project
 = Product Backlog
+- Iron out state synchronization issues over BLE
+- Give user more insight into the state of the system
+- Fix twitch widget data fetching
+- Revise bus widget to send less data to device
+- Ensure a proper user interface flow that isn't so much a dev test environment
 
 
 
