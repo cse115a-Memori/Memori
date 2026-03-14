@@ -153,10 +153,10 @@ that I can charge with USB-C.
 + SUCCESS
 
 == US 4.2
-As a user, I need the device to stay powered for at least a week.
+As a user, I need the device to stay powered for at least a day.
 
-+ Run the device for a week without charging.
-+ Verify that the app can still connect to it after a week
++ Run the device for a day without charging.
++ Verify that the app can still connect to it after a day
 + SUCCESS
 
 

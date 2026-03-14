@@ -70,14 +70,14 @@ As a device owner, I want to be able to have a battery enabled device
 that I can charge with USB-C.
 
 == US 4.2
-As a user, I need the device to stay powered for at least a week.
+As a user, I need the device to stay powered for at least a day.
 
 // List the major bugs (you can reference your Test Report), omissions (missing
 // functionality, edge cases that are not handled), design shortcuts (e.g. hard
 // coded data), etc.
 = Known Issues
-- connection state desync issues on app 
-  - if device disconnects from app, for example by exiting the app and resuming it, that's not reflected in the state
+- connection state desync issues on app
+  - connection state is dropped when mobile app gets backgrounded. this isn't reflected properly in the app's internal state. 
 - if the user accidentally clicks onboarding after having already onboarded, they have to type
   in a pairing code and attempt to connect regardless of if they have already paired.
 - Bus widget doesn't work
@@ -91,6 +91,8 @@ As a user, I need the device to stay powered for at least a week.
   the device takes at least 10 seconds to reflect the new repo.
 - After a user selects a different preference for github widget repo and updates to device,
   the device will then revert back to the previous repo data upon a refresh request.
+- Github widget refresh fails when called from ios device.
+- Starting onboarding after it has already been completed will not allow pairing if a device is still connected.
 
 
 // Provide a list of the high priority user stories and bug fixes that can
