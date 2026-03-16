@@ -41,8 +41,8 @@ impl Clock {
             self.minutes = 0;
             self.hours += 1;
         }
-        if self.hours >= 13 {
-            self.hours -= 12;
+        if self.hours == 24 {
+            self.hours = 0;
         }
     }
 }

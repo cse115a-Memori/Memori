@@ -1,4 +1,5 @@
 import { getLayoutSlotCount, type LayoutVariant } from '@/features/widgets/model/layout'
+import { getCurrentClock } from '@/components/layout/widget-clock'
 import type { WidgetsState } from '@/features/widgets/types'
 import type { MemoriLayout, MemoriStateInput, MemoriWidget } from '@/tauri'
 
@@ -103,16 +104,30 @@ export function validateWidgetsStateForFlash(state: WidgetsState): string | null
 }
 
 export function selectFlashPayload(state: WidgetsState): MemoriStateInput {
-	// const widgets = [...state.widgets]
-	let widgets: MemoriWidget[] = []
+	const referencedWidgetIds = new Set<Memori.WidgetId>()
+	const now = new Date()
 
 	const frames = state.frames.map(frame => {
 		const layout = frame.activeLayout
 		const widgetIds = (frame.layoutAssignments[layout] ?? []).map(widget => widget.id)
-		console.log('widgetIds', widgetIds)
-		widgets = state.widgets.filter(w => widgetIds.includes(w.id))
+		for (const widgetId of widgetIds) {
+			referencedWidgetIds.add(widgetId)
+		}
 		return encodeLayout(layout, widgetIds)
 	})
+
+	const widgets = state.widgets
+		.filter(widget => referencedWidgetIds.has(widget.id))
+		.map(widget =>
+			'Clock' in widget.kind
+				? {
+						...widget,
+						kind: {
+							Clock: getCurrentClock(now),
+						},
+					}
+				: widget
+		)
 
 	const clampedActiveFrameIdx =
 		frames.length === 0

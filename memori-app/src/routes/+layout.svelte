@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Component } from 'svelte'
   import { onMount } from 'svelte'
   import { Button } from '@/components/ui/button'
   import { startAuthStore } from '@/features/auth/store'
@@ -9,28 +10,52 @@
   } from '@/features/connection'
   import { startGitHubStore } from '@/features/github'
   import { prefsState, startPrefsStore } from '@/features/prefs/store'
-  import {
-    resetWidgets,
-    startWidgetsStore,
-    type WidgetsState,
-    widgetsState,
-  } from '@/features/widgets/widgets-store'
-  import { goto, onNavigate } from '$app/navigation'
+  import { startWidgetsStore } from '@/features/widgets/widgets-store'
+  import { afterNavigate, goto, onNavigate } from '$app/navigation'
   // import { refreshLocationState } from '@/features/prefs/service'
   import { page } from '$app/state'
 
   import '../app.css'
-  import { LoaderCircle } from '@lucide/svelte'
-  import { selectFlashPayload } from '@/features/widgets/flash'
-  import { commands, tryCmd } from '@/tauri'
+  import { House, LoaderCircle, Settings, SquarePen } from '@lucide/svelte'
 
   const { children } = $props()
-  const isOnboardingRoute = $derived(page.url.pathname === '/onboarding')
-  let isReady = $state(false)
+  type PrimaryNavItem = {
+    href: string
+    label: string
+    icon: Component
+    aliases?: string[]
+  }
 
-  async function resetOnboarding() {
-    prefsState.onboarded = false
-    await goto('/', { replaceState: true })
+  const primaryNav: PrimaryNavItem[] = [
+    { href: '/', label: 'Home', icon: House },
+    { href: '/editor', label: 'Editor', icon: SquarePen, aliases: ['/device'] },
+    {
+      href: '/settings',
+      label: 'Settings',
+      icon: Settings,
+      aliases: ['/testing'],
+    },
+  ]
+
+  const pathname = $derived(page.url.pathname)
+  const isOnboardingRoute = $derived(pathname.startsWith('/onboarding'))
+  let isReady = $state(false)
+  let isPrefsReady = $state(false)
+
+  function navigateTo(href: string) {
+    void goto(href)
+  }
+
+  function ensureOnboarding() {
+    if (!isPrefsReady || prefsState.onboarded || page.url.pathname.startsWith('/onboarding')) {
+      return
+    }
+
+    void goto('/onboarding', { replaceState: true })
+  }
+
+  function isNavActive({ href, aliases = [] }: PrimaryNavItem) {
+    return [href, ...aliases].includes(pathname)
   }
 
   onNavigate((navigation) => {
@@ -44,38 +69,43 @@
     })
   })
 
-  onMount(async () => {
-    void Promise.all([
-      startPrefsStore(),
-      startWidgetsStore(),
-      startAuthStore(),
-      startGitHubStore(),
-      syncConnectionState(),
-      // refreshLocationState(),
-    ])
-      .catch((error) => {
-        console.error('Failed to start stores:', error)
-      })
-      .finally(() => {
-        isReady = true
-      })
-
-    // check if onboarded, if not goto(/onboard)
-    if (connState.deviceCode !== '') {
-      await connectDevice('RealDevice', connState.deviceCode).match(
-        () => {
-          connState.isConnected = true
-        },
-        (error) => {
-          connState.isConnected = false
-        }
-      )
-    }
+  afterNavigate(() => {
+    ensureOnboarding()
   })
 
-  const snapshot = $state.snapshot(widgetsState) as WidgetsState
-  const payload = selectFlashPayload(snapshot)
-  $inspect('widgetState from layout', payload, widgetsState)
+  onMount(() => {
+    void (async () => {
+      try {
+        await Promise.all([
+          startPrefsStore().then(() => {
+            isPrefsReady = true
+            ensureOnboarding()
+          }),
+          startWidgetsStore(),
+          startAuthStore(),
+          startGitHubStore(),
+          syncConnectionState(),
+          // refreshLocationState(),
+        ])
+
+        if (connState.deviceCode !== '') {
+          await connectDevice('RealDevice', connState.deviceCode).match(
+            () => {
+              connState.isConnected = true
+            },
+            () => {
+              connState.isConnected = false
+            }
+          )
+        }
+      } catch (error) {
+        console.error('Failed to start stores:', error)
+      } finally {
+        isReady = true
+      }
+    })()
+  })
+
 </script>
 
 {#if isReady}
@@ -83,38 +113,24 @@
     {#if isOnboardingRoute}
       {@render children?.()}
     {:else}
-      <div class="mx-auto w-full max-w-screen-sm px-4 py-6">
+      <div class="mx-auto w-full max-w-screen-sm px-4 pt-6 pb-24 md:pb-6">
         <div class="mb-4 flex flex-wrap items-center gap-2">
-          {@render navLinks('/', 'Home')}
-          {@render navLinks('/device', 'Device')}
-          <!-- {@render navLinks('/location', 'Location')} -->
-          {@render navLinks('/onboarding', 'Onboarding')}
-          {@render navLinks('/testing', 'Testing')}
-          <Button variant="outline" class="ml-auto" onclick={resetOnboarding}>
-            Reset Onboarding
-          </Button>
-          <Button
-            variant="outline"
-            class="ml-auto"
-            onclick={syncConnectionState}
-          >
-            Check Connection {connState.isConnected
-              ? 'Connected'
-              : 'Disconnected'}
-          </Button>
-          <Button
-            variant="outline"
-            class="ml-auto"
-            onclick={() => (connState.deviceCode = '')}
-          >
-            Reset DeviceId
-          </Button>
-          <Button variant="outline" class="ml-auto" onclick={resetWidgets}>
-            Reset Widgets
-          </Button>
+          {#each primaryNav as item (item.href)}
+            {@render navLinks(item)}
+          {/each}
         </div>
         {@render children?.()}
       </div>
+      <nav
+        class="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] backdrop-blur supports-[backdrop-filter]:bg-background/80 md:hidden"
+        aria-label="Primary"
+      >
+        <div class="mx-auto grid w-full max-w-screen-sm grid-cols-3 gap-2">
+          {#each primaryNav as item (item.href)}
+            {@render mobileNavLink(item)}
+          {/each}
+        </div>
+      </nav>
     {/if}
   </div>
 {:else}
@@ -123,12 +139,25 @@
   </div>
 {/if}
 
-{#snippet navLinks(route: string, name: string)}
+{#snippet navLinks(item: PrimaryNavItem)}
   <Button
-    variant="link"
-    href={route}
-    class={`${page.url.pathname === route ? 'font-bold' : ''} transition-all`}
+    variant={isNavActive(item) ? 'secondary' : 'ghost'}
+    onclick={() => navigateTo(item.href)}
+    class="hidden gap-2 md:inline-flex"
   >
-    {name}
+    <item.icon class="size-4" />
+    {item.label}
+  </Button>
+{/snippet}
+
+{#snippet mobileNavLink(item: PrimaryNavItem)}
+  <Button
+    variant={isNavActive(item) ? 'secondary' : 'ghost'}
+    onclick={() => navigateTo(item.href)}
+    class="h-14 flex-col gap-1 rounded-2xl px-2 text-[0.7rem]"
+    aria-current={isNavActive(item) ? 'page' : undefined}
+  >
+    <item.icon class="size-4" />
+    <span>{item.label}</span>
   </Button>
 {/snippet}

@@ -7,9 +7,7 @@
 	import { Button } from '@/components/ui/button'
 	import * as Drawer from '@/components/ui/drawer'
 	import { Input } from '@/components/ui/input'
-	import * as Select from '@/components/ui/select'
 	import { githubState } from '@/features/github'
-	import { prefsState } from '@/features/prefs/store'
 	import { kindToDisplay, type WidgetView } from '@/features/widgets/model/widget-frame'
 	import { getWidgetKinds } from '@/features/widgets/service'
 	import { syncWidgets, updateWidgetKind } from '@/features/widgets/widgets-store'
@@ -24,14 +22,7 @@
 		kindSignature,
 		type SortableItemDraft,
 	} from './sortable-item-domain'
-	import {
-		CLOCK_TIMEZONE_OPTIONS,
-		formatCompactClock,
-		getClockTimezoneLabel,
-		getCurrentSystemTimeZone,
-		resolveClockTimeZone,
-		toClockTimezoneDraftValue,
-	} from './widget-clock'
+	import { formatCompactClock } from './widget-clock'
 
 	interface Props {
 		id: UniqueIdentifier
@@ -59,7 +50,6 @@
 	const isClock = $derived('Clock' in widget.kind)
 	let now = $state(new Date())
 	let isEditorOpen = $state(false)
-	const systemTimeZone = getCurrentSystemTimeZone()
 	let editorState: {
 		draft: SortableItemDraft
 		sourceKindSignature: string
@@ -70,36 +60,7 @@
 	const isEditable = $derived(isKindEditable(widget.kind))
 	const kindSignatureNow = $derived(kindSignature(widget.kind))
 
-	const compactClock = $derived(
-		formatCompactClock(now, prefsState.systemOptions.timeZone ?? undefined)
-	)
-	const clockTimezoneOptions = $derived(
-		(() => {
-			const options = systemTimeZone
-				? [
-						systemTimeZone,
-						...CLOCK_TIMEZONE_OPTIONS.filter(option => option !== systemTimeZone),
-					]
-				: [...CLOCK_TIMEZONE_OPTIONS]
-			const hasCurrentSelection = options.includes(editorState.draft.clockTimeZone)
-
-			if (
-				hasCurrentSelection ||
-				editorState.draft.clockTimeZone === '' ||
-				editorState.draft.clockTimeZone === undefined
-			) {
-				return options
-			}
-
-			return [editorState.draft.clockTimeZone, ...options]
-		})()
-	)
-	const clockTimezoneLabel = $derived(
-		getClockTimezoneLabel(editorState.draft.clockTimeZone)
-	)
-	const clockPreview = $derived(
-		formatCompactClock(now, resolveClockTimeZone(editorState.draft.clockTimeZone))
-	)
+	const compactClock = $derived(formatCompactClock(now))
 
 	const { ref, isDragging } = useSortable({
 		id: () => id,
@@ -125,12 +86,6 @@
 
 	function loadDraftFromKind(kind: WidgetView['kind']): void {
 		const nextDraft = createDraftFromKind(kind)
-		if ('Clock' in kind) {
-			nextDraft.clockTimeZone = toClockTimezoneDraftValue(
-				prefsState.systemOptions.timeZone,
-				systemTimeZone
-			)
-		}
 		editorState.draft = nextDraft
 		editorState.sourceKindSignature = kindSignature(kind)
 	}
@@ -159,9 +114,6 @@
 		if (!canSave) return
 
 		if ('Clock' in widget.kind) {
-			prefsState.systemOptions.timeZone =
-				resolveClockTimeZone(editorState.draft.clockTimeZone) ?? null
-			loadDraftFromKind(widget.kind)
 			return
 		}
 
@@ -268,31 +220,9 @@
 				</label>
 			{:else if 'Clock' in widget.kind}
 				<div class="space-y-3">
-					<div class="space-y-1">
-						<span class="text-sm font-medium text-slate-700">Timezone</span>
-						<Select.Root
-							type="single"
-							name="clockTimezone"
-							value={editorState.draft.clockTimeZone}
-							onValueChange={value => {
-								editorState.draft.clockTimeZone = value
-							}}
-						>
-							<Select.Trigger class="w-full"> {clockTimezoneLabel} </Select.Trigger>
-							<Select.Content>
-								<Select.Group>
-									<Select.Label>Timezones</Select.Label>
-									{#each clockTimezoneOptions as option (option)}
-										<Select.Item value={option} label={getClockTimezoneLabel(option)}>
-											{getClockTimezoneLabel(option)}
-										</Select.Item>
-									{/each}
-								</Select.Group>
-							</Select.Content>
-						</Select.Root>
-					</div>
+					<p class="text-sm text-slate-700">Clock flashes using your current local time.</p>
 					<p class="text-xs text-slate-500">
-						Preview: {clockPreview.time} {clockPreview.zone}
+						Preview: {compactClock.time} {compactClock.zone}
 					</p>
 				</div>
 			{:else if 'Weather' in widget.kind}

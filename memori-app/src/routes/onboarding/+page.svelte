@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { LoaderCircle } from '@lucide/svelte'
-	import { onMount } from 'svelte'
 	import { Button } from '@/components/ui/button'
 	import { Input } from '@/components/ui/input'
 	import { authState, login } from '@/features/auth'
@@ -124,11 +123,6 @@
 		prefsState.onboarded = true
 		goto('/device')
 	}
-
-	onMount(() => {
-		//dev only
-		prefsState.onboarded = false
-	})
 </script>
 
 <div class="page">

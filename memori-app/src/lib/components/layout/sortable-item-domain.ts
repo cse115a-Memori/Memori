@@ -1,5 +1,4 @@
 import type { WidgetView } from '@/features/widgets/model/widget-frame'
-import { isClockTimezoneDraftValue } from './widget-clock'
 
 export interface SortableItemDraft {
 	name: string
@@ -149,7 +148,7 @@ export function isDraftPersistable(
 	draft: SortableItemDraft
 ): boolean {
 	if ('Clock' in kind) {
-		return isClockTimezoneDraftValue(draft.clockTimeZone)
+		return true
 	}
 
 	return buildKindFromDraft(kind, draft) !== null
