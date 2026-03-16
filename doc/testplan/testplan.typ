@@ -9,8 +9,8 @@
       rows: (auto, auto, auto),
       gutter: 3pt,
       [*Test Plan / Report*], [],
-      [Product / Team: Memori], [3/19/26],
-      [Revision 1.0.0], [Revision Date: 3/19/26],
+      [Product / Team: Memori], [3/13/26],
+      [Revision 1.0.0], [Revision Date: 3/13/26],
     )
     #line(length: 100%, stroke: 0.5pt)
   ],
@@ -32,32 +32,32 @@
 As an application user, I want to be able to connect to my Memori device
 using Bluetooth via simulator / desktop.
 
-Scenario 1: Onboarding
-  1. Start memori app;
-    + Note down the pairing code on the display.
-    + Type in pairing code into the app dialogue box.
-    + Hit connect.
-  2. Type your name into the name field;
-    + Click confirm.
-    + User should see their name displayed on the device.
+Scenario 1: Onboarding (Pass)
++ Start Memori app;
++ Note down the pairing code on the display.
++ Type your name into the name field;
++ Type in pairing code into the app dialogue box.
++ Hit connect.
++ Click confirm.
++ User should see their name displayed on the device.
 
 == US 1.3
 As a device owner, I want to be able to display simple widgets, such as
 time or weather on my Memori device.
 
-Scenario 1: Displaying the Time Widget (Pass/Fail)
-  1. Start memori app;
-    + If first time onboarding, complete onboarding as described above.
-  2. Navigate to device page;
-    + Drag the time widget on to the layout pane.
-  3. Click set state;
-    + User should see the current time displayed on the device.
+Scenario 1: Displaying the Time Widget (Pass)
+1. Start memori app;
+  + If first time onboarding, complete onboarding as described above.
+2. Navigate to device page;
+  + Drag the time widget on to the layout pane.
+3. Click set state;
+  + User should see the current time displayed on the device.
 
 
 == US 1.4
 As a user, I want to have a dark mode for the display.
 
-Scenario 1: Seeing the Dark Mode (Pass/Fail)
+Scenario 1: Seeing the Dark Mode (Pass)
 1. Power the memori device;
   + User should see a white font pairing code (there is no light mode)
 
@@ -66,24 +66,24 @@ Scenario 1: Seeing the Dark Mode (Pass/Fail)
 As an application user, I want to be able to connect to my Memori device
 using Bluetooth from a mobile device.
 
-Scenario 1: Connect via Bluetooth For First Time (Pass/Fail)
-  1. Start memori app;
-    + Note pairing code on device display.
-  2. Type in pairing code into the app dialogue box;
-  3. Tap "Pair" button;
-    + User should see their name displayed on the device.
+Scenario 1: Connect via Bluetooth For First Time (Pass)
+1. Start memori app;
+  + Note pairing code on device display.
+2. Type in pairing code into the app dialogue box;
+3. Tap "Pair" button;
+  + User should see their name displayed on the device.
 
-Scenario 2: Connect via Bluetooth For Non First Time (Pass/Fail)
-  1. Start memori app;
-  2. Wait 1 minute for device to automatically connect to the app;
-  3. If not automatically connected, tap the Connect button;
-    + users should be able to navigate to the device page successfully.
+Scenario 2: Connect via Bluetooth For Non First Time (Pass)
+1. Start Memori app;
+2. Wait 1 minute for device to automatically connect to the app;
+3. If not automatically connected, tap the Connect button;
+  + users should be able to navigate to the device page successfully.
 
 == US 2.2
 As a developer, I would want to see my GitHub statistics on the Memori
 device.
 
-Scenario 1: Display Github Stats (Pass/Fail)
+Scenario 1: Display Github Stats (Pass)
 1. start memori app;
   + if first time onboarding, complete onboarding as described above.
 2. Navigate to login page;
@@ -103,7 +103,7 @@ Scenario 1: Display Github Stats (Pass/Fail)
 As an efficiency seeking user, I want to be able to display multiple
 widgets on my device at once
 
-Scenario 1: Display Multiple Widgets (Pass/Fail)
+Scenario 1: Display Multiple Widgets (Pass)
 1. start memori app;
   + if first time onboarding, complete onboarding as described above.
 2. Navigate to device page;
@@ -116,7 +116,7 @@ Scenario 1: Display Multiple Widgets (Pass/Fail)
 == US 2.3
 As a student, I would want to see bus information on the Memori device.
 
-Scenario 1: Display Bus Routs/Time (Pass/Fail)
+Scenario 1: Display Bus Routs/Time (Fail)
 1. start memori app;
   + if first time onboarding, complete onboarding as described above.
   + user grant permission to access location
@@ -125,7 +125,7 @@ Scenario 1: Display Bus Routs/Time (Pass/Fail)
 == US 3.1
 As a user, I want to be able to choose the widgets that are displayed on my device.
 
-Scenario 1: Choosing Widget (Pass/Fail)
+Scenario 1: Choosing Widget (Pass)
 1. start memori app
   + if first time onboarding, complete onboarding as described above.
 2. Navigate to device page;
@@ -137,7 +137,7 @@ Scenario 1: Choosing Widget (Pass/Fail)
 
 
 == US 3.3
-As a user, I want my widgets to display accurate updated information.
+As a user, I want my widgets to display accurate updated information. (Pass)
 
 1. Refer to Scenario 2.2 to display the github widget
 2. on the account you logged in with create a new commit to the repository selected.
@@ -146,14 +146,14 @@ As a user, I want my widgets to display accurate updated information.
 
 == US 4.1
 As a device owner, I want to be able to have a battery enabled device
-that I can charge with USB-C.
+that I can charge with USB-C. (Pass)
 
 + look at device, verify that it has a usb-c port on the side.
 + plug it in and bear witness to the little red led lighting up on the main board
 + SUCCESS
 
 == US 4.2
-As a user, I need the device to stay powered for at least a day.
+As a user, I need the device to stay powered for at least a day. (Pass)
 
 + Run the device for a day without charging.
 + Verify that the app can still connect to it after a day

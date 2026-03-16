@@ -8,9 +8,9 @@
       columns: (1fr, 1fr),
       rows: (auto, auto, auto),
       gutter: 3pt,
-      [*Sprint 3 Plan*], [],
-      [Product / Team: Memori], [2/24/26],
-      [Revision 0.1.0], [Revision Date: 2/25/26],
+      [*Sprint 4 Plan*], [],
+      [Product / Team: Memori], [3/10/26],
+      [Revision 0.1.0], [Revision Date: 3/10/26],
     )
     #line(length: 100%, stroke: 0.5pt)
   ],
@@ -62,7 +62,7 @@ hardware-software product.
   - Tasks
     - Implement update function for each widget and put that in the app (2 hours) (Preston)
   - Total Time: 2 Hours
-  
+
 + *User Story 4.1* - As a user, I want to be able to carry my device on a keychain, so I can easily access it.
   - Estimated Points: 34
   - Tasks
@@ -85,10 +85,10 @@ hardware-software product.
     - Total Time: 1 Hours
 
 + *User Story 2.2* {OVERFLOW} - As a developer, I would want to see my github statistics on the Memori device.
-    - Estimated Points: 5
-    - Tasks
-      - github widget data logic (3 hour) (Cainan)
-    - Total Time: 3 Hours
+  - Estimated Points: 5
+  - Tasks
+    - github widget data logic (3 hour) (Cainan)
+  - Total Time: 3 Hours
 
 = Team
 

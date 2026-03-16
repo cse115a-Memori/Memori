@@ -8,9 +8,9 @@
       columns: (1fr, 1fr),
       rows: (auto, auto, auto),
       gutter: 3pt,
-      [*Sprint 2 Report*], [],
-      [Product / Team: Memori], [2/24/26],
-      [Revision 0.1.0], [Revision Date: 2/25/26],
+      [*Sprint 4 Report*], [],
+      [Product / Team: Memori], [3/10/26],
+      [Revision 0.1.0], [Revision Date: 3/10/26],
     )
     #line(length: 100%, stroke: 0.5pt)
   ],
@@ -20,7 +20,7 @@
 #set par(justify: true)
 
 #align(center)[
-  #text(size: 18pt, weight: "bold")[Sprint 3 Report]
+  #text(size: 18pt, weight: "bold")[Sprint 4 Report]
   #v(0.5em)
   #text(size: 14pt)[Memori]
   #v(1em)
@@ -85,10 +85,10 @@ Split up larger user stories into smaller, more manageable tasks.
     - Total Time: 1 Hours
 
 + *User Story 2.2* {OVERFLOW} - As a developer, I would want to see my github statistics on the Memori device.
-    - Estimated Points: 5
-    - Tasks
-      - github widget data logic (3 hour) (Cainan)
-    - Total Time: 3 Hours
+  - Estimated Points: 5
+  - Tasks
+    - github widget data logic (3 hour) (Cainan)
+  - Total Time: 3 Hours
 
 == Incomplete
 + *User Story 3.2* - As a device owner, I want my device to be portable.

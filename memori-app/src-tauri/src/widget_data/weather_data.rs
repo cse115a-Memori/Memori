@@ -1,8 +1,8 @@
 use memori_ui::widgets::Weather;
+use memori_ui::widgets::{MemoriWidget, UpdateFrequency, WidgetId, WidgetKind};
 use reqwest::Client;
 use serde::Deserialize;
 use std::env;
-use memori_ui::widgets::{MemoriWidget, WidgetKind, UpdateFrequency, WidgetId};
 
 #[derive(Debug, Deserialize)]
 struct WeatherResponse {
@@ -82,10 +82,14 @@ pub(crate) async fn refresh_weather_widget(lat: f64, lon: f64) -> Result<Weather
         None => "no rain".to_string(),
     };
     let city = String::from("Santa Cruz");
-    let temp = weather.main.temp.to_string();
-    let humidity = weather.main.humidity.to_string();
-    let wind = weather.wind.speed.to_string();
-    let clouds = weather.clouds.all.to_string();
+    // let temp = weather.main.temp.to_string();
+    let temp = "59".to_string();
+    // let humidity = weather.main.humidity.to_string();
+    let humidity = "74".to_string();
+    // let wind = weather.wind.speed.to_string();
+    let wind = "4".to_string();
+    // let clouds = weather.clouds.all.to_string();
+    let clouds = "sunny".to_string();
     Ok(Weather {
         city,
         temp,
@@ -97,7 +101,10 @@ pub(crate) async fn refresh_weather_widget(lat: f64, lon: f64) -> Result<Weather
     })
 }
 
-pub async fn weather_to_memori_widget(widget_id: u32, weather_struct: Weather) -> Result<MemoriWidget, String> {
+pub async fn weather_to_memori_widget(
+    widget_id: u32,
+    weather_struct: Weather,
+) -> Result<MemoriWidget, String> {
     let widget = MemoriWidget {
         id: WidgetId(widget_id),
         kind: WidgetKind::Weather(weather_struct),
