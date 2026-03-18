@@ -12,17 +12,18 @@ export function syncConnectionState() {
 }
 
 export function retryConnection() {
-  if (prefsState.lastKnownDeviceId === '') {
+  if (prefsState.lastKnownDeviceId === '' || prefsState.lastKnownDeviceId === null) {
     console.log("Could not find device code for retryConnection")
     return
   }
   
-  return connectDevice('RealDevice', connState.deviceCode)
+  return connectDevice('RealDevice', prefsState.lastKnownDeviceId)
 }
 
 export function connectDevice(mode: DeviceMode, code: string) {
-	return tryCmd(commands.connectDevice(mode, code)).map(() => {
-		connState.isConnected = true
+	return tryCmd(commands.connectDevice(mode, code, prefsState.lastKnownBleAddress)).map((address) => {
+    connState.isConnected = true
+    prefsState.lastKnownBleAddress = address
 		return connState.isConnected
 	})
 }

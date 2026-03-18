@@ -9,6 +9,7 @@ const initialPrefsState: PrefsState = {
 	lastKnownLocation: null,
 	onboarded: false,
 	lastKnownDeviceId: null,
+	lastKnownBleAddress: null,
 	systemOptions: getSystemOptions(),
 	name: '',
 }

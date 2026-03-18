@@ -11,7 +11,7 @@ use transport::HostTransport;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let code = 2479;
-    let (mut transport, (_rx, _tx)) = HostBLETransport::connect(&code.to_string())
+    let (mut transport, address, (_rx, _tx)) = HostBLETransport::connect(&code.to_string(), None)
         .await
         .unwrap_or_else(|e| {
             eprintln!("Fatal: failed to connect to BLE transport: {e:?}");

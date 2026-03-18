@@ -8,6 +8,7 @@ export type PrefsState = {
 	lastKnownLocation: Position | null
 	onboarded: boolean
 	lastKnownDeviceId: string | null
+	lastKnownBleAddress: string | null
 	systemOptions: SystemOptions
 	name: string
 }
