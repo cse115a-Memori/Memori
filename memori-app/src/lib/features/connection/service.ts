@@ -1,12 +1,23 @@
 import { commands, type DeviceMode, tryCmd } from '@/tauri'
 
 import { connState } from './store.svelte'
+import { prefsState } from '@/features/prefs/store'
+
 
 export function syncConnectionState() {
 	return tryCmd(commands.isConnected()).map(isConnected => {
 		connState.isConnected = isConnected
 		return isConnected
 	})
+}
+
+export function retryConnection() {
+  if (prefsState.lastKnownDeviceId === '') {
+    console.log("Could not find device code for retryConnection")
+    return
+  }
+  
+  return connectDevice('RealDevice', connState.deviceCode)
 }
 
 export function connectDevice(mode: DeviceMode, code: string) {

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation'
   import { Button } from '@/components/ui/button'
-  import { connState, syncConnectionState } from '@/features/connection'
+  import { connState, retryConnection } from '@/features/connection'
   import { prefsState } from '@/features/prefs/store'
   import { resetWidgets } from '@/features/widgets/widgets-store'
 
@@ -30,8 +30,8 @@
 
   <section class="grid gap-3 sm:grid-cols-2">
     <Button variant="outline" onclick={resetOnboarding}>Reset Onboarding</Button>
-    <Button variant="outline" onclick={syncConnectionState}>
-      Refresh Connection
+    <Button variant="outline" onclick={retryConnection} disabled={connState.isConnected}>
+      Retry Connection
     </Button>
     <Button variant="outline" onclick={() => (connState.deviceCode = '')}>
       Reset DeviceId

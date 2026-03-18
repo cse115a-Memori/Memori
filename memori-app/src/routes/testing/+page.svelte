@@ -1,26 +1,6 @@
 <script lang="ts">
 </script>
 
-<div class="mb-4 flex flex-wrap items-center gap-2">
-	{@render navLinks('/', 'Home')}
-	{@render navLinks('/device', 'Device')}
-	<!-- {@render navLinks('/location', 'Location')} -->
-	{@render navLinks('/onboarding', 'Onboarding')}
-	{@render navLinks('/testing', 'Testing')}
-	<Button variant="outline" class="ml-auto" onclick={resetOnboarding}>
-		Reset Onboarding
-	</Button>
-	<Button variant="outline" class="ml-auto" onclick={syncConnectionState}>
-		Check Connection {connState.isConnected ? "Connected" : "Disconnected"}
-	</Button>
-	<Button variant="outline" class="ml-auto" onclick={() => connState.deviceCode = ""}>
-		Reset DeviceId
-	</Button>
-	<Button variant="outline" class="ml-auto" onclick={resetWidgets}>
-		Reset Widgets
-	</Button>
-</div>
-
 <!-- <script lang="ts">
   import { onMount } from 'svelte'
   import { getUser, login, logout } from '@/features/auth/service'

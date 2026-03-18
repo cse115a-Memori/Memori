@@ -107,6 +107,28 @@
   })
 
 </script>
+{#snippet navLinks(item: PrimaryNavItem)}
+  <Button
+    variant={isNavActive(item) ? 'secondary' : 'ghost'}
+    onclick={() => navigateTo(item.href)}
+    class="hidden gap-2 md:inline-flex"
+  >
+    <item.icon class="size-4" />
+    {item.label}
+  </Button>
+{/snippet}
+
+{#snippet mobileNavLink(item: PrimaryNavItem)}
+  <Button
+    variant={isNavActive(item) ? 'secondary' : 'ghost'}
+    onclick={() => navigateTo(item.href)}
+    class="h-14 flex-col gap-1 rounded-2xl px-2 text-[0.7rem]"
+    aria-current={isNavActive(item) ? 'page' : undefined}
+  >
+    <item.icon class="size-4" />
+    <span>{item.label}</span>
+  </Button>
+{/snippet}
 
 {#if isReady}
   <div class="h-dvh">
@@ -138,26 +160,3 @@
     <LoaderCircle class="animate-spin" />
   </div>
 {/if}
-
-{#snippet navLinks(item: PrimaryNavItem)}
-  <Button
-    variant={isNavActive(item) ? 'secondary' : 'ghost'}
-    onclick={() => navigateTo(item.href)}
-    class="hidden gap-2 md:inline-flex"
-  >
-    <item.icon class="size-4" />
-    {item.label}
-  </Button>
-{/snippet}
-
-{#snippet mobileNavLink(item: PrimaryNavItem)}
-  <Button
-    variant={isNavActive(item) ? 'secondary' : 'ghost'}
-    onclick={() => navigateTo(item.href)}
-    class="h-14 flex-col gap-1 rounded-2xl px-2 text-[0.7rem]"
-    aria-current={isNavActive(item) ? 'page' : undefined}
-  >
-    <item.icon class="size-4" />
-    <span>{item.label}</span>
-  </Button>
-{/snippet}

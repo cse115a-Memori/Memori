@@ -1,4 +1,4 @@
-<script lang="ts">
+<!--<script lang="ts">
 	import { onMount } from 'svelte'
 
 	import WidgetEditor from '@/components/layout/WidgetEditor.svelte'
@@ -283,4 +283,4 @@
 	</section>
 {:else}
 	<WidgetEditor />
-{/if}
+{/if}-->

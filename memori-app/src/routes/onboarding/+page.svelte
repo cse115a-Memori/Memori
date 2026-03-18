@@ -25,7 +25,6 @@
 
 	// INTEGRATION
 
-	$inspect(authState.usersByProvider.twitch)
 	let isLoggedInGithub = $derived(authState.usersByProvider.github !== undefined)
 	let isLoggedInTwitch = $derived(authState.usersByProvider.twitch !== undefined)
 	let isLocationEnabled = $derived(prefsState.locationStatus === 'granted')
@@ -105,6 +104,7 @@
 
 				// save lastKnownDeviceId
 				connState.deviceCode = pairingCode
+				prefsState.lastKnownDeviceId = pairingCode
 
 				next()
 			},
