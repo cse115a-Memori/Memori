@@ -82,14 +82,10 @@ pub(crate) async fn refresh_weather_widget(lat: f64, lon: f64) -> Result<Weather
         None => "no rain".to_string(),
     };
     let city = String::from("Santa Cruz");
-    // let temp = weather.main.temp.to_string();
-    let temp = "59".to_string();
-    // let humidity = weather.main.humidity.to_string();
-    let humidity = "74".to_string();
-    // let wind = weather.wind.speed.to_string();
-    let wind = "4".to_string();
-    // let clouds = weather.clouds.all.to_string();
-    let clouds = "sunny".to_string();
+    let temp = weather.main.temp.to_string();
+    let humidity = weather.main.humidity.to_string();
+    let wind = weather.wind.speed.to_string();
+    let clouds = weather.clouds.all.to_string();
     Ok(Weather {
         city,
         temp,
