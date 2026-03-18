@@ -26,7 +26,10 @@ pub async fn connect_device(
         DeviceMode::RealDevice => {
             let (conn, address, (dev_req_rx, host_resp_tx)) = HostBLETransport::connect(code, known_address.as_deref())
                 .await
-                .map_err(|e| format!("Failed to connect to device: {e}"))?;
+                .map_err(|e| {
+                    eprintln!("[ble-host] failed to connect: {e}");
+                    format!("Failed to connect to device: {e}")
+                })?;
             
             tokio::spawn(async move {
                 ble_request_handler(memori, dev_req_rx, host_resp_tx, &app).await;

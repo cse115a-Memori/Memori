@@ -85,29 +85,37 @@ pub struct HostBLETransport {
     command_handle: JoinHandle<()>,
 }
 
-async fn find_or_reconnect(central: &Adapter, code: &str, known_address: Option<&str>) -> Option<Peripheral> {
-    if let Some(address) = known_address {
-        eprintln!("[ble-host] trying direct connect to {address}");
-        
-        // do a brief scan to populate cache first
-        central.start_scan(ScanFilter::default()).await.ok()?;
-        tokio::time::sleep(Duration::from_secs(3)).await;
-        central.stop_scan().await.ok();
-        
-        let cached = central
-            .peripherals()
-            .await
-            .ok()
-            .and_then(|ps| ps.into_iter().find(|p| p.address().to_string() == address));
+async fn find_or_reconnect(central: &Adapter, code: &str, known_id: Option<&str>) -> Option<Peripheral> {
+    eprintln!("[ble-host] trying direct connect to {}", known_id.unwrap_or(code));
+    
+    // do a brief scan to populate cache first
+    central.start_scan(ScanFilter::default()).await.ok()?;
+    tokio::time::sleep(Duration::from_secs(3)).await;
+    central.stop_scan().await.ok();
+    
+    let peripherals = central.peripherals().await.ok()?;
+    eprintln!("[ble-host] found {} peripherals in cache", peripherals.len());
 
-        if let Some(p) = cached {
-            eprintln!("[ble-host] found in cache, skipping scan");
-            return Some(p);
+    for p in &peripherals {
+        // Try ID match first (fast path on reconnect)
+        if let Some(id) = known_id {
+            if p.id().to_string() == id || p.address().to_string() == id {
+                eprintln!("[ble-host] found device by id in cache: {:?}", p.id());
+                return Some(p.clone());
+            }
         }
 
-        eprintln!("[ble-host] not in cache, falling back to scan");
+        // Fall back to name matching
+        if let Some(props) = p.properties().await.ok().flatten() {
+            let name = props.local_name.as_deref().unwrap_or("");
+            if name.contains(code) {
+                eprintln!("[ble-host] found device by name in cache: {:?}", p.id());
+                return Some(p.clone());
+            }
+        }
     }
 
+    eprintln!("[ble-host] no device found in cache, falling back to scan");
     find_memori(central, code).await
 }
 
@@ -138,6 +146,7 @@ impl HostBLETransport {
          
         // only stop scan if we had to scan
         if known_address.is_none() {
+            eprintln!("[ble-host] stopping scan because we had to scan");
             central.stop_scan().await?;
             tokio::time::sleep(Duration::from_millis(500)).await;
         }
@@ -202,8 +211,14 @@ impl HostBLETransport {
             host_response_rx,
         ));
         
-        let address = peripheral.address().to_string();
-
+        let address = {
+            let addr = peripheral.address().to_string();
+            if addr == "00:00:00:00:00:00" {
+                peripheral.id().to_string()
+            } else {
+                addr
+            }
+        };
         Ok((
             Self {
                 outbound: out_tx,

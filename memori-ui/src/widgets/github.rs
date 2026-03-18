@@ -64,8 +64,8 @@ fn build_commit_graph(commits: &[u32; 7], today_weekday: usize) -> BarChart<'sta
             let label = days[(today_weekday + i + 1) % 7];
             Bar::default()
                 .value(count as u64)
+                .text_value(String::new())
                 .label(Line::from(label))
-                .value_style(Style::default().fg(Color::White))
                 .style(Style::default().fg(Color::DarkGray))
         })
         .collect();
