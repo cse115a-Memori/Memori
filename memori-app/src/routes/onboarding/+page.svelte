@@ -121,7 +121,7 @@
 
 	function finishOnboarding() {
 		prefsState.onboarded = true
-		goto('/device')
+		goto('/editor')
 	}
 </script>
 
