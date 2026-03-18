@@ -53,6 +53,14 @@ impl Bus {
 
         for i in 0..min(num_routes, bars.len()) {
             let bar = vec![bars[i].clone()];
+            
+            let bar_width = min((bars[i].1 as u16) * 3, area.width);
+            let row_y = area.y + 2 * ((i + 1) as u16);
+    
+            if row_y >= area.y + area.height {
+                break;
+            }
+            
             let bar_chart = BarChart::default()
                 .block(Block::default())
                 .data(&bar)
@@ -60,12 +68,15 @@ impl Bus {
                 .bar_gap(0)
                 .direction(Direction::Horizontal);
             bar_chart.render(
-                Rect::new(1, 2 * ((i + 1) as u16), (bars[i].1 as u16) * 3, 1),
+                Rect::new(area.x, row_y, bar_width, 1),
                 buf,
             );
-            let t = self.predictions[i].1.clone();
-            Text::from(format!(" {}", t))
-                .render(Rect::new(1, (2 * ((i + 1) as u16)) + 1, 1, 1), buf);
+            let label_y = row_y + 1;
+            if label_y < area.y + area.height {
+                let t = self.predictions[i].1.clone();
+                Text::from(format!(" {}", t))
+                .render(Rect::new(area.x, label_y, area.width, 1), buf);
+            }
         }
     }
 }
@@ -79,7 +90,6 @@ impl Default for Bus {
     }
 }
 
-// impl the function like this
 impl Widget for &Bus {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let t = truncate(self.stop.1.as_str(), (area.width - 2) as usize);
