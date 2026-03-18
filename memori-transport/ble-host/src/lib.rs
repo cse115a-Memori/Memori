@@ -1,7 +1,7 @@
 use btleplug::api::Characteristic;
 use btleplug::api::{
     Central, Manager as _, Peripheral as _, ScanFilter, ValueNotification, WriteType,
-    bleuuid::uuid_from_u16,
+    bleuuid::uuid_from_u16, CentralEvent
 };
 use btleplug::platform::{Adapter, Manager, Peripheral};
 use futures::stream::StreamExt;
@@ -37,28 +37,24 @@ struct OutboundPacket {
 
 async fn find_memori(central: &Adapter, code: &str) -> Option<Peripheral> {
     let looking_for = format!("memori-{}", code.trim());
-    println!("{:#?}", looking_for);
-
-    for p in central.peripherals().await.ok()?.into_iter() {
-        let has_memori = p
-            .properties()
-            .await
-            .ok()
-            .flatten()
-            .map(|props| {
-                props
-                    .local_name
-                    .iter()
-                    .any(|name| name.contains(&looking_for))
-            })
-            .unwrap_or(false);
-
-        if has_memori {
-            return Some(p);
+    let mut events = central.events().await.ok()?;
+    central.start_scan(ScanFilter::default()).await.ok()?;
+   
+    tokio::time::timeout(Duration::from_secs(30), async {
+    loop {
+        if let Some(CentralEvent::DeviceDiscovered(id)) = events.next().await {
+                let Ok(peripheral) = central.peripheral(&id).await else { continue };
+                let Ok(Some(props)) = peripheral.properties().await else { continue };
+                //eprintln!("[ble-host] discovered: {:?}", props.local_name);
+                if props.local_name.iter().any(|n| n.contains(&looking_for)) {
+                    return Some(peripheral);
+                }
+            }
         }
-    }
-    println!("{:#?} cooked", looking_for);
-    None
+    })
+    .await
+    .ok()
+    .flatten()
 }
 
 async fn send_packet(
@@ -72,7 +68,10 @@ async fn send_packet(
     peripheral
         .write(char, encoded, WriteType::WithoutResponse)
         .await
-        .map_err(|_| TransError::ProtocolIssue)?;
+        .map_err(|e| {
+            eprintln!("[ble-host] send_packet error: {:?}", e);
+            TransError::ProtocolIssue
+        })?;
 
     Ok(())
 }
@@ -80,17 +79,45 @@ async fn send_packet(
 pub struct HostBLETransport {
     outbound: mpsc::Sender<OutboundPacket>,
     battery_char: Characteristic,
-    peripheral: Peripheral,
+    pub peripheral: Peripheral,
     read_handle: JoinHandle<()>,
     write_handle: JoinHandle<()>,
     command_handle: JoinHandle<()>,
 }
 
+async fn find_or_reconnect(central: &Adapter, code: &str, known_address: Option<&str>) -> Option<Peripheral> {
+    if let Some(address) = known_address {
+        eprintln!("[ble-host] trying direct connect to {address}");
+        
+        // do a brief scan to populate cache first
+        central.start_scan(ScanFilter::default()).await.ok()?;
+        tokio::time::sleep(Duration::from_secs(3)).await;
+        central.stop_scan().await.ok();
+        
+        let cached = central
+            .peripherals()
+            .await
+            .ok()
+            .and_then(|ps| ps.into_iter().find(|p| p.address().to_string() == address));
+
+        if let Some(p) = cached {
+            eprintln!("[ble-host] found in cache, skipping scan");
+            return Some(p);
+        }
+
+        eprintln!("[ble-host] not in cache, falling back to scan");
+    }
+
+    find_memori(central, code).await
+}
+
 impl HostBLETransport {
     pub async fn connect(
         code: &str,
+        known_address: Option<&str>,
     ) -> anyhow::Result<(
         Self,
+        String,
         (
             mpsc::UnboundedReceiver<DeviceBLECommand>,
             mpsc::UnboundedSender<HostBLEResponse>,
@@ -104,17 +131,30 @@ impl HostBLETransport {
             .next()
             .ok_or_else(|| anyhow::anyhow!("No BLE adapters found"))?;
 
-        central.start_scan(ScanFilter::default()).await?;
-        sleep(Duration::from_secs(6)).await;
-
-        let peripheral = find_memori(&central, code)
+        let peripheral = find_or_reconnect(&central, code, known_address)
             .await
             .ok_or_else(|| anyhow::anyhow!("Memori device not found"))?;
-
+        eprintln!("[ble-host] found peripheral, attempting connect...");
+         
+        // only stop scan if we had to scan
+        if known_address.is_none() {
+            central.stop_scan().await?;
+            tokio::time::sleep(Duration::from_millis(500)).await;
+        }
+        
         peripheral.connect().await?;
+        eprintln!("[ble-host] connected, discovering services...");
+        
+        eprintln!("[ble-host] peripheral id: {:?}", peripheral.id());
+        eprintln!("[ble-host] peripheral address: {:?}", peripheral.address());
+        
+        
         peripheral.discover_services().await?;
+        eprintln!("[ble-host] services discovered");
 
         let chars = peripheral.characteristics();
+        eprintln!("[ble-host] characteristics: {:?}", chars);
+        
         let rx_char = chars
             .iter()
             .find(|c| c.uuid == NUS_RX_CHAR_UUID)
@@ -161,6 +201,8 @@ impl HostBLETransport {
             device_command_tx,
             host_response_rx,
         ));
+        
+        let address = peripheral.address().to_string();
 
         Ok((
             Self {
@@ -171,6 +213,7 @@ impl HostBLETransport {
                 write_handle,
                 command_handle,
             },
+            address,
             (device_command_rx, host_response_tx),
         ))
     }

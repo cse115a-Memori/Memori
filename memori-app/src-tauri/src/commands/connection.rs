@@ -13,7 +13,8 @@ pub async fn connect_device(
     state: State<'_, AppState>,
     mode: DeviceMode,
     code: &str,
-) -> Result<(), String> {
+    known_address: Option<String>,
+) -> Result<String, String> {
     let mut guard = state.conn.lock().await;
     let memori = state.memori.clone();
 
@@ -23,10 +24,10 @@ pub async fn connect_device(
 
     match mode {
         DeviceMode::RealDevice => {
-            let (conn, (dev_req_rx, host_resp_tx)) = HostBLETransport::connect(code)
+            let (conn, address, (dev_req_rx, host_resp_tx)) = HostBLETransport::connect(code, known_address.as_deref())
                 .await
                 .map_err(|e| format!("Failed to connect to device: {e}"))?;
-
+            
             tokio::spawn(async move {
                 ble_request_handler(memori, dev_req_rx, host_resp_tx, &app).await;
             });
@@ -34,7 +35,7 @@ pub async fn connect_device(
             *guard = DeviceConnection::RealDevice(conn);
             println!("Connected to real device over Bluetooth");
 
-            Ok(())
+            Ok(address)
         }
         DeviceMode::Simulator => {
             let transport = HostTcpTransport::default();
@@ -50,7 +51,7 @@ pub async fn connect_device(
             });
 
             println!("Connected to simulator over TCP");
-            Ok(())
+            Ok("".to_string())
         }
     }
 }

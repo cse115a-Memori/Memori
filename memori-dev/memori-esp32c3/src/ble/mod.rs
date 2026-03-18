@@ -224,16 +224,11 @@ async fn advertise<'values, 'server, C: Controller>(
     peripheral: &mut Peripheral<'values, C, DefaultPacketPool>,
     server: &'server Server<'values>,
 ) -> Result<GattConnection<'values, 'server, DefaultPacketPool>, BleHostError<C::Error>> {
-    let mut scan_data = [0; 31];
-    let scan_len = AdStructure::encode_slice(
-        &[AdStructure::CompleteLocalName(name.as_bytes())],
-        &mut scan_data[..],
-    )?;
-
     let mut advertiser_data = [0; 31];
     let len = AdStructure::encode_slice(
         &[
             AdStructure::Flags(LE_GENERAL_DISCOVERABLE | BR_EDR_NOT_SUPPORTED),
+            AdStructure::CompleteLocalName(name.as_bytes()),
             AdStructure::ServiceUuids128(&[NUS_SERVICE_UUID.to_le_bytes()]),
         ],
         &mut advertiser_data[..],
@@ -243,7 +238,7 @@ async fn advertise<'values, 'server, C: Controller>(
             &Default::default(),
             Advertisement::ConnectableScannableUndirected {
                 adv_data: &advertiser_data[..len],
-                scan_data: &scan_data[0..scan_len],
+                scan_data: &[],
             },
         )
         .await?;

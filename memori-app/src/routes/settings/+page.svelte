@@ -9,6 +9,22 @@
     prefsState.onboarded = false
     await goto('/', { replaceState: true })
   }
+  
+let isRetrying = $state(false)
+let dots = $state('')
+
+async function handleRetry() {
+  isRetrying = true
+  const interval = setInterval(() => {
+    dots = dots.length >= 3 ? '' : dots + '.'
+  }, 400)
+  await retryConnection()?.match(
+    () => console.log("Connection successful"),
+    (err) => console.log("Connection failed", err)
+  )
+  clearInterval(interval)
+  isRetrying = false
+}
 </script>
 
 <main class="mx-auto space-y-6 py-8">
@@ -30,8 +46,8 @@
 
   <section class="grid gap-3 sm:grid-cols-2">
     <Button variant="outline" onclick={resetOnboarding}>Reset Onboarding</Button>
-    <Button variant="outline" onclick={retryConnection} disabled={connState.isConnected}>
-      Retry Connection
+    <Button variant="outline" onclick={handleRetry} disabled={connState.isConnected || isRetrying}>
+      {isRetrying ? `Retrying${dots}` : 'Retry Connection'}
     </Button>
     <Button variant="outline" onclick={() => (connState.deviceCode = '')}>
       Reset DeviceId

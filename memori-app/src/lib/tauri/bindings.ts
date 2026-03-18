@@ -5,9 +5,9 @@
 
 
 export const commands = {
-async connectDevice(mode: DeviceMode, code: string) : Promise<Result<null, string>> {
+async connectDevice(mode: DeviceMode, code: string, knownAddress: string | null) : Promise<Result<string, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("connect_device", { mode, code }) };
+    return { status: "ok", data: await TAURI_INVOKE("connect_device", { mode, code, knownAddress }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
