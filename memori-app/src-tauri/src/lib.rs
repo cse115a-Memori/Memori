@@ -13,8 +13,9 @@ use commands::{
 use memori_ui::{layout::MemoriLayout, widgets::MemoriWidget};
 use oauth::{login_with_provider, start_oauth_server};
 use specta_typescript::{BigIntExportBehavior, Typescript};
-use state::AppState;
+use state::{AppState, DeviceConnection};
 use tauri_specta::{collect_commands, Builder};
+use tauri::Manager;
 
 // use serde::{Deserialize, Serialize};
 // use specta::Type;
@@ -71,6 +72,20 @@ pub fn run() {
             // });
 
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::Destroyed = event {
+                let state = window.state::<AppState>();
+                tauri::async_runtime::block_on(async {
+                    let mut guard = state.conn.lock().await;
+                    match std::mem::replace(&mut *guard, DeviceConnection::Disconnected) {
+                        DeviceConnection::RealDevice(conn) => {
+                            conn.disconnect().await;
+                        }
+                        _ => {}
+                    }
+                });
+            }
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
