@@ -1,9 +1,9 @@
 use memori_ui::widgets::Bus;
+use memori_ui::widgets::{MemoriWidget, UpdateFrequency, WidgetId, WidgetKind};
 use reqwest::Client;
 use serde::Deserialize;
 use serde_json::Value;
 use std::env;
-use memori_ui::widgets::{MemoriWidget, WidgetKind, WidgetId, UpdateFrequency};
 
 const DEFAULT_BUS_PREDICTION: (&str, &str, u16) = ("19", "Donwtown to Watsonville", 7);
 const DEFAULT_BUS_STOP: (&str, &str) = ("High and Front", "1230");
@@ -200,11 +200,22 @@ pub async fn send_bustime(
 */
 
 pub async fn refresh_bus_widget() -> Result<Bus, String> {
-    let key = "BUS_API_KEY";
-    let key = match env::var(key) {
-        Ok(data) => data,
-        Err(error) => return Err(format!("failed to get bus api key: {error}")),
-    };
+    println!("Refresh bus widget called");
+    let env = include_bytes!("../../.env");
+    let env_as_string = String::from_utf8_lossy(env);
+    let mut api_key = String::new();
+    for line in env_as_string.lines() {
+        if let Some((key, value)) = line.split_once('=') {
+            if key.trim() == "BUS_API_KEY" {
+                api_key = value.trim().to_string();
+                break;
+            }
+        }
+    }
+    if api_key.is_empty() {
+        panic!("BUS_API_KEY not found");
+    }
+    let key = api_key.as_str();
     let lat: f64 = 37.000074;
     let lon: f64 = -122.062569;
     let stops = fetch_all_ucsc_stops(&key).await?;
@@ -214,14 +225,19 @@ pub async fn refresh_bus_widget() -> Result<Bus, String> {
     };
     let predictions_response = fetch_predictions(&key, stop).await?;
     let mut predictions = Vec::new();
+    let mut i = 0;
     for prediction in predictions_response {
+        if i == 3 {
+            break;
+        }
+        i += 1;
         let parsed: u16 = match prediction.prdctdn.parse::<u16>() {
             Ok(p) => p,
             Err(_) => return Err("parsed overflows u16".to_string()),
         };
         predictions.push((prediction.rt.clone(), prediction.rtdir.clone(), parsed));
     }
-    let stop = (stop.stpnm.clone(), stop.stpid.clone());
+    let stop = stop.stpnm.clone();
     Ok(Bus { stop, predictions })
 }
 
@@ -229,7 +245,7 @@ pub async fn bus_to_memori_widget(bus_id: u32, bus: Bus) -> Result<MemoriWidget,
     Ok(MemoriWidget {
         id: WidgetId(bus_id),
         kind: WidgetKind::Bus(bus),
-        remote_update_frequency: UpdateFrequency::Seconds(5),
+        remote_update_frequency: UpdateFrequency::Minutes(5),
         local_update_frequency: UpdateFrequency::Never,
     })
 }

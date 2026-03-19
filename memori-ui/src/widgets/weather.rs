@@ -1,9 +1,4 @@
-use alloc::{
-    format,
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
+use alloc::{format, string::String, vec, vec::Vec};
 use log::info;
 use ratatui::{
     layout::{Alignment, Rect},
@@ -82,16 +77,16 @@ impl Widget for &Weather {
             .border_style(ratatui::style::Style::default().fg(ratatui::style::Color::White));
         weather_block.clone().render(area, buf);
         let outer_inner = weather_block.inner(area);
+        let icon_lines = string_to_icon(self.description.as_str()).to_ascii();
+        let icon_text =
+            Text::from(icon_lines.into_iter().map(Line::from).collect::<Vec<_>>()).centered();
+        let icon = Paragraph::new(icon_text)
+            .alignment(Alignment::Center)
+            .wrap(Wrap { trim: false });
+
         match (outer_inner.width, outer_inner.height) {
             (w, h) if w < 30 && h < 6 => {
                 // small
-                let icon_lines = WeatherIcon::SunSmall.to_ascii();
-                let icon_text =
-                    Text::from(icon_lines.into_iter().map(Line::from).collect::<Vec<_>>())
-                        .centered();
-                let icon = Paragraph::new(icon_text)
-                    .alignment(Alignment::Center)
-                    .wrap(Wrap { trim: false });
                 let temp = Paragraph::new(vec![temp])
                     .alignment(Alignment::Center)
                     .wrap(Wrap { trim: false });
@@ -100,13 +95,6 @@ impl Widget for &Weather {
             }
             (w, h) if w < 30 => {
                 // tall
-                let icon_lines = WeatherIcon::SunSmall.to_ascii();
-                let icon_text =
-                    Text::from(icon_lines.into_iter().map(Line::from).collect::<Vec<_>>())
-                        .centered();
-                let icon = Paragraph::new(icon_text)
-                    .alignment(Alignment::Center)
-                    .wrap(Wrap { trim: false });
                 let temp = Paragraph::new(vec![temp])
                     .alignment(Alignment::Center)
                     .wrap(Wrap { trim: true });
@@ -115,13 +103,6 @@ impl Widget for &Weather {
             }
             (w, h) if h < 6 => {
                 // wide
-                let icon_lines = WeatherIcon::SunSmall.to_ascii();
-                let icon_text =
-                    Text::from(icon_lines.into_iter().map(Line::from).collect::<Vec<_>>())
-                        .centered();
-                let icon = Paragraph::new(icon_text)
-                    .alignment(Alignment::Center)
-                    .wrap(Wrap { trim: false });
                 let temp = Paragraph::new(vec![temp])
                     .alignment(Alignment::Center)
                     .wrap(Wrap { trim: true });
@@ -130,13 +111,6 @@ impl Widget for &Weather {
             }
             (w, h) => {
                 // full
-                let icon_lines = WeatherIcon::Sun.to_ascii();
-                let icon_text =
-                    Text::from(icon_lines.into_iter().map(Line::from).collect::<Vec<_>>())
-                        .centered();
-                let icon = Paragraph::new(icon_text)
-                    .alignment(Alignment::Center)
-                    .wrap(Wrap { trim: false });
                 let temp = Paragraph::new(vec![newline, temp, wind, rain, clouds, humidity])
                     .alignment(Alignment::Center)
                     .wrap(Wrap { trim: true });
@@ -150,9 +124,9 @@ impl Widget for &Weather {
 enum WeatherIcon {
     Sun,
     SunSmall,
-    // Cloudy,
-    // Rainy,
-    // Snowy,
+    Cloudy,
+    Rainy,
+    Snowy,
 }
 
 impl WeatherIcon {
@@ -166,8 +140,7 @@ impl WeatherIcon {
                 "   /   |   \\  ",
             ],
             WeatherIcon::SunSmall => vec![" \\ | / ", " - O - ", "/ | \\"],
-            // WeatherIcon::Cloudy => vec!["   .-.   ", " .-(  )-.", "(   _   )", " `-` `-` "],
-            /*
+            WeatherIcon::Cloudy => vec!["   .-.   ", " .-(  )-.", "(   _   )", " `-` `-` "],
             WeatherIcon::Rainy => vec![
                 "    .--.     ",
                 "  .-(    )-.  ",
@@ -181,7 +154,16 @@ impl WeatherIcon {
                 "  . `-^-`*    ",
                 "   * . * .    ",
             ],
-            */
         }
+    }
+}
+
+fn string_to_icon(str: &str) -> WeatherIcon {
+    match str {
+        "Rain" => WeatherIcon::Rainy,
+        "Clear" => WeatherIcon::SunSmall,
+        "Clouds" => WeatherIcon::Cloudy,
+        "Snow" => WeatherIcon::Snowy,
+        _ => WeatherIcon::Sun,
     }
 }
