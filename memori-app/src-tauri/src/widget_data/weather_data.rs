@@ -43,11 +43,22 @@ struct Rain {
 
 pub(crate) async fn refresh_weather_widget(lat: f64, lon: f64) -> Result<Weather, String> {
     println!("Refresh weather widget called");
-    let appid = "WEATHER_API_KEY";
-    let appid = match env::var(appid) {
-        Ok(key) => key,
-        Err(error) => return Err(format!("Weather api key missing: {error}")),
-    };
+    let env = include_bytes!("../../.env");
+    let env_as_string = String::from_utf8_lossy(env);
+    let mut api_key = String::new();
+    for line in env_as_string.lines() {
+        if let Some((key, value)) = line.split_once('=') {
+            if key.trim() == "WEATHER_API_KEY" {
+                api_key = value.trim().to_string();
+                break;
+            }
+        }
+    }
+    if api_key.is_empty() {
+        panic!("WEATHER_API_KEY not found");
+    }
+    let appid = api_key.as_str();
+    println!("appid: {}", appid);
     let url = format!("https://api.openweathermap.org/data/2.5/weather?appid={appid}&lat={lat}&lon={lon}&units=imperial");
     let response = Client::new()
         .get(url)
@@ -79,7 +90,7 @@ pub(crate) async fn refresh_weather_widget(lat: f64, lon: f64) -> Result<Weather
     };
     let rain: String = match weather.rain {
         Some(res) => res.mmph.to_string(),
-        None => "no rain".to_string(),
+        None => "0".to_string(),
     };
     let city = String::from("Santa Cruz");
     let temp = weather.main.temp.to_string();

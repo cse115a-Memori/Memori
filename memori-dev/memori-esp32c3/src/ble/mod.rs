@@ -61,6 +61,8 @@ struct BatteryService {
     status: bool,
 }
 
+const DEVICE_IDENTITY: [u8; 6] = *include_bytes!(concat!(env!("OUT_DIR"), "/device_identity.bin"));
+
 #[embassy_executor::task]
 pub async fn ble_task(
     radio: &'static esp_radio::Controller<'static>,
@@ -75,7 +77,8 @@ pub async fn ble_task(
     let ble_controller: ExternalController<BleConnector<'_>, 20> =
         ExternalController::<_, 20>::new(transport);
 
-    let address: Address = Address::random([0xff, 0x8f, 0x1a, 0x05, 0xe4, 0xff]);
+    // let address: Address = Address::random([0xff, 0x8f, 0x1a, 0x05, 0xe4, 0xff]);
+    let address: Address = Address::random(DEVICE_IDENTITY);
     info!("Our address = {:?}", address);
 
     let mut resources: HostResources<DefaultPacketPool, CONNECTIONS_MAX, L2CAP_CHANNELS_MAX> =
@@ -271,12 +274,10 @@ async fn send_packet<P: PacketPool>(
     let encoded = to_slice(&packet, &mut buffer).map_err(|_| TransError::SerializationFailure)?;
     info!("encoded packet info {encoded:?}");
 
-    tx.notify(conn, &buffer)
-        .await
-        .map_err(|e| {
-            error!("Internal error: {e:?}");
-            TransError::InternalError
-        })?;
+    tx.notify(conn, &buffer).await.map_err(|e| {
+        error!("Internal error: {e:?}");
+        TransError::InternalError
+    })?;
 
     Ok(())
 }

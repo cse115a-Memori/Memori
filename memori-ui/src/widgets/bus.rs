@@ -19,16 +19,13 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct Bus {
     // stop name and either id or km for second element
-    pub stop: (String, String),
+    pub stop: String,
     // route, name, time
     pub predictions: Vec<(String, String, u16)>,
 }
 
 impl Bus {
-    pub fn new(
-        stop: impl Into<(String, String)>,
-        prediction: impl Into<Vec<(String, String, u16)>>,
-    ) -> Self {
+    pub fn new(stop: impl Into<String>, prediction: impl Into<Vec<(String, String, u16)>>) -> Self {
         Self {
             stop: stop.into(),
             predictions: prediction.into(),
@@ -53,29 +50,26 @@ impl Bus {
 
         for i in 0..min(num_routes, bars.len()) {
             let bar = vec![bars[i].clone()];
-            
-            let bar_width = min((bars[i].1 as u16) * 3, area.width);
-            let row_y = area.y + 2 * ((i + 1) as u16);
-    
+
+            let bar_width = min((bars[i].1 as u16) * 2, area.width);
+            let row_y = area.y * ((i + 1) as u16);
+
             if row_y >= area.y + area.height {
                 break;
             }
-            
+
             let bar_chart = BarChart::default()
                 .block(Block::default())
                 .data(&bar)
                 .bar_width(1)
                 .bar_gap(0)
                 .direction(Direction::Horizontal);
-            bar_chart.render(
-                Rect::new(area.x, row_y, bar_width, 1),
-                buf,
-            );
+            bar_chart.render(Rect::new(area.x, row_y, bar_width, 1), buf);
             let label_y = row_y + 1;
             if label_y < area.y + area.height {
                 let t = self.predictions[i].1.clone();
                 Text::from(format!(" {}", t))
-                .render(Rect::new(area.x, label_y, area.width, 1), buf);
+                    .render(Rect::new(area.x, label_y, area.width, 1), buf);
             }
         }
     }
@@ -84,7 +78,7 @@ impl Bus {
 impl Default for Bus {
     fn default() -> Self {
         Self {
-            stop: (String::new(), String::new()),
+            stop: String::new(),
             predictions: Vec::new(),
         }
     }
@@ -92,7 +86,7 @@ impl Default for Bus {
 
 impl Widget for &Bus {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let t = truncate(self.stop.1.as_str(), (area.width - 2) as usize);
+        let t = truncate(self.stop.as_str(), (area.width - 2) as usize);
         let bus_block = Block::default()
             .title(Line::from(t).centered())
             .borders(Borders::ALL)
@@ -105,18 +99,23 @@ impl Widget for &Bus {
             Rect::new(1, 1, outer_inner.width - 1, outer_inner.height - 1),
             buf,
         );
-        let outer_inner = Rect::new(outer_inner.x, outer_inner.y + 1, outer_inner.width, outer_inner.height);
+        let outer_inner = Rect::new(
+            outer_inner.x,
+            outer_inner.y + 1,
+            outer_inner.width,
+            outer_inner.height,
+        );
         match (outer_inner.width, outer_inner.height) {
             (w, h) if w < 30 && h < 6 => {
                 self.render2(outer_inner, buf, 1);
             }
-            (w, h) if w < 30 => {
+            (w, _) if w < 30 => {
                 self.render2(outer_inner, buf, 3);
             }
-      (w, h) if h < 6 => {
+            (_, h) if h < 6 => {
                 self.render2(outer_inner, buf, 1);
             }
-        (_, _) => {
+            (_, _) => {
                 self.render2(outer_inner, buf, 3);
             }
         }
