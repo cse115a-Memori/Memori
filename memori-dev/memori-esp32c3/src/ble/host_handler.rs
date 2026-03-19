@@ -81,6 +81,7 @@ pub(super) async fn handle_host_cmd<P: PacketPool>(
                         |(widget_id, widget)| match widget.get_local_update_frequency() {
                             UpdateFrequency::Never => None,
                             UpdateFrequency::Seconds(s) if s < 60 => Some((*widget_id, s)),
+                            UpdateFrequency::Minutes(m) => Some((*widget_id, m as u32 * 60)),
                             _ => None,
                         },
                     )

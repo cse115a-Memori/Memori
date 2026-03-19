@@ -15,6 +15,6 @@ pub async fn clock_to_memori_widget(id: u32, clock: Clock) -> Result<memori_ui::
         id: WidgetId(id),
         kind: memori_ui::widgets::WidgetKind::Clock(clock),
         remote_update_frequency: memori_ui::widgets::UpdateFrequency::Hours(1),
-        local_update_frequency: memori_ui::widgets::UpdateFrequency::Seconds(1),
+        local_update_frequency: memori_ui::widgets::UpdateFrequency::Minutes(1),
     })
 }

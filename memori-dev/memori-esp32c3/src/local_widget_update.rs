@@ -14,14 +14,13 @@ pub async fn widget_update_task(
     render_tx: RenderTx,
 ) {
     loop {
-        // This loop runs FOREVER
         {
+            Timer::after(Duration::from_secs(seconds)).await;
             let mut locked_state = state.lock().await;
             if let Some(widget) = locked_state.widgets.get_mut(&widget_id) {
                 widget.update();
                 render_tx.send(crate::Render {}).await;
             }
         }
-        Timer::after(Duration::from_secs(seconds)).await;
     }
 }
