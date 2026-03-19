@@ -1,10 +1,30 @@
+use std::{
+    fs::{self, File},
+    path::Path,
+};
+
 use nanoid::nanoid;
+use rand::Rng;
 
 const ID_ALPHABET: [char; 9] = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
 fn main() {
-    let device_id = nanoid!(4, &ID_ALPHABET);
-    println!("cargo:rustc-env=DEVICE_ID={}", device_id);
+    let pair_code = nanoid!(4, &ID_ALPHABET);
+
+    let out_dir = std::env::var("OUT_DIR").unwrap();
+    let ble_id_dest = Path::new(&out_dir).join("device_identity.bin");
+
+    let mut ble_address: [u8; 6] = Default::default();
+    let mut rng = rand::rng();
+    rng.fill_bytes(&mut ble_address);
+
+    // the top two bits need to be high
+    // for a static random address to show up in bluetooth
+    ble_address[0] |= 0b1100_0000;
+
+    fs::write(&ble_id_dest, ble_address).expect("should write the id.");
+
+    println!("cargo:rustc-env=DEVICE_ID={}", pair_code);
     println!("cargo:rerun-if-env-changed=RANDOM_SEED");
 
     linker_be_nice();
