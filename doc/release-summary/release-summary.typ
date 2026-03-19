@@ -117,23 +117,38 @@ As a user, I need the device to stay powered for at least a day.
 // functionality, edge cases that are not handled), design shortcuts (e.g. hard
 // coded data), etc.
 = Known Issues
-- connection state desync issues on app
-  - connection state is dropped when mobile app gets backgrounded. this isn't reflected properly in the app's internal state. 
-- if the user accidentally clicks onboarding after having already onboarded, they have to type
-  in a pairing code and attempt to connect regardless of if they have already paired.
-- Bus widget doesn't work
-- Twitch widget doesn't work
+- Connection state de-sync issues on app.
+  - Connection state is dropped when mobile app gets backgrounded. This isn't reflected properly in the app's internal state.
+
+// - If the user accidentally clicks onboarding after having already
+//   onboarded, they have to type in a pairing code and attempt to connect
+//   regardless of if they have already paired.
+
+// - Bus widget doesn't work
+
+// - Twitch widget doesn't't work.
+
 - After the user has already moved a widget tile to the frame,
   the "Moving: {}" text remains visible.
-- The clock widget will sometimes display the wrong time.
+
+// - The clock widget will sometimes display the wrong time.
+
 - The smallest layout for the weather widget does not properly render.
   it overflows into a different widget's box.
-- After a user selects a different preference for github widget repo and updates to device,
+
+- After a user selects a different preference for GitHub widget repo and updates to device,
   the device takes at least 10 seconds to reflect the new repo.
-- After a user selects a different preference for github widget repo and updates to device,
+
+- After a user selects a different preference for GitHub widget repo and updates to device,
   the device will then revert back to the previous repo data upon a refresh request.
-- Github widget refresh fails when called from ios device.
+
 - Starting onboarding after it has already been completed will not allow pairing if a device is still connected.
+
+- When the app and device state is de-sync'd, the app needs to be restarted and the esp needs to be hard reset.
+
+- When the weather widget is in a quadrant, it overflows it's text to the left.
+
+- Sometimes the device drops the connection, we couldn't figure out why, needs to reset the app.
 
 
 // Provide a list of the high priority user stories and bug fixes that can
